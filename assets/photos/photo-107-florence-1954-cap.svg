@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 900" role="img" aria-label="Florence Black 1954 black cap">
+  <rect width="900" height="900" fill="#f4f2ee"/>
+  <ellipse cx="450" cy="577" rx="305" ry="62" fill="#d8d5ce"/>
+  <path d="M187 560c25-171 124-277 263-277s238 106 263 277c-69 38-155 58-263 58s-194-20-263-58z" fill="#111411"/>
+  <path d="M450 283c-22 76-29 200-18 328" fill="none" stroke="#252a25" stroke-width="8" opacity=".75"/>
+  <path d="M450 283c22 76 29 200 18 328" fill="none" stroke="#252a25" stroke-width="8" opacity=".75"/>
+  <path d="M240 470c116 30 304 31 421 0" fill="none" stroke="#20251f" stroke-width="8" opacity=".7"/>
+  <path d="M178 559c88 30 179 44 272 44s184-14 272-44c-23 63-121 100-272 100s-249-37-272-100z" fill="#0b0d0b"/>
+  <path d="M332 452h236v66H332z" rx="10" fill="#171b17"/>
+  <text x="450" y="500" text-anchor="middle" font-family="Georgia, 'Times New Roman', serif" font-size="44" fill="#f3efe5" letter-spacing="2">1954</text>
+  <text x="450" y="714" text-anchor="middle" font-family="Arial, sans-serif" font-size="28" fill="#3d433b" letter-spacing="8">FLORENCE BLACK</text>
+</svg>

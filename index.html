@@ -1,0 +1,2422 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="theme-color" content="#07100c">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Closet Archive">
+<title>Closet Archive</title>
+<link rel="manifest" href="/manifest.webmanifest">
+<link rel="icon" href="/icon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="/icon.svg">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@300;400;500&family=Playfair+Display:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#07100c;
+  --panel:#122318;
+  --panel-2:#1a3323;
+  --card:#13291d;
+  --card-2:#173523;
+  --media:#0f1d15;
+  --line:#3c6042;
+  --line-2:#5d7746;
+  --text:#f6ecd8;
+  --muted:#b49f7e;
+  --faint:#68583d;
+  --gold:#d1a35e;
+  --green:#7fa06d;
+  --porsche:#143629;
+  --porsche-2:#0b2119;
+  --seat:#7d4927;
+  --seat-2:#59331f;
+  --leather:#a46232;
+  --clay:#8f5a35;
+  --wine:#a2382d;
+  --red:#b3342c;
+  --shadow:0 18px 60px rgba(0,0,0,.38);
+  --mono:'DM Mono',monospace;
+  --serif:'Playfair Display',serif;
+}
+*{box-sizing:border-box}
+html,body{height:100%;min-height:100%}
+body{
+  margin:0;
+  background:
+    radial-gradient(circle at 20% -10%,rgba(192,122,61,.14),transparent 30%),
+    linear-gradient(135deg,#06100c 0%,#10291f 46%,#070b08 100%);
+  color:var(--text);
+  font-family:var(--mono);
+  overflow:hidden;
+  overscroll-behavior:none;
+  -webkit-font-smoothing:antialiased;
+}
+button,input,select,textarea{font:inherit}
+button{cursor:pointer}
+.app{height:100%;height:100dvh;display:grid;grid-template-columns:248px 1fr;min-width:0;overflow:hidden}
+.rail{
+  border-right:1px solid var(--line);
+  background:linear-gradient(180deg,#10281f,#07100c 72%);
+  padding:22px 16px;
+  display:flex;
+  flex-direction:column;
+  gap:18px;
+}
+.brand-kicker{font-size:9px;letter-spacing:.32em;text-transform:uppercase;color:var(--faint);margin-bottom:4px}
+h1{font-family:var(--serif);font-weight:400;font-size:30px;line-height:1;margin:0}
+.rail-stats{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.stat{
+  border:1px solid var(--line);
+  background:linear-gradient(180deg,rgba(184,132,80,.11),rgba(16,21,15,.92));
+  border-radius:8px;
+  padding:12px;
+}
+.stat strong{display:block;font-family:var(--serif);font-size:22px;color:var(--leather);font-weight:500}
+.stat span{display:block;margin-top:4px;color:var(--muted);font-size:8px;text-transform:uppercase;letter-spacing:.16em}
+.nav{display:grid;gap:5px}
+.nav button{
+  min-height:42px;
+  border:1px solid transparent;
+  border-radius:8px;
+  color:var(--muted);
+  background:transparent;
+  display:flex;
+  align-items:center;
+  gap:10px;
+  padding:0 10px;
+  text-align:left;
+  text-transform:uppercase;
+  letter-spacing:.12em;
+  font-size:10px;
+}
+.nav button svg,.icon-btn svg,.primary svg,.ghost svg{width:17px;height:17px;stroke-width:1.8}
+.nav button.on{background:var(--panel);border-color:var(--seat);color:var(--leather)}
+.rail-foot{margin-top:auto;display:grid;gap:8px}
+.main{min-width:0;min-height:0;display:flex;flex-direction:column;height:100%;overflow:hidden}
+.topbar{
+  border-bottom:1px solid var(--line);
+  padding:14px 20px;
+  display:grid;
+  grid-template-columns:minmax(190px,1fr) auto auto;
+  gap:10px;
+  align-items:center;
+  background:rgba(7,16,12,.92);
+  backdrop-filter:blur(16px);
+  z-index:5;
+}
+.search{
+  position:relative;
+  min-width:0;
+}
+.search svg{position:absolute;left:12px;top:50%;transform:translateY(-50%);width:17px;height:17px;color:var(--faint)}
+.search input,.field,.area,select{
+  width:100%;
+  background:var(--panel);
+  border:1px solid var(--line);
+  color:var(--text);
+  border-radius:8px;
+  outline:none;
+}
+.search input{height:42px;padding:0 12px 0 38px}
+.search input:focus,.field:focus,.area:focus,select:focus{border-color:var(--leather)}
+.toolbar{display:flex;gap:8px;align-items:center}
+.mobile-only,.icon-btn.mobile-only{display:none}
+.primary,.ghost,.icon-btn{
+  height:42px;
+  border-radius:8px;
+  border:1px solid var(--line);
+  background:var(--panel);
+  color:var(--text);
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  gap:8px;
+  padding:0 13px;
+  white-space:nowrap;
+}
+.primary{background:linear-gradient(180deg,#a46232,#643820);border-color:#b87842;color:#170b05;font-weight:500;box-shadow:inset 0 1px 0 rgba(255,222,170,.2)}
+.ghost{color:var(--muted)}
+.icon-btn{width:42px;padding:0}
+.content{
+  flex:1;
+  width:100%;
+  min-height:0;
+  overflow-y:auto;
+  overflow-x:hidden;
+  -webkit-overflow-scrolling:touch;
+  padding:18px 20px 96px;
+}
+.content::-webkit-scrollbar{width:10px}
+.content::-webkit-scrollbar-thumb{background:#242018;border-radius:20px;border:3px solid var(--bg)}
+.section-head{display:flex;justify-content:space-between;align-items:flex-end;gap:16px;margin:2px 0 14px}
+.section-head > div{min-width:0}
+.section-title{font-family:var(--serif);font-size:25px;font-weight:400;margin:0}
+.section-sub{color:var(--muted);font-size:10px;letter-spacing:.1em;text-transform:uppercase;margin-top:4px}
+.filters{display:flex;gap:7px;overflow:auto;padding-bottom:12px;scrollbar-width:none}
+.filters::-webkit-scrollbar{display:none}
+.pill{
+  border:1px solid var(--line);
+  background:var(--panel);
+  color:var(--muted);
+  border-radius:999px;
+  min-height:32px;
+  padding:0 12px;
+  text-transform:uppercase;
+  letter-spacing:.12em;
+  font-size:9px;
+  white-space:nowrap;
+}
+.pill.on{background:linear-gradient(180deg,#98592e,#633820);border-color:var(--leather);color:#170b05}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(184px,1fr));gap:10px;align-items:stretch}
+.card{
+  border:1px solid rgba(111,150,88,.58);
+  background:linear-gradient(180deg,var(--card-2),var(--card));
+  border-radius:8px;
+  overflow:hidden;
+  min-width:0;
+  box-shadow:inset 0 1px 0 rgba(180,210,150,.08),0 10px 26px rgba(0,0,0,.18);
+  height:100%;
+  display:flex;
+  flex-direction:column;
+}
+.card-media{
+  width:100%;
+  flex:0 0 auto;
+  padding:0;
+  border:0;
+  aspect-ratio:1/1;
+  background:linear-gradient(180deg,#16281d,var(--media));
+  border-bottom:1px solid rgba(111,150,88,.38);
+  display:grid;
+  place-items:center;
+  color:var(--faint);
+  position:relative;
+}
+.card-media,.photo-preview,.detail-photo{cursor:pointer}
+.card-media img{width:100%;height:100%;object-fit:cover;display:block}
+.card.fragrance-card .card-media,
+.card.wishlist-fragrance-card .card-media{background:radial-gradient(circle at 50% 34%,rgba(192,122,61,.18),transparent 42%),linear-gradient(180deg,#16281d,var(--media))}
+.card.fragrance-card .card-media img,
+.card.wishlist-fragrance-card .card-media img{object-fit:contain;padding:12px}
+.frag-art{
+  width:72%;height:78%;display:grid;place-items:center;
+  border-radius:16px 16px 24px 24px;
+  background:linear-gradient(155deg,rgba(246,236,216,.14),rgba(192,122,61,.18)),#12100c;
+  border:1px solid rgba(192,122,61,.45);
+  position:relative;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.12),0 18px 34px rgba(0,0,0,.28);
+}
+.frag-art::before{
+  content:"";position:absolute;top:-18px;left:50%;transform:translateX(-50%);
+  width:34px;height:22px;border-radius:8px 8px 3px 3px;
+  background:linear-gradient(180deg,#d4bd85,#7d4927);
+  border:1px solid rgba(246,236,216,.25);
+}
+.frag-art::after{
+  content:"";position:absolute;inset:16% 18%;border:1px solid rgba(246,236,216,.22);
+  border-radius:8px;background:rgba(7,16,12,.48);
+}
+.frag-art span{
+  position:relative;z-index:1;font-family:var(--serif);font-size:32px;
+  color:var(--text);text-shadow:0 1px 18px rgba(192,122,61,.28);
+}
+.row-thumb .frag-art,.slot-photo .frag-art{width:58%;height:68%;border-radius:8px 8px 11px 11px}
+.row-thumb .frag-art::before,.slot-photo .frag-art::before{top:-7px;width:15px;height:9px;border-radius:4px 4px 2px 2px}
+.row-thumb .frag-art::after,.slot-photo .frag-art::after{display:none}
+.row-thumb .frag-art span,.slot-photo .frag-art span{font-size:12px}
+.card-media svg{width:30px;height:30px;opacity:.65}
+.card-body{
+  padding:12px;
+  flex:1;
+  display:flex;
+  flex-direction:column;
+  min-height:0;
+}
+.mini-actions{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px;margin-top:10px}
+.mini-actions .build-action{grid-column:1/-1}
+.mini-actions .ghost,.mini-actions .primary{height:34px;font-size:9px;flex:1}
+.photo-picker{
+  grid-column:1/-1;
+  border:1px solid var(--line);
+  border-radius:8px;
+  background:var(--card);
+  padding:12px;
+  display:grid;
+  grid-template-columns:112px 1fr;
+  gap:12px;
+  align-items:center;
+}
+.photo-preview{
+  width:112px;
+  aspect-ratio:1/1;
+  border:1px solid var(--line-2);
+  border-radius:8px;
+  background:#0c0b09;
+  display:grid;
+  place-items:center;
+  color:var(--faint);
+  overflow:hidden;
+}
+.photo-preview img{width:100%;height:100%;object-fit:cover;display:block}
+.photo-preview svg{width:30px;height:30px}
+.photo-tools{display:grid;gap:8px;align-content:center}
+.photo-tools small{color:var(--muted);font-size:10px;line-height:1.5}
+.eyebrow{font-size:8px;letter-spacing:.19em;text-transform:uppercase;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.name{
+  font-family:var(--serif);
+  font-size:16px;
+  line-height:1.2;
+  margin:6px 0 9px;
+  min-height:38px;
+  display:-webkit-box;
+  -webkit-line-clamp:2;
+  -webkit-box-orient:vertical;
+  overflow:hidden;
+}
+.meta{
+  font-size:10px;
+  color:var(--muted);
+  line-height:1.55;
+  min-height:31px;
+  display:-webkit-box;
+  -webkit-line-clamp:2;
+  -webkit-box-orient:vertical;
+  overflow:hidden;
+}
+.price-row{display:flex;align-items:flex-end;justify-content:space-between;gap:8px;margin-top:10px}
+.price{font-family:var(--serif);font-size:19px;color:var(--leather)}
+.price small{font-family:var(--mono);font-size:9px;color:var(--muted)}
+.wear{
+  border-top:1px solid var(--line);
+  margin-top:auto;
+  padding-top:10px;
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  gap:8px;
+}
+.wear-val{font-size:10px;color:var(--green)}
+.counter{display:flex;align-items:center;gap:6px}
+.round{
+  width:26px;height:26px;border-radius:50%;
+  border:1px solid var(--line-2);background:var(--panel-2);color:var(--text);
+}
+.list{display:grid;gap:10px}
+.row-card{
+  border:1px solid rgba(111,150,88,.58);
+  border-radius:8px;
+  background:linear-gradient(180deg,var(--card-2),var(--card));
+  padding:13px;
+  display:grid;
+  grid-template-columns:1fr auto;
+  gap:12px;
+  align-items:center;
+}
+.row-main{display:flex;align-items:center;gap:11px;min-width:0}
+.row-thumb{
+  width:46px;height:46px;border:1px solid var(--line-2);border-radius:7px;
+  background:#0c0b09;display:grid;place-items:center;color:var(--faint);
+  overflow:hidden;flex-shrink:0;
+}
+.row-thumb img{width:100%;height:100%;object-fit:cover;display:block}
+.row-thumb.frag-thumb img{object-fit:contain;padding:4px}
+.row-thumb svg{width:20px;height:20px}
+.row-title{font-family:var(--serif);font-size:18px}
+.row-sub{color:var(--muted);font-size:10px;margin-top:4px}
+.detail-photo{
+  width:100%;aspect-ratio:16/10;border:1px solid var(--line);border-radius:10px;
+  background:#09100c;display:grid;place-items:center;overflow:hidden;margin-bottom:14px;color:var(--faint);
+}
+.detail-photo img{width:100%;height:100%;object-fit:cover}
+.detail-photo.fragrance-photo img{object-fit:contain;padding:18px}
+.detail-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:12px 0}
+.detail-chip{border:1px solid var(--line);background:var(--panel);border-radius:8px;padding:10px}
+.detail-chip span{display:block;color:var(--muted);font-size:8px;text-transform:uppercase;letter-spacing:.16em}
+.detail-chip strong{display:block;margin-top:5px;font-family:var(--serif);font-weight:400;font-size:17px;color:var(--text)}
+.gap-list{display:grid;gap:8px;margin-top:10px}
+.gap-item{border-left:2px solid var(--wine);background:#0b120d;border-radius:5px;padding:10px;color:var(--muted);font-size:11px;line-height:1.5}
+.judge-card{
+  border:1px solid var(--line);
+  background:linear-gradient(180deg,#14120e,#0f0e0c);
+  border-radius:8px;
+  padding:14px;
+  margin-top:14px;
+}
+.judge-score{font-family:var(--serif);font-size:34px;color:var(--leather);line-height:1}
+.judge-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:8px;margin-top:12px}
+.judge-metric{border:1px solid var(--line);border-radius:8px;padding:10px;background:#0c0b09}
+.judge-metric span{display:block;color:var(--muted);font-size:8px;text-transform:uppercase;letter-spacing:.16em}
+.judge-metric strong{display:block;margin-top:5px;color:var(--text);font-size:15px}
+.judge-notes{display:grid;gap:7px;margin-top:12px}
+.judge-note{border-left:2px solid var(--seat);background:#0c0b09;border-radius:5px;padding:9px 10px;color:var(--muted);font-size:11px;line-height:1.5}
+.dash-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:18px}
+.dash-card{
+  border:1px solid rgba(111,150,88,.58);
+  background:linear-gradient(180deg,var(--card-2),var(--card));
+  border-radius:8px;
+  padding:16px;
+}
+.dash-card span{display:block;color:var(--muted);font-size:9px;text-transform:uppercase;letter-spacing:.16em}
+.dash-card strong{display:block;font-family:var(--serif);font-size:28px;font-weight:500;margin-top:8px;color:var(--leather)}
+.builder{display:grid;grid-template-columns:320px 1fr;gap:14px}
+.panel{
+  border:1px solid rgba(111,150,88,.58);
+  background:linear-gradient(180deg,var(--card-2),var(--card));
+  border-radius:8px;
+  padding:14px;
+  min-width:0;
+}
+.panel-title{font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.18em;margin-bottom:10px}
+.slot-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:8px}
+.slot{
+  min-height:86px;
+  border:1px dashed var(--line-2);
+  border-radius:8px;
+  background:linear-gradient(180deg,#14271b,#102017);
+  padding:11px;
+  text-align:left;
+  color:var(--muted);
+}
+.slot.filled{border-style:solid;background:linear-gradient(180deg,#1b3825,#14291c);color:var(--text)}
+.slot-photo{
+  width:46px;height:46px;border:1px solid var(--line-2);border-radius:7px;
+  background:#0c0b09;display:grid;place-items:center;color:var(--faint);
+  overflow:hidden;margin-bottom:8px;
+}
+.slot-photo img{width:100%;height:100%;object-fit:cover;display:block}
+.slot-photo.frag-thumb img{object-fit:contain;padding:4px}
+.slot-photo svg{width:20px;height:20px}
+.slot b{display:block;font-family:var(--serif);font-weight:400;font-size:15px;color:var(--text);line-height:1.2;margin-top:5px}
+.slot small{display:block;margin-top:5px;color:var(--muted);font-size:9px}
+.saved-thumbs{display:flex;gap:6px;margin-top:9px;flex-wrap:wrap}
+.saved-thumbs .row-thumb{width:38px;height:38px}
+.modal-wrap{
+  position:fixed;inset:0;background:rgba(0,0,0,.72);
+  display:none;align-items:flex-end;justify-content:center;z-index:20;padding:16px;
+}
+.modal-wrap.open{display:flex}
+.modal{
+  width:min(720px,100%);
+  max-height:88vh;
+  overflow:auto;
+  background:#11100e;
+  border:1px solid var(--line-2);
+  border-radius:14px;
+  box-shadow:var(--shadow);
+}
+.modal-head{
+  position:sticky;top:0;background:#11100e;
+  display:flex;align-items:center;justify-content:space-between;
+  padding:16px;border-bottom:1px solid var(--line);
+}
+.modal-title{font-family:var(--serif);font-size:22px}
+.modal-body{padding:16px}
+.form-grid{display:grid;grid-template-columns:1fr 1fr;gap:11px}
+.form-grid .full{grid-column:1/-1}
+label{display:grid;gap:5px;color:var(--muted);font-size:8px;text-transform:uppercase;letter-spacing:.17em}
+.field,select{height:42px;padding:0 11px}
+.area{min-height:88px;padding:11px;resize:vertical}
+.modal-actions{display:flex;gap:8px;justify-content:flex-end;margin-top:14px}
+.empty{
+  border:1px dashed var(--line);
+  border-radius:8px;
+  padding:42px 18px;
+  color:var(--faint);
+  text-align:center;
+  font-family:var(--serif);
+  font-size:18px;
+}
+.bottom-nav{display:none}
+.toast{
+  position:fixed;left:50%;bottom:24px;transform:translate(-50%,12px);
+  opacity:0;pointer-events:none;z-index:30;
+  background:#241208;border:1px solid var(--leather);color:var(--leather);
+  padding:11px 16px;border-radius:999px;font-size:10px;text-transform:uppercase;letter-spacing:.12em;
+  transition:.2s ease;
+}
+.toast.show{opacity:1;transform:translate(-50%,0)}
+@media (max-width:900px){
+  .app{grid-template-columns:1fr}
+  .rail{display:none}
+  .topbar{grid-template-columns:1fr auto auto;padding:12px}
+  .toolbar{display:none}
+  .mobile-only,.icon-btn.mobile-only{display:inline-flex}
+  .content{padding:14px 12px 96px;max-width:100vw}
+  .section-head{align-items:flex-start;flex-wrap:wrap}
+  .section-head .primary,.section-head .ghost{width:100%;white-space:normal}
+  .grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+  .card-body{padding:10px}
+  .name{font-size:14px;min-height:34px}
+  .dash-grid{grid-template-columns:1fr 1fr}
+  .builder{grid-template-columns:minmax(0,1fr);width:100%;gap:10px}
+  .panel{width:100%;padding:12px}
+  .slot-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .slot{min-width:0;overflow:hidden}
+  .slot b,.slot small{overflow-wrap:anywhere}
+  .bottom-nav{
+    position:fixed;left:0;right:0;bottom:0;display:grid;
+    grid-template-columns:repeat(5,1fr);
+    background:rgba(17,17,15,.96);
+    border-top:1px solid var(--line);
+    padding:6px 6px calc(6px + env(safe-area-inset-bottom));
+    z-index:10;
+  }
+  .bottom-nav button{
+    min-height:48px;border:0;background:transparent;color:var(--muted);
+    border-radius:8px;font-size:8px;text-transform:uppercase;letter-spacing:.1em;
+    display:grid;place-items:center;gap:2px;
+  }
+  .bottom-nav button svg{width:18px;height:18px}
+  .bottom-nav button.on{background:var(--panel-2);color:var(--leather)}
+  .form-grid{grid-template-columns:1fr}
+  .photo-picker{grid-template-columns:90px 1fr}
+  .photo-preview{width:90px}
+  .detail-grid{grid-template-columns:1fr 1fr}
+}
+@media (max-width:420px){
+  .grid{grid-template-columns:1fr 1fr}
+  .builder{display:block}
+  .builder .panel + .panel{margin-top:10px}
+  .slot-grid{grid-template-columns:1fr}
+  .filters{margin-left:-12px;margin-right:-12px;padding-left:12px;padding-right:12px}
+  .primary,.ghost{white-space:normal;line-height:1.25}
+  .price{font-size:16px}
+  .card-body{padding:9px}
+  .meta{font-size:9px}
+}
+</style>
+</head>
+<body>
+<div class="app">
+  <aside class="rail">
+    <div>
+      <div class="brand-kicker">Personal Archive</div>
+      <h1>Devin's Closet</h1>
+    </div>
+    <div class="rail-stats">
+      <div class="stat"><strong id="statPieces">0</strong><span>Pieces</span></div>
+      <div class="stat"><strong id="statValue">$0</strong><span>Value</span></div>
+      <div class="stat"><strong id="statFrags">0</strong><span>Scents</span></div>
+      <div class="stat"><strong id="statCPW">$0</strong><span>Best CPW</span></div>
+    </div>
+    <nav class="nav" id="sideNav"></nav>
+    <div class="rail-foot">
+      <button class="primary" data-action="add"><i data-lucide="plus"></i>Add Item</button>
+      <button class="ghost" data-action="export"><i data-lucide="download"></i>Export</button>
+      <button class="ghost" data-action="import"><i data-lucide="upload"></i>Import</button>
+    </div>
+  </aside>
+  <main class="main">
+    <header class="topbar">
+      <div class="search"><i data-lucide="search"></i><input id="search" type="search" placeholder="Search brand, item, color, note..."></div>
+      <div class="toolbar">
+        <button class="ghost" data-action="random"><i data-lucide="sparkles"></i>Build Fit</button>
+        <button class="primary" data-action="add"><i data-lucide="plus"></i>Add Item</button>
+      </div>
+      <button class="icon-btn mobile-only" data-action="add" aria-label="Add item"><i data-lucide="plus"></i></button>
+      <button class="icon-btn" data-action="menu" aria-label="More"><i data-lucide="more-horizontal"></i></button>
+    </header>
+    <section class="content" id="view"></section>
+  </main>
+</div>
+<nav class="bottom-nav" id="bottomNav"></nav>
+
+<div class="modal-wrap" id="itemModal" role="dialog" aria-modal="true">
+  <form class="modal" id="itemForm">
+    <div class="modal-head">
+      <div class="modal-title" id="itemModalTitle">Add Item</div>
+      <button type="button" class="icon-btn" data-close="itemModal" aria-label="Close"><i data-lucide="x"></i></button>
+    </div>
+    <div class="modal-body">
+      <div class="form-grid">
+        <label>Type
+          <select id="fType">
+            <option value="wardrobe">Wardrobe</option>
+            <option value="fragrance">Fragrance</option>
+            <option value="wishlist">Wishlist</option>
+          </select>
+        </label>
+        <label>Category
+          <select id="fCategory">
+            <option>Tops</option><option>Bottoms</option><option>Outerwear</option><option>Shoes</option>
+            <option>Hats</option><option>Socks</option><option>Accessories</option><option>Bags</option><option>Watches</option><option>Fragrances</option>
+          </select>
+        </label>
+        <label>Brand / House<input class="field" id="fBrand" required></label>
+        <label>Item Name<input class="field" id="fName" required></label>
+        <label>Color / Season<input class="field" id="fColor"></label>
+        <label>Size / Type<input class="field" id="fSize"></label>
+        <label>Price<input class="field" id="fPrice" type="number" min="0" step="1"></label>
+        <label>Date Added<input class="field" id="fDate" type="month"></label>
+        <div class="photo-picker">
+          <div class="photo-preview" id="photoPreview"><i data-lucide="image-plus"></i></div>
+          <div class="photo-tools">
+            <button type="button" class="primary" id="uploadPhoto"><i data-lucide="camera"></i>Take / Upload Photo</button>
+            <button type="button" class="ghost" id="identifyPhoto"><i data-lucide="scan-search"></i>AI Identify</button>
+            <button type="button" class="ghost" id="removePhoto"><i data-lucide="trash-2"></i>Remove Photo</button>
+            <small>Photos are resized and saved in this browser with the item.</small>
+          </div>
+        </div>
+        <input id="photoFile" type="file" accept="image/*" style="display:none">
+        <input id="fPhoto" type="hidden">
+        <label class="full">Notes<textarea class="area" id="fNotes" placeholder="Fit notes, styling ideas, condition, link, etc."></textarea></label>
+      </div>
+      <div class="modal-actions">
+        <button type="button" class="ghost" id="deleteItem"><i data-lucide="trash-2"></i>Delete</button>
+        <button type="button" class="ghost" data-close="itemModal">Cancel</button>
+        <button class="primary" type="submit"><i data-lucide="save"></i>Save Item</button>
+      </div>
+    </div>
+  </form>
+</div>
+
+<div class="modal-wrap" id="detailModal" role="dialog" aria-modal="true">
+  <div class="modal">
+    <div class="modal-head">
+      <div class="modal-title" id="detailTitle">Item</div>
+      <button type="button" class="icon-btn" data-close="detailModal" aria-label="Close"><i data-lucide="x"></i></button>
+    </div>
+    <div class="modal-body" id="detailBody"></div>
+  </div>
+</div>
+
+<div class="modal-wrap" id="importModal" role="dialog" aria-modal="true">
+  <div class="modal">
+    <div class="modal-head">
+      <div class="modal-title">Import / Export</div>
+      <button type="button" class="icon-btn" data-close="importModal" aria-label="Close"><i data-lucide="x"></i></button>
+    </div>
+    <div class="modal-body">
+      <label>Archive JSON<textarea class="area" id="archiveText" style="min-height:260px"></textarea></label>
+      <div class="modal-actions">
+        <button type="button" class="ghost" data-close="importModal">Cancel</button>
+        <button type="button" class="ghost" id="copyArchive"><i data-lucide="copy"></i>Copy</button>
+        <button type="button" class="primary" id="applyImport"><i data-lucide="upload"></i>Apply Import</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="modal-wrap" id="aiModal" role="dialog" aria-modal="true">
+  <div class="modal">
+    <div class="modal-head">
+      <div class="modal-title">AI Judge</div>
+      <button type="button" class="icon-btn" data-close="aiModal" aria-label="Close"><i data-lucide="x"></i></button>
+    </div>
+    <div class="modal-body">
+      <div class="gap-item" style="margin-bottom:12px">Production AI uses the hidden Netlify environment variable <strong>OPENAI_API_KEY</strong>. Leave this blank unless you are testing outside Netlify.</div>
+      <label>Browser API Key Backup<input class="field" id="aiKey" type="password" autocomplete="off" placeholder="Optional local-only backup"></label>
+      <label style="margin-top:11px">Model<input class="field" id="aiModel" value="gpt-4.1-mini"></label>
+      <small style="display:block;margin-top:10px;color:var(--muted);line-height:1.6">The built-in FireFit judge works offline. The real AI judge only works on your Netlify production link after the full zip, including functions, is deployed.</small>
+      <div class="modal-actions">
+        <button type="button" class="ghost" id="clearAiKey"><i data-lucide="trash-2"></i>Clear</button>
+        <button type="button" class="ghost" data-close="aiModal">Cancel</button>
+        <button type="button" class="primary" id="saveAiKey"><i data-lucide="save"></i>Save</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="modal-wrap" id="slotModal" role="dialog" aria-modal="true">
+  <div class="modal">
+    <div class="modal-head">
+      <div class="modal-title" id="slotTitle">Pick Item</div>
+      <button type="button" class="icon-btn" data-close="slotModal" aria-label="Close"><i data-lucide="x"></i></button>
+    </div>
+    <div class="modal-body">
+      <div class="search" style="margin-bottom:12px"><i data-lucide="search"></i><input id="slotSearch" type="search" placeholder="Search this slot..."></div>
+      <div class="list" id="slotList"></div>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
+<script>
+const STORAGE_KEY = "closet_archive_v2";
+const AI_KEY_STORAGE = "closet_openai_key";
+const AI_MODEL_STORAGE = "closet_openai_model";
+const DEFAULT_AI_MODEL = "gpt-4.1-mini";
+const money = new Intl.NumberFormat("en-US",{style:"currency",currency:"USD",maximumFractionDigits:0});
+const monthFmt = new Intl.DateTimeFormat("en-US",{month:"short",year:"numeric"});
+const tabs = [
+  ["wardrobe","Wardrobe","shirt"],
+  ["outfits","Outfits","sparkles"],
+  ["fragrance","Fragrance","spray-can"],
+  ["wishlist","Wish List","star"],
+  ["analytics","Value","bar-chart-3"]
+];
+const releaseNotes = [
+  "ALD Porsche-inspired Mulberry Green and cognac leather palette.",
+  "Full v21 wardrobe seed with 152 clothing pieces and 21 fragrances.",
+  "Photo-first add flow with phone camera upload and saved item photos.",
+  "AI Identify can fill item fields from a photo when an API key is saved.",
+  "Item detail pages with CPW, wear count, notes, and best pairings.",
+  "Outfit builder modes: casual, elevated, dinner, travel, statement, low CPW.",
+  "Local Fit Judge now scores color, silhouette, texture, formality, season, footwear, accessories, and cohesion.",
+  "Wear calendar logs outfits with Wore Today.",
+  "Closet Gaps and CPW analytics.",
+  "Fragrance layering engine and layer log."
+];
+const styleOverrides = [
+  {match:"JM Work Jacket",fit:"cropped",silhouette:["boxy","waist-length"],texture:["distressed","vintage","workwear"],undertone:"faded blue-green",tags:["cropped jacket","vintage workwear","distressed"],bestWith:["high waist pants","wide pants","brown shoes","black hat"],avoidWith:["long outerwear","extra brown hat"]},
+  {match:"Kody Pants",fit:"high-waist",silhouette:["wide","high rise"],texture:["structured"],undertone:"olive",tags:["high-waisted","wide leg","statement pant"],bestWith:["cropped jacket","boxy shirt","brown shoes","black hat"],avoidWith:["long tops","low contrast shoes"]},
+  {match:"Lasso Shirt",fit:"cropped",silhouette:["boxy","waist-length"],texture:["western"],tags:["cropped shirt","statement top"],bestWith:["wide pants","black shoes","brown shoes"],avoidWith:["busy hat"]},
+  {match:"Barrel Pants",fit:"high-waist",silhouette:["barrel","wide"],tags:["high-waisted","volume bottom"],bestWith:["cropped top","slim tank","short jacket"],avoidWith:["long hoodie"]},
+  {match:"Double Pleated Pant",fit:"high-waist",silhouette:["wide","tailored"],tags:["high-waisted","tailored wide"],bestWith:["cropped knit","loafer","derby"],avoidWith:["oversized long tee"]},
+  {match:"Wide-Leg Cotton-Twill Pants",fit:"high-waist",silhouette:["very wide","high rise"],tags:["high-waisted","wide leg"],bestWith:["cropped overshirt","leather shoe"],avoidWith:["chunky long top"]},
+  {match:"Monthly Color Trousers",fit:"relaxed",silhouette:["straight","fluid"],texture:["pleated"],tags:["tailored relaxed"],bestWith:["cropped jacket","loafer","derby"],avoidWith:["too sporty top"]},
+  {match:"Eternal Zip",fit:"cropped",silhouette:["cropped","zip"],tags:["cropped jacket"],bestWith:["wide pants","high waist pants"],avoidWith:["low rise bottoms"]},
+  {match:"Heavy Hood",fit:"cropped",silhouette:["cropped","hoodie"],tags:["cropped hoodie"],bestWith:["wide pants","cargo pants"],avoidWith:["shorts"]},
+  {match:"Black Heavy Hoodie",fit:"cropped",silhouette:["cropped","hoodie"],tags:["cropped hoodie"],bestWith:["wide pants","green pants"],avoidWith:["black-on-black flat shoes"]},
+  {match:"Boxy Fit Overshirt",fit:"boxy-cropped",silhouette:["boxy","cropped"],tags:["boxy cropped"],bestWith:["wide pants","high waist pants"],avoidWith:["boxy outer layer"]},
+  {match:"Renzo Pocket Overshirt",fit:"oversized",silhouette:["boxy","oversized"],texture:["workwear"],tags:["overshirt","boxy"],bestWith:["slim tee","straight pants"],avoidWith:["oversized pants plus chunky shoe"]},
+  {match:"Raife Boxy Shirt",fit:"oversized",silhouette:["boxy","oversized"],tags:["boxy shirt"],bestWith:["structured pants","loafers"],avoidWith:["wide shorts"]},
+  {match:"Piped Loafers",texture:["leather"],tags:["refined shoe"],bestWith:["trousers","wide pants","cropped top"],avoidWith:["too sporty socks"]},
+  {match:"Faro Brown Derbies",texture:["leather"],tags:["brown leather shoe"],bestWith:["olive pants","navy shirt","cream top"],avoidWith:["brown hat overload"]},
+  {match:"LV Shark Clogs",tags:["statement shoe"],bestWith:["simple pants","cream top"],avoidWith:["too many statement accessories"]},
+  {match:"ALD NY Yankees Retro Fit Hat",tags:["black hat","grounding accessory"],bestWith:["brown shoes","green pants","blue top"],avoidWith:["all-black flat fit"]},
+  {match:"ALD New Era Highlanders Hat",tags:["navy hat","cool accessory"],bestWith:["cream top","brown shoes"],avoidWith:["too much navy"]},
+  {match:"Collegiate Mulberry Hat",tags:["brown hat","warm accessory"],bestWith:["black shoes","cream top"],avoidWith:["brown shoes and brown pants together"]},
+  {match:"Corduroy Buddy Hat",texture:["corduroy"],tags:["khaki hat","warm accessory"],bestWith:["olive","cream","navy"],avoidWith:["too many earth tones"]}
+];
+const wardrobeRows = `
+Aime Leon Dore|ALD NY Yankees Retro Fit Hat|Jet Black|One Size|120|2026-04|Hats
+Aime Leon Dore|Mesh V-Neck Tee|Kalamata|L|130|2026-04|Tops
+Aime Leon Dore|Aime Cup Soccer Jersey|Agave|M|150|2026-04|Tops
+Aime Leon Dore|Aime Baseball Jersey|Coconut Milk|M|175|2026-03|Tops
+Aime Leon Dore|ALD Technics Nylon Logo Hat|Jet Black|One Size|75|2026-03|Hats
+Aime Leon Dore|Jacquard Striped Tee|Beige Stripe|M|120|2026-03|Tops
+Aime Leon Dore|Cotton Slub Cardigan|Coconut Milk|L|395|2026-03|Outerwear
+Aime Leon Dore|ALD New Era Highlanders Hat|Navy Blazer|One Size|75|2026-02|Hats
+Aime Leon Dore|Mesh Batting Practice Jersey|Navy Blazer|L|120|2026-02|Tops
+Aime Leon Dore|ALD Diner Clog|Jet Black|10|50|2026-01|Shoes
+Aime Leon Dore|Pinstripe Wool Suit Trouser|Navy|32|298|2025-12|Bottoms
+Aime Leon Dore|Double-Breasted Pinstripe Wool Suit Jacket|Navy|44|750|2025-12|Tops
+Aime Leon Dore|Mitchell and Ness Artisan Hockey Jersey|Black|M|350|2025-11|Tops
+Aime Leon Dore|Triborough Dry Goods Hat|Kelp|One Size|70|2025-10|Hats
+Aime Leon Dore|Fur Earflap Hat|Oatmeal|One Size|120|2025-10|Hats
+Aime Leon Dore|Collegiate Mulberry Hat|Chocolate Truffle|One Size|70|2025-10|Hats
+Aime Leon Dore|Nylon Sport Hat|Jet Black|One Size|65|2025-05|Hats
+Aime Leon Dore|Aime Cycling Jersey|Pink|XL|175|2025-05|Tops
+Aime Leon Dore|The Worlds Borough Hat|Navy Blazer|One Size|65|2025-03|Hats
+Aime Leon Dore|Washed A Logo Hat|Indigo|One Size|65|2025-03|Hats
+Aime Leon Dore|Tropical Wool Suit Trouser|Grey Green Tint|36|495|2025-02|Bottoms
+Aime Leon Dore|Wool Heritage Hat|Green|One Size|120|2025-02|Hats
+Aime Leon Dore|Double Pleated Pant|Bright White|36|285|2025-04|Bottoms
+Aime Leon Dore|Lug Sole Derby|Pine Grove|10|395|2025-02|Shoes
+Aime Leon Dore|Corduroy Buddy Hat|Khaki|One Size|70|2024-09|Hats
+Aime Leon Dore|Tuxedo Trouser|Black|34|500|2024-09|Bottoms
+Aime Leon Dore|Zip Cycling Shirt|Sky Captain|L|195|2024-08|Tops
+Aime Leon Dore|Military Cargo Pant|Painterly Camo|34|295|2024-08|Bottoms
+Aime Leon Dore|Cycling Logo Hat|Jet Black|One Size|65|2024-02|Hats
+Aime Leon Dore|Leather Team Football Jersey|Navy Blazer|L|595|2024-02|Tops
+Aime Leon Dore|Currency Cap|Pristine|One Size|65|2024-02|Hats
+Aime Leon Dore|Mesh Moto Long-Sleeve Tee|Orange|L|95|2024-02|Tops
+Aime Leon Dore|Team Leon Soccer Hat|Jet Black|One Size|80|2024-03|Hats
+Aime Leon Dore|Raglan Sweater Tee|Heather Grey|L|295|2024-09|Tops
+Aime Leon Dore|Blanket Overshirt|Multi|L|450|2024-09|Outerwear
+Aime Leon Dore|Alpaca Fleece Pullover|Foxtrot|L|995|2023-11|Tops
+Aime Leon Dore|New Era Tonal Wool Yankees Hat|Black|One Size|70|2023-11|Hats
+Aime Leon Dore|Chain Stitch Suede Hat|Moro|One Size|95|2023-11|Hats
+Aime Leon Dore|Leon Corduroy Hat|Merlot|One Size|60|2023-10|Hats
+Aime Leon Dore|Fleece Beanie|Shadow Purple|One Size|60|2023-10|Hats
+Aime Leon Dore|New Balance Summit Hat|Grey|One Size|55|2022-12|Hats
+Aime Leon Dore|Striped Crest Sock Grey|Grey|One Size|30|2025-05|Socks
+Aime Leon Dore|Striped Crest Sock Pristine|Pristine|One Size|25|2024-03|Socks
+Aime Leon Dore|Fox Fur Hood|Jet Black|One Size|150|2023-11|Accessories
+Aime Leon Dore|Jake Gloves|Loden|9|160|2023-11|Accessories
+Aime Leon Dore|Packable Logo Tote|Navy|One Size|30|2024-02|Accessories
+Louis Vuitton x Tyler the Creator|Monogram Craggy Reversible Bucket Hat|Brown|M|1187|2026-04|Hats
+Louis Vuitton|LV Shark Clogs|Brown||765|2026-04|Shoes
+Buck Mason|Japanese Denim Ford Standard Jean|Dark Indigo|34|228|2025-10|Bottoms
+Buck Mason|Field-Spec Cotton Heavy Tee White|White|M|62|2025-10|Tops
+Buck Mason|Field-Spec Cotton Heavy Tee Black|Black|M|62|2025-10|Tops
+Buck Mason|Seafarer Cotton Beanie Redwood|Redwood|OS|55|2023-12|Hats
+Buck Mason|Seafarer Cotton Beanie Ivory|Vintage Ivory|OS|55|2023-12|Hats
+Cole Buxton|Cotton Chore Jacket|Blue|L|300|2026-03|Outerwear
+Cole Buxton|The Wilson Sneaker|Triple Black|9|132|2025-11|Shoes
+Cole Buxton|Cropped Insulated Puffer|Black|L|542|2023-11|Outerwear
+Kith|Kith Pittsburgh Pirates Snapback|Black|One Size|60|2024-03|Hats
+Kith|Kith New York Mets Snapback|Black|One Size|60|2024-03|Hats
+Kith|Kith NYC Cotton Beanie|Cypress|One Size|60|2022-10|Hats
+Kith|Kith Linwood Crewneck Sweater|Apex|L|220|2022-10|Tops
+Kith|Kith Crystal Wash Turtleneck|Pimento|L|125|2022-10|Tops
+Kith|Kith Patchwork Cord Ludlow Shirt|Pimento|L|195|2022-10|Tops
+John Elliott|Riviera Cropped Tee|Washed Citrus|L|98|2024-08|Tops
+John Elliott|Solid Hemi Oversized Shirt|Black|L|298|2024-08|Tops
+Fear of God ESSENTIALS|Textured Nylon Trucker Jacket|Black|M|249|2024-09|Outerwear
+Joshua Mohamed|JM Work Jacket|Olive|L|159|2026-04|Outerwear
+Legacy|Black Denim Jacket|Black|L|120|2026-04|Outerwear
+Lee|Light Grey Denim Jacket|Light Grey|L|80|2026-04|Outerwear
+Kody Phillips|Lasso Shirt|All Black|L|174|2026-04|Tops
+Kody Phillips|Kody Pants|Olive Green|34|288|2026-04|Bottoms
+Florence Black|Renzo Pocket Overshirt|Black|L|276|2025-06|Tops
+Florence Black|Raife Boxy Shirt|Black|L|248|2025-06|Tops
+Florence Black|1954 Black Cap|Black|One Size|30|2025-06|Hats
+Generic|White Tee|White|L|15|2026-04|Tops
+Generic|Black Tee|Black|L|15|2026-04|Tops
+Generic|White Tank Top|White|L|10|2026-04|Tops
+Generic|Black Tank Top|Black|L|10|2026-04|Tops
+Buck Mason|Heavy White Henley|White|M|130|2026-04|Tops
+Generic|White Thermal|White|L|30|2026-04|Tops
+Generic|Black Thermal|Black|L|30|2026-04|Tops
+Generic|Western Belt|Black|L|45|2026-04|Accessories
+Generic|Belt Gold Buckle|Black|L|35|2026-04|Accessories
+Generic|Belt Brown|Brown|L|30|2026-04|Accessories
+Generic|Belt Brown 2|Brown|L|30|2026-04|Accessories
+Joshua Mohamed|Merino Wool Split Sweater|Black|M|159|2026-04|Tops
+Reiss|Cream Textured Knit Shirt|Cream|L|145|2026-04|Tops
+Reiss|Houndstooth Knit Shirt|Grey White|L|145|2026-04|Tops
+Reiss|Navy Striped Knit Shirt|Navy|L|145|2026-04|Tops
+Trythmclub|Mohair Sweater|Grey|L|120|2026-04|Tops
+H and M Atelier|Mohair Quarter-Zip|Grey|M|60|2026-04|Tops
+Abercrombie|Quarter Zip|Cream|L|65|2026-04|Tops
+Abercrombie|Quarter Zip|Grey|M|65|2026-04|Tops
+Abercrombie|Quarter Zip|Green|M|65|2026-04|Tops
+H and M Atelier|Mohair Round Neck|Black|M|60|2026-04|Tops
+Saalt Studio|Football Jersey Shirt|Grey|L|85|2026-04|Tops
+Porter James|Barrel Pants|Black|34|95|2026-04|Bottoms
+Zara|Pleated Pants Grey|Grey|34|60|2026-04|Bottoms
+Zara|Pleated Pants Black|Black|34|60|2026-04|Bottoms
+Urban Outfitters|Rugby Shirt|Blue White|L|59|2026-04|Tops
+Charles Tyrwhitt|CF White Button-Down Washed Oxford|White|XL|42|2025-06|Tops
+Free People|Willow Suede Sneakers|Tan|11|118|2025-05|Shoes
+Carhartt|Loose Fit Firm Duck Utility Work Pant|Black|W36 L32|60|2024-10|Bottoms
+Banana Republic Factory|Leather Trouser Belt|Black|L|24|2025-04|Accessories
+SHEIN|Street-Style Pleated Casual Shorts|Black|M|16|2025-07|Bottoms
+Elwood Clothing|Work Shirt|Mechanic Blue|L|60|2023-07|Tops
+Elwood Clothing|Oversized Crop Core Tee|Vintage Slate|L|30|2023-06|Tops
+Lemaire|Piped Loafers|Black||650|2026-01|Shoes
+Loewe|Faro Brown Derbies|Brown|43|667|2026-04|Shoes
+Aime Leon Dore|Diner Clog|Green|10|95|2026-04|Shoes
+Stoc and Weber|Black Lugged Loafers|Black||380|2026-01|Shoes
+Bottega Veneta|Lugged Chelsea Boots|Black||1100|2026-01|Shoes
+Lucky Brand|Clean Break Straight Fit Jeans|Light Denim|34|99|2026-04|Bottoms
+H and M|Double-Breasted Wool Coat|Brown|L|269|2025-11|Outerwear
+H and M|Relaxed-Fit Mohair-Blend Cardigan|Black|M|129|2025-12|Tops
+H and M|Waxed Cotton Jacket|Dark Green|L|72|2025-10|Outerwear
+H and M|Patterned Blouson Jacket|Dark Beige|L|60|2025-10|Outerwear
+H and M|Relaxed Fit Tailored Trousers|Brown Checked|34|50|2025-11|Bottoms
+H and M|Relaxed-Fit Pants|Black|M|45|2025-10|Bottoms
+H and M|Regular-Fit Textured-Knit T-Shirt|White|L|13|2025-10|Tops
+H and M|Regular Fit Oxford Shirt|White|L|25|2025-10|Tops
+H and M|Regular-Fit Poplin Shirt|Light Blue Stripe|L|12|2025-07|Tops
+COS|Slim Ribbed Cotton Tank Top|White|M|29|2025-11|Tops
+COS|Slim Ribbed Cotton T-Shirt|White|L|45|2025-11|Tops
+COS|Wide-Leg Cotton-Twill Pants|Beige|52|149|2025-09|Bottoms
+COS|Boxy Fit Overshirt|Black|L|90|2026-02|Tops
+COS|Relaxed Fit Knit T-Shirt|Cream|L|50|2026-02|Tops
+Zara|Utility Pocket Jeans|Black|34|90|2025-10|Bottoms
+Zara|Puffer Cape|Khaki|M|60|2025-10|Outerwear
+Zara|Boxy Fit Overshirt|Black|L|90|2026-02|Tops
+Zara|Relaxed Fit Knit T-Shirt|Cream|L|50|2026-02|Tops
+Ance Studios|Mohair Scarf|Grey|One Size|80|2026-04|Accessories
+Ance Studios|Mohair Scarf|Black|One Size|80|2026-04|Accessories
+Zara|Croissant Leather Keychain|Brown|One Size|20|2026-04|Accessories
+Entire Studios|Eternal Zip|Silver|M|64|2026-04|Outerwear
+Entire Studios|Heavy Hood|Soot|M|58|2026-04|Tops
+Entire Studios|Black Heavy Hoodie|Black|L|131|2026-04|Tops
+A.A. Spectrum|Gray Cyberen II Down Jacket|Gray|M|306|2023-11|Outerwear
+Carhartt WIP|Floyde Trousers|Black|36|130|2024-09|Bottoms
+Homme Plisse Issey Miyake|Monthly Color Trousers|Black|36|251|2024-09|Bottoms
+Buck Mason x Eddie Bauer|Quilted Down Pant|Olive|36|195|2026-04|Bottoms
+Buck Mason x Eddie Bauer|Quilted Suspenders|Olive|One Size|60|2026-04|Accessories
+Louis Vuitton|LV Crush Damier Argyle Beanie|Beige|One Size|1245|2026-04|Hats
+Louis Vuitton|LV Crush Damoflage Beanie|Black|One Size|575|2026-04|Hats
+Zara|Multicharm Keychain|Sandy Brown|One Size|30|2026-01|Accessories
+Todd Snyder|Relaxed Fit 5-Pocket Linen Pant|Espresso Bean|34/32|198|2026-04|Bottoms
+Sea|Sea Pants|Olive Wash|32|180|2026-04|Bottoms
+Polo Ralph Lauren|Cuffed Trousers|Brown|34|120|2026-04|Bottoms
+Vince|Pull-On Shorts|Tan|34|95|2026-04|Bottoms
+Kith|Chauncey Cargo Pant|Kindling|L|220|2023-10|Bottoms
+Kith|Pinehurst Shaggy Sherpa Full Zip|Volume|L|245|2023-10|Outerwear
+Kith|Merrick Sherpa Hoodie|Black|L|225|2023-10|Tops
+Zara|Green Mohair Shirt Jacket|Green|L|60|2026-04|Outerwear
+Kith|Butterfly Crew Sock|Cream|One Size|20|2026-04|Socks
+Aime Leon Dore|ALD Signet Crew Sock|Cream|One Size|20|2026-04|Socks
+Aime Leon Dore|ALD Signet Crew Sock Grey Toe|Cream / Grey Toe & Heel|One Size|20|2026-04|Socks
+Generic|Crew Socks|Black|One Size|8|2026-04|Socks
+Generic|No-Show Socks|Black / White|One Size|8|2026-04|Socks
+Poedagar|Green Dial Nautilus-Style Watch|Green Dial / Steel|Steel Bracelet|45|2026-04|Watches
+Chanzai|Arabic Numeral Dial Watch|Black Dial / Steel|Steel Bracelet|60|2026-04|Watches
+Poedagar|White Dial Nautilus-Style Watch|White Dial / Steel|Steel Bracelet|45|2026-04|Watches
+Timex x Noah|Moon Phase Square Watch|White Dial / Brown Croc Strap|Brown Croc Leather|120|2026-04|Watches
+Invicta|Pro Diver Watch|Black Dial / Steel|Steel Bracelet|85|2026-04|Watches
+Pascal|Oval Dress Watch|Cream Dial / Gold Tone|Black + Green Croc Leather|40|2026-04|Watches
+`.trim();
+const fragranceRows = `
+Arabian Oud|Resala|fall|Full Bottle|150|High|3.9
+Argos|Triumph of Bacchus Extrait|fall|Full Bottle|320|High|4.1
+BDK Parfums|Gris Charnel Extrait|all|Full Bottle|285|Medium|4.1
+Boadicea The Victorious|Ardent|fall|Full Bottle|280|High|4.1
+Boadicea The Victorious|Opal Perfume|fall|Full Bottle|1190|Beast|4.2
+Bond No.9|Lafayette Street|all|Full Bottle|395|High|4.0
+By Kilian|Angels Share|fall|Full Bottle|295|Beast|4.5
+Chanel|Sycomore|spring|Full Bottle|310|Medium|4.2
+City Rhythm|Miami|spring|Full Bottle|198|Medium|4.0
+Creed|Erolfa|spring|Full Bottle|395|Medium|4.2
+Creed|Green Irish Tweed|spring|Full Bottle|395|Medium|4.3
+Creed|Royal Oud|fall|Full Bottle|395|High|4.3
+Creed|Silver Mountain Water|spring|Full Bottle|395|Medium|4.2
+Day Three|Del Mar|spring|Full Bottle|195|Medium|4.0
+Day Three|Filosofia|all|Full Bottle|195|Medium|4.0
+Day Three|Filosofia Extrait|fall|Full Bottle|220|High|4.1
+Day Three|Midnight Raspberry|all|Full Bottle|195|Medium|4.0
+Dries Van Noten|Havana Gold|fall|Sample|0|Medium|4.1
+Dries Van Noten|Rock the Myrrh|fall|Full Bottle|400|High|4.3
+Dubai Majalis|Dubai Majalis|fall|Full Bottle|715|High|3.9
+Fragrance Du Bois|Sahraa|fall|Full Bottle|295|Medium|4.0
+Frederic Malle|Cologne Indelebile|spring|Sample|0|Medium|4.0
+Frederic Malle|Musc Ravageur|fall|Sample|0|Beast|4.3
+Hermetica Paris|Verticaloud|spring|Full Bottle|195|Medium|4.4
+Houbigant|Ambre des Abysses|fall|Full Bottle|295|High|4.2
+Hugo Boss|Bottled Absolu Parfum Intense|all|Full Bottle|98|Medium|3.9
+Jo Malone|Oud and Orange Intense|fall|Full Bottle|220|High|4.0
+Kajal|Lamar EDP|spring|Full Bottle|126|High|4.2
+Louis Vuitton|Mille Feux|spring|Full Bottle|395|Medium|4.0
+Maison Anthony Marmin|Imperial Ambergris|all|Attar/Oil|120|Low|3.9
+Maison Anthony Marmin|Imperial Oud|fall|Attar/Oil|120|Medium|4.0
+Maison Anthony Marmin|Oud Niyad|fall|Attar/Oil|120|Medium|4.0
+Memo Paris|Palais Bourbon|fall|Full Bottle|395|High|4.2
+Memo Paris|Palais Imperial Bourbon|fall|Full Bottle|390|High|4.2
+MFK|Baccarat Rouge 540|all|Full Bottle|475|High|4.2
+MFK|Grand Soir|fall|Full Bottle|360|Beast|4.4
+MFK|Oud Extrait|fall|Full Bottle|490|High|4.3
+MFK|Oud Satin Mood|fall|Full Bottle|390|Medium|4.1
+Nasomatto|Baraonda|fall|Full Bottle|195|High|4.3
+Penhaligons|Halfeti|fall|Full Bottle|85|High|4.3
+Rayhaan|Aquatica|spring|Full Bottle|180|High|4.1
+Rayhaan|Elixir EDP|fall|Full Bottle|40|High|4.0
+Rayhaan|Obsidian|fall|Full Bottle|40|High|4.5
+Roja Dove|Amber Aoud|fall|Full Bottle|595|Beast|4.4
+Scent Split|Brompton Immortals Extrait|fall|Sample|0|High|4.1
+Scent Split|Salt and Pepper|all|Sample|0|Medium|3.8
+Scent Split|Spicebomb Extreme|fall|Sample|0|Beast|4.2
+Scents of Wood|Plum in Cognac|fall|Sample|0|High|4.5
+Tom Ford|Tobacco Vanille|fall|Full Bottle|295|Beast|4.5
+Vibrato|Vibrato Collection EDP|all|Full Bottle|160|Medium|3.8
+Widian|Al Wasl|all|Full Bottle|280|Medium|4.1
+Xerjoff|1861 Naxos EDP|fall|Full Bottle|199|Beast|4.5
+Xerjoff|Alexandria II|fall|Attar/Oil|80|Medium|4.1
+Xerjoff|Torino 21|spring|Full Bottle|260|Medium|4.2
+Yom and Layl|Aks 45 (Amouage Reflection 45 dupe)|all|Dupe|0|Medium|3.8
+Yom and Layl|Black Panther (LV Ombre Nomade dupe)|fall|Dupe|0|High|3.9
+Yom and Layl|Blue Sapphire (Boadicea Neelam dupe)|spring|Dupe|0|Medium|3.8
+Yom and Layl|Charmer (Roja Dove Diaghilev dupe)|fall|Dupe|0|High|3.8
+Yom and Layl|Gatsby's Ascend (Kilian Straight to Heaven dupe)|spring|Dupe|0|Medium|3.8
+Yom and Layl|Haute Luxe dupe|fall|Dupe|0|High|3.8
+Yom and Layl|Haute Luxe|fall|Dupe|0|Beast|3.9
+Yom and Layl|Jewel of Mayfair (Roja Dove Burlington 1819 dupe)|fall|Dupe|0|High|3.8
+Yom and Layl|Maritime (Xerjoff 40 Knots dupe)|spring|Dupe|0|Medium|3.8
+Yom and Layl|Neptunes Trident dupe (Argos)|spring|Dupe|0|Medium|3.7
+Yom and Layl|Oud Legacy (Tom Ford Oud Wood dupe)|fall|Dupe|0|High|3.9
+Yom and Layl|Shi'Rin (Sospiro Dolce Melodia dupe)|spring|Dupe|0|Medium|3.7
+Yom and Layl|Sky Angel|spring|Full Bottle|30|Medium|3.8
+ZGO Perfumery|Anelo Sample|spring|Sample|0|High|3.9
+ZGO Perfumery|Pernoire Anelo Extrait|spring|Sample|12|High|3.9
+`.trim();
+const fragranceLayerRecipes = [
+  {name:"Pineapple Coconut Lift",base:"Aquatica",baseSprays:"8-10",accent:"Lamar",accentSprays:"1",vibe:"spring/summer",effect:"Aquatic freshness with a pineapple-coconut glow. Lamar gives Aquatica a smoother tropical body without making it too sweet."},
+  {name:"Tobacco Honey Heavy",base:"Naxos",baseSprays:"3-4",accent:"Tobacco Vanille",accentSprays:"1",vibe:"fall/winter",effect:"Honey tobacco with a richer vanilla trail. Go easy because both project."},
+  {name:"Fresh Royal Oud",base:"Torino 21",baseSprays:"4-5",accent:"Royal Oud",accentSprays:"1",vibe:"travel/elevated",effect:"Minty citrus top with polished dry woods underneath."},
+  {name:"Amber Sahara Oud",base:"Amber Aoud",baseSprays:"2-3",accent:"Sahraa",accentSprays:"1-2",vibe:"winter/signature",effect:"Dense amber-oud warmth with a rich desert-wood trail. Big presence, best in cold weather."},
+  {name:"Gris Ardent Texture",base:"Gris Charnel Extrait",baseSprays:"3-4",accent:"Ardent",accentSprays:"1",vibe:"fall/elevated",effect:"Creamy fig-tea woods with a spicy rose-leather lift from Ardent."},
+  {name:"Bodacious Ardent Punch",base:"Bodacious",baseSprays:"2-3",accent:"Ardent",accentSprays:"1",vibe:"night/statement",effect:"Juicy, loud, and seductive with Ardent adding darker polished depth."}
+];
+const starterPhotos = {
+  "fragrance::ZGO Perfumery::Pernoire Anelo Extrait":"assets/photos/photo-001.webp",
+  "wardrobe::Aime Leon Dore::ALD NY Yankees Retro Fit Hat":"assets/photos/photo-002.webp",
+  "wardrobe::Aime Leon Dore::Mesh V-Neck Tee":"assets/photos/photo-003.jpeg",
+  "wardrobe::Aime Leon Dore::Aime Cup Soccer Jersey":"assets/photos/photo-004.webp",
+  "wishlist::Saint Laurent::Le Loafer Supple in Eel":"assets/photos/photo-005.jpeg",
+  "wishlist::Boadicea The Victorious::Bodacious":"assets/photos/photo-078-bodacious.jpg",
+  "wardrobe::Aime Leon Dore::ALD Technics Nylon Logo Hat":"assets/photos/photo-006.webp",
+  "wardrobe::Aime Leon Dore::Cotton Slub Cardigan":"assets/photos/photo-007.jpeg",
+  "wardrobe::Aime Leon Dore::Jacquard Striped Tee":"assets/photos/photo-008.jpeg",
+  "wardrobe::Aime Leon Dore::ALD New Era Highlanders Hat":"assets/photos/photo-009.webp",
+  "wardrobe::Aime Leon Dore::Mesh Batting Practice Jersey":"assets/photos/photo-010.jpeg",
+  "wardrobe::Aime Leon Dore::Double-Breasted Pinstripe Wool Suit Jacket":"assets/photos/photo-011.webp",
+  "wardrobe::Aime Leon Dore::ALD Diner Clog":"assets/photos/photo-012.webp",
+  "wardrobe::Aime Leon Dore::Pinstripe Wool Suit Trouser":"assets/photos/photo-013.jpeg",
+  "wardrobe::Aime Leon Dore::Mitchell and Ness Artisan Hockey Jersey":"assets/photos/photo-014.webp",
+  "wardrobe::Aime Leon Dore::Triborough Dry Goods Hat":"assets/photos/photo-015.webp",
+  "wardrobe::Aime Leon Dore::Fur Earflap Hat":"assets/photos/photo-016.webp",
+  "wardrobe::Aime Leon Dore::Collegiate Mulberry Hat":"assets/photos/photo-017.webp",
+  "wardrobe::Aime Leon Dore::Aime Cycling Jersey":"assets/photos/photo-018.webp",
+  "wardrobe::Aime Leon Dore::ALD Signet Crew Sock Grey Toe":"assets/photos/photo-019.webp",
+  "wardrobe::Aime Leon Dore::Nylon Sport Hat":"assets/photos/photo-020.webp",
+  "wardrobe::Aime Leon Dore::The Worlds Borough Hat":"assets/photos/photo-021.webp",
+  "wardrobe::Aime Leon Dore::Washed A Logo Hat":"assets/photos/photo-022.webp",
+  "wardrobe::Aime Leon Dore::Lug Sole Derby":"assets/photos/photo-023.webp",
+  "wardrobe::Aime Leon Dore::Wool Heritage Hat":"assets/photos/photo-024.webp",
+  "wardrobe::Aime Leon Dore::Tropical Wool Suit Trouser":"assets/photos/photo-025.webp",
+  "wardrobe::Aime Leon Dore::Diner Clog":"assets/photos/photo-026.webp",
+  "wardrobe::Aime Leon Dore::Blanket Overshirt":"assets/photos/photo-028.jpeg",
+  "wardrobe::Aime Leon Dore::Corduroy Buddy Hat":"assets/photos/photo-029.jpeg",
+  "wardrobe::Aime Leon Dore::Raglan Sweater Tee":"assets/photos/photo-030.webp",
+  "wardrobe::Aime Leon Dore::Tuxedo Trouser":"assets/photos/photo-031.webp",
+  "wardrobe::Aime Leon Dore::Zip Cycling Shirt":"assets/photos/photo-032.webp",
+  "wardrobe::Aime Leon Dore::Military Cargo Pant":"assets/photos/photo-033.webp",
+  "wardrobe::Aime Leon Dore::Cycling Logo Hat":"assets/photos/photo-034.webp",
+  "wardrobe::Aime Leon Dore::ALD Signet Crew Sock":"assets/photos/photo-035.jpeg",
+  "wardrobe::Aime Leon Dore::Team Leon Soccer Hat":"assets/photos/photo-036.webp",
+  "wardrobe::Aime Leon Dore::Leather Team Football Jersey":"assets/photos/photo-037.webp",
+  "wardrobe::Aime Leon Dore::Fox Fur Hood":"assets/photos/photo-038.webp",
+  "wardrobe::Aime Leon Dore::Jake Gloves":"assets/photos/photo-039.webp",
+  "wardrobe::Aime Leon Dore::Alpaca Fleece Pullover":"assets/photos/photo-040.webp",
+  "wardrobe::Aime Leon Dore::New Era Tonal Wool Yankees Hat":"assets/photos/photo-041.webp",
+  "wardrobe::Aime Leon Dore::Leon Corduroy Hat":"assets/photos/photo-042.webp",
+  "wardrobe::Aime Leon Dore::Fleece Beanie":"assets/photos/photo-043.jpeg",
+  "wardrobe::Louis Vuitton::LV Shark Clogs":"assets/photos/photo-044.webp",
+  "wardrobe::Legacy::Black Denim Jacket":"assets/photos/photo-045.webp",
+  "wardrobe::Joshua Mohamed::Merino Wool Split Sweater":"assets/photos/photo-046.webp",
+  "wardrobe::H and M::Relaxed-Fit Mohair-Blend Cardigan":"assets/photos/photo-048.jpeg",
+  "wardrobe::H and M::Double-Breasted Wool Coat":"assets/photos/photo-049.jpeg",
+  "wardrobe::H and M::Patterned Blouson Jacket":"assets/photos/photo-050.jpeg",
+  "wardrobe::H and M::Waxed Cotton Jacket":"assets/photos/photo-051.jpeg",
+  "wardrobe::H and M::Relaxed Fit Tailored Trousers":"assets/photos/photo-052.jpeg",
+  "wardrobe::H and M::Relaxed-Fit Pants":"assets/photos/photo-053.jpeg",
+  "wardrobe::H and M::Regular-Fit Textured-Knit T-Shirt":"assets/photos/photo-054.jpeg",
+  "wardrobe::H and M::Regular Fit Oxford Shirt":"assets/photos/photo-055.jpeg",
+  "wardrobe::H and M::Regular-Fit Poplin Shirt":"assets/photos/photo-056.jpeg",
+  "wardrobe::Loewe::Faro Brown Derbies":"assets/photos/photo-057.webp",
+  "wardrobe::Cole Buxton::The Wilson Sneaker":"assets/photos/photo-058.webp",
+  "wardrobe::Cole Buxton::Cotton Chore Jacket":"assets/photos/photo-059.webp",
+  "wardrobe::Kody Phillips::Lasso Shirt":"assets/photos/photo-060.jpeg",
+  "wardrobe::Buck Mason::Field-Spec Cotton Heavy Tee White":"assets/photos/photo-061.webp",
+  "wardrobe::Louis Vuitton::LV Crush Damier Argyle Beanie":"assets/photos/photo-063.jpeg",
+  "wardrobe::Louis Vuitton x Tyler the Creator::Monogram Craggy Reversible Bucket Hat":"assets/photos/photo-064.jpeg",
+  "wardrobe::Joshua Mohamed::JM Work Jacket":"assets/photos/photo-065.jpeg",
+  "wardrobe::COS::Slim Ribbed Cotton Tank Top":"assets/photos/photo-067.webp",
+  "wardrobe::Kody Phillips::Kody Pants":"assets/photos/photo-068.webp",
+  "wardrobe::Louis Vuitton::LV Crush Damoflage Beanie":"assets/photos/photo-069.jpeg",
+  "wardrobe::COS::Slim Ribbed Cotton T-Shirt":"assets/photos/photo-070.webp",
+  "wardrobe::Aime Leon Dore::Aime Baseball Jersey":"assets/photos/photo-071.webp",
+  "wardrobe::Buck Mason::Japanese Denim Ford Standard Jean":"assets/photos/photo-072.jpeg",
+  "wardrobe::COS::Wide-Leg Cotton-Twill Pants":"assets/photos/photo-073.jpeg",
+  "wardrobe::Vince::Pull-On Shorts":"assets/photos/photo-074.png",
+  "wardrobe::Lee::Light Grey Denim Jacket":"assets/photos/photo-075.jpeg",
+  "wardrobe::Kith::Kith Pittsburgh Pirates Snapback":"assets/photos/photo-079-kith-pirates-hat.jpg",
+  "wardrobe::Kith::Kith New York Mets Snapback":"assets/photos/photo-080-kith-mets-hat.jpg",
+  "wardrobe::Kith::Chauncey Cargo Pant":"assets/photos/photo-081-kith-chauncey-cargo.jpg",
+  "wardrobe::Kith::Kith NYC Cotton Beanie":"assets/photos/photo-082-kith-cotton-beanie.jpg",
+  "wardrobe::Kith::Kith Linwood Crewneck Sweater":"assets/photos/photo-083-kith-linwood.jpg",
+  "wardrobe::Kith::Kith Crystal Wash Turtleneck":"assets/photos/photo-084-kith-turtleneck.jpg",
+  "wardrobe::Kith::Kith Patchwork Cord Ludlow Shirt":"assets/photos/photo-085-kith-ludlow.jpg",
+  "wardrobe::Kith::Butterfly Crew Sock":"assets/photos/photo-086-kith-butterfly-sock.jpg",
+  "wardrobe::Kith::Pinehurst Shaggy Sherpa Full Zip":"assets/photos/photo-087-kith-pinehurst.jpg",
+  "wardrobe::Kith::Merrick Sherpa Hoodie":"assets/photos/photo-088-kith-merrick.jpg",
+  "wardrobe::Generic::White Tee":"assets/photos/photo-089-generic-white-tee.jpg",
+  "wardrobe::Generic::Black Tee":"assets/photos/photo-090-generic-black-tee.jpg",
+  "wardrobe::Generic::White Tank Top":"assets/photos/photo-091-generic-white-tank.jpg",
+  "wardrobe::Generic::Black Tank Top":"assets/photos/photo-092-generic-black-tank.jpg",
+  "wardrobe::Generic::White Thermal":"assets/photos/photo-093-generic-white-thermal.jpg",
+  "wardrobe::Generic::Black Thermal":"assets/photos/photo-094-generic-black-thermal.jpg",
+  "wardrobe::Generic::Western Belt":"assets/photos/photo-096-generic-black-western-belt.jpg",
+  "wardrobe::Generic::Belt Gold Buckle":"assets/photos/photo-097-generic-black-gold-belt.jpg",
+  "wardrobe::Generic::Belt Brown":"assets/photos/photo-098-generic-brown-belt.jpg",
+  "wardrobe::Generic::Belt Brown 2":"assets/photos/photo-099-generic-brown-belt-2.jpg",
+  "wardrobe::Buck Mason::Heavy White Henley":"assets/photos/photo-095-buck-mason-white-henley.jpg",
+  "wardrobe::Abercrombie::Quarter Zip::Cream":"assets/photos/photo-100-quarterzip-cream.jpg",
+  "wardrobe::Abercrombie::Quarter Zip::Grey":"assets/photos/photo-101-quarterzip-grey.jpg",
+  "wardrobe::Abercrombie::Quarter Zip::Green":"assets/photos/photo-102-quarterzip-green.jpg",
+  "wardrobe::Florence Black::Renzo Pocket Overshirt":"assets/photos/photo-103-florence-renzo.jpg",
+  "wardrobe::Florence Black::Raife Boxy Shirt":"assets/photos/photo-104-florence-raife.jpg",
+  "wardrobe::Florence Black::1954 Black Cap":"assets/photos/photo-107-florence-1954-cap.svg",
+  "wardrobe::Buck Mason x Eddie Bauer::Quilted Down Pant":"assets/photos/photo-105-buckmason-eddiebauer.jpg",
+  "wardrobe::Buck Mason x Eddie Bauer::Quilted Suspenders":"assets/photos/photo-105-buckmason-eddiebauer.jpg",
+  "wardrobe::Pascal::Oval Dress Watch":"assets/photos/photo-106-pascal-oval-watch.png",
+  "fragrance::Arabian Oud::Resala":"https://cdn.salla.sa/doPqe/2506bbd4-4397-42d0-acaa-c804336d56f3-1000x1000-BawDzrmKX3BvM4aL9kd5tXdEGGCNNGOc9nBs4tDI.png",
+  "fragrance::Argos::Triumph of Bacchus Extrait":"https://argosfragrances.co.uk/wp-content/uploads/2023/10/Triumph-of-Bacchus-30ml_Right-view__Extrait-copy-800x800.jpg",
+  "fragrance::BDK Parfums::Gris Charnel Extrait":"https://us.bdkparfums.com/cdn/shop/files/Parfums-GrisCharnelExtrait_1-Packshot-Nom_copie_2.png?v=1776093815",
+  "fragrance::Boadicea The Victorious::Ardent":"https://www.lamaisonduparfum.com/cdn/shop/files/ardent-boadicea-the-victorious-737478_75b5824c-c545-4053-a548-10557e7ea772_1200x1200.jpg?v=1766145119",
+  "fragrance::Boadicea The Victorious::Opal Perfume":"https://media.parfumo.com/perfume_imagery/6f/6f8b2c_opal-boadicea-the-victorious_1200.jpg",
+  "fragrance::Bond No.9::Lafayette Street":"https://www.bondno9.com/cdn/shop/files/LAFAYETTE-STREET.png?v=1750172298&width=2048",
+  "fragrance::By Kilian::Angels Share":"https://blog.vperfumes.com/wp-content/uploads/2025/08/angels-share-collection-by-kilian-1170x585.jpg",
+  "fragrance::Chanel::Sycomore":"https://piimages.parfumo.de/4/6/182050_8ea6cd3f148f6d335999a0797ce35744_sycomore-parfum.jpg",
+  "fragrance::City Rhythm::Miami":"https://www.cityrhythmfragrance.com/cdn/shop/files/IMG-7141.jpg?v=1772080641",
+  "fragrance::Creed::Erolfa":"https://www.fragrancereview.com/php_assets/uploads/creed-erolfa-300x300.jpeg",
+  "fragrance::Creed::Green Irish Tweed":"https://creedboutique.com/cdn/shop/files/1500x1500_GIT_0002_Layer_1_1.jpg?v=1768429622",
+  "fragrance::Creed::Royal Oud":"https://www.fragrancereview.com/php_assets/uploads/creed-royal-oud-1024x1024.jpeg",
+  "fragrance::Creed::Silver Mountain Water":"https://creedboutique.com/cdn/shop/files/1500x1500__0000s_0016_Silver-Mountain-Water_100ml.jpg?v=1741966680",
+  "fragrance::Day Three::Del Mar":"https://daythreefragrances.com/cdn/shop/files/DEL_MAR_SQ_1200.jpg?v=1751942126&width=1500",
+  "fragrance::Day Three::Filosofia":"https://colognecurators.com/cdn/shop/files/DayThreeFragrancesFilosofiaExtrait1.7oz.png?v=1745002639",
+  "fragrance::Day Three::Filosofia Extrait":"https://ifragranceofficial.com/wp-content/uploads/2023/05/DayThreeFragrancesbottles.jpg",
+  "fragrance::Day Three::Midnight Raspberry":"https://ifragranceofficial.com/wp-content/uploads/2025/10/Midnight-Raspberry-Day-Three-for-Women-and-Men-2025.webp",
+  "fragrance::Dries Van Noten::Havana Gold":"https://media.parfumo.com/perfume_imagery/c3/c3e536_havana-gold-dries-van-noten_1200.jpg?width=150&aspect_ratio=1:1",
+  "fragrance::Dries Van Noten::Rock the Myrrh":"https://www.driesvannoten.com/cdn/shop/products/ROCK_THE_MYRRH_REFILL.jpg?crop=center&height=933&v=1645355269&width=700",
+  "fragrance::Dubai Majalis::Dubai Majalis":"https://fragrancerevival.com/wp-content/uploads/2023/03/fr5519-majalis-by-the-spirit-of-dubai.png",
+  "fragrance::Fragrance Du Bois::Sahraa":"https://www.fragrancereview.com/php_assets/uploads/fragrance-du-bois-sahraa.jpeg",
+  "fragrance::Frederic Malle::Cologne Indelebile":"https://chicagofragrance.com/cdn/shop/files/Frederic-Malle-Cologne-Indelebile-1.png?v=1733600674",
+  "fragrance::Frederic Malle::Musc Ravageur":"https://chicagofragrance.com/cdn/shop/files/Frederic-Malle-Musc-Ravageur-1.png?v=1733594083",
+  "fragrance::Hermetica Paris::Verticaloud":"https://fragrancerevival.com/wp-content/uploads/2023/02/fr2250-verticaloud-by-hermetica.png",
+  "fragrance::Houbigant::Ambre des Abysses":"https://www.myfragrancesamples.com/cdn/shop/files/houbigant_ambre_des_abysses.jpg?v=1758729422",
+  "fragrance::Hugo Boss::Bottled Absolu Parfum Intense":"https://fragrancebd.com/wp-content/uploads/2025/01/Hugo-Boss-Boss-Bottled-Absolu-Parfum-Intense-100mL.jpg",
+  "fragrance::Jo Malone::Oud and Orange Intense":"https://www.jomalone.com/media/export/cms/campaigns/FY25_Hinoki_Cedarwood/Nav/25B01_Nav_Cologne-Intense_HC.png",
+  "fragrance::Kajal::Lamar EDP":"https://kajal.pl/wp-content/uploads/2021/07/foto_2-1024x721.png",
+  "fragrance::Louis Vuitton::Mille Feux":"https://www.perfumesdutyfree.com/wp-content/uploads/2021/02/MILLE-FEUX-1024x1024.png",
+  "fragrance::Maison Anthony Marmin::Imperial Ambergris":"https://cdn.parfoom.com/products/maison-anthony-marmin-imperial-ambergris-34d52928-og.jpeg",
+  "fragrance::Maison Anthony Marmin::Imperial Oud":"https://cdn.parfoom.com/products/maison-anthony-marmin-imperial-oud-d2c5e5f7-og.jpeg",
+  "fragrance::Maison Anthony Marmin::Oud Niyad":"https://cdn.parfoom.com/products/maison-anthony-marmin-oud-assam-a0dfcb48-primary.webp",
+  "fragrance::Memo Paris::Palais Bourbon":"https://dutyfreeoutlets.com/wp-content/uploads/2024/12/Memo-Paris-Palais-Bourbon-EDP-75-ML-Unisex.jpg",
+  "fragrance::Memo Paris::Palais Imperial Bourbon":"https://dutyfreeoutlets.com/wp-content/uploads/2024/12/Memo-Paris-Palais-Bourbon-EDP-75-ML-Unisex.jpg",
+  "fragrance::MFK::Baccarat Rouge 540":"https://cdn.shopify.com/s/files/1/0436/4012/7649/products/Baccaratedp_1024x1024@2x.jpg?v=1626289540",
+  "fragrance::MFK::Grand Soir":"https://folafragrance.com.ng/wp-content/uploads/2025/06/IMG_0655.png",
+  "fragrance::MFK::Oud Extrait":"https://www.franciskurkdjian.com/dw/image/v2/BJSB_PRD/on/demandware.static/-/Sites-mfk-master-catalog/default/dwab3b9749/OUD/FRAGRANCE/3700559606506_OUD_EXT_70ML_1.png?sw=640&sh=640&strip=false",
+  "fragrance::MFK::Oud Satin Mood":"https://www.franciskurkdjian.com/dw/image/v2/BJSB_PRD/on/demandware.static/-/Sites-mfk-master-catalog/default/dwd38a559b/OSAM/FRAGRANCE/3700559602607_OUD_SATIN_MOOD_EDP_70ML_1.png?sw=640&sh=640&strip=false",
+  "fragrance::Nasomatto::Baraonda":"https://nasomatto.com/cdn/shop/files/Baraonda-ProductPage3-4ML.jpg?v=1739799831&width=1100",
+  "fragrance::Penhaligons::Halfeti":"https://eauxsillage.com/wp-content/uploads/2019/09/IMG_3797.jpg",
+  "fragrance::Rayhaan::Aquatica":"https://fragtory.in/wp-content/uploads/2025/10/Aquatica.jpg",
+  "fragrance::Rayhaan::Elixir EDP":"https://buyperfumeinbangladesh.com/wp-content/uploads/2025/06/Rayhaan-Elixir-EDP-For-Men-100ml-Bottle-400x400.jpeg",
+  "fragrance::Rayhaan::Obsidian":"https://rayhaanperfumes.com/cdn/shop/files/Obsidian1Resize.jpg?v=1765270311",
+  "fragrance::Roja Dove::Amber Aoud":"https://image.crov.com/dg7-UHJcVCwRlQvK/roja-amber-aoud-by-roja-dove-parfum-spray-34-oz.jpg",
+  "fragrance::Scent Split::Brompton Immortals Extrait":"assets/photos/photo-076-brompton-immortals.jpeg",
+  "fragrance::Scent Split::Salt and Pepper":"https://www.scentsplit.com/cdn/shop/products/Salt-Pepper-Perfume-Cologne-Precious-Liquid-sample-decants-SCENTSPLIT.jpg?crop=center&height=1200&v=1743743436&width=1200",
+  "fragrance::Scent Split::Spicebomb Extreme":"https://signaturescentperfumes.blog/wp-content/uploads/2024/08/Featured-Image_Spicebomb-Extreme.png",
+  "fragrance::Scents of Wood::Plum in Cognac":"https://scentsofwood.com/cdn/shop/files/Screenshot_2023-10-24_at_2.23.01_PM_1400x.png?v=1698182603",
+  "fragrance::Tom Ford::Tobacco Vanille":"https://www.tomfordbeauty.com/cdn/shop/files/tf_sku_T0CA01_2000x2000_0.png?v=1777544406",
+  "fragrance::Vibrato::Vibrato Collection EDP":"https://odecla.com/wp-content/uploads/2022/04/Vibrato.png",
+  "fragrance::Widian::Al Wasl":"assets/photos/photo-077-al-wasl.jpeg",
+  "fragrance::Xerjoff::1861 Naxos EDP":"https://www.xerjoff.com/cdn/shop/files/listing-naxos-eau-de-parfum-100ml.png?v=1745399063",
+  "fragrance::Xerjoff::Alexandria II":"https://ifragranceofficial.com/wp-content/uploads/2022/11/XerjoffAlexandriaII-alt_800x.webp",
+  "fragrance::Xerjoff::Torino 21":"https://www.xerjoff.com/cdn/shop/files/gallery-xerjoff-torino21-eau-de-parfum-15ml_small.png?v=7121490404703202047",
+  "fragrance::Yom and Layl::Aks 45 (Amouage Reflection 45 dupe)":"https://fragkaki.my/wp-content/uploads/2022/10/20220922_160739_0000.jpg",
+  "fragrance::Yom and Layl::Black Panther (LV Ombre Nomade dupe)":"https://eraperfumes.net/wp-content/uploads/2023/01/000369.jpg",
+  "fragrance::Yom and Layl::Blue Sapphire (Boadicea Neelam dupe)":"https://preview.redd.it/yom-layl-haul-including-samples-blue-spell-ex-nihilos-blue-v0-dg1bv1s1ez8d1.jpeg?auto=webp&s=2125b56124e3adab3c5445ebce06f5553218044a",
+  "fragrance::Yom and Layl::Charmer (Roja Dove Diaghilev dupe)":"https://preview.redd.it/yom-layl-clones-of-almost-everything-v0-2yt8a810sudc1.jpg?width=1080&crop=smart&auto=webp&s=2b2e79a0d1c00d2ce4c06f2065489e005efd5809",
+  "fragrance::Yom and Layl::Gatsby's Ascend (Kilian Straight to Heaven dupe)":"https://preview.redd.it/my-collection-v0-cp24p5haaq2a1.jpg?width=1080&crop=smart&auto=webp&s=a20d1ff8f845a41f832f2e06b86bd690143d887d",
+  "fragrance::Yom and Layl::Haute Luxe dupe":"https://preview.redd.it/yom-layl-clones-of-almost-everything-v0-2yt8a810sudc1.jpg?width=640&crop=smart&auto=webp&s=683a1365a00956613cd3a7a5d4eba200855c3c2c",
+  "fragrance::Yom and Layl::Haute Luxe":"https://media.karousell.com/media/photos/products/2023/9/22/fragrance_world_imperium_roja__1695373999_76988102_progressive.jpg",
+  "fragrance::Yom and Layl::Jewel of Mayfair (Roja Dove Burlington 1819 dupe)":"https://sevensavenue.com/wp-content/uploads/2024/10/WhatsApp-Image-2024-10-15-at-11.35.48-PM.jpeg",
+  "fragrance::Yom and Layl::Maritime (Xerjoff 40 Knots dupe)":"https://cdn.shopify.com/s/files/1/0256/4453/1798/products/WhatsAppImage2020-10-07at10.51.08PM_500x@2x.progressive.jpg?v=1602128286",
+  "fragrance::Yom and Layl::Neptunes Trident dupe (Argos)":"https://fragrance-nevaeh.com/cdn/shop/files/argos-neptunes-tridenteau-de-parfumfragrance-nevaeh-4360901.jpg?v=1761390229",
+  "fragrance::Yom and Layl::Oud Legacy (Tom Ford Oud Wood dupe)":"https://atlantus.co.uk/wp-content/uploads/2021/02/Tom-Ford-Oud-Wood-Dupe-100ml-Bottle-and-Box-The-Best-Oud-Wood-Dupe-Inspired-by-Oud-Wood-Oud-Wood-Clone.webp",
+  "fragrance::Yom and Layl::Shi'Rin (Sospiro Dolce Melodia dupe)":"https://static.wixstatic.com/media/7ba0b8_4077956287ab4c4ea6043e36ab19ed61~mv2.webp/v1/fit/w_500,h_500,q_90/file.webp",
+  "fragrance::Yom and Layl::Sky Angel":"https://preview.redd.it/yom-layl-haul-including-samples-blue-spell-ex-nihilos-blue-v0-dg1bv1s1ez8d1.jpeg?auto=webp&s=2125b56124e3adab3c5445ebce06f5553218044a",
+  "fragrance::ZGO Perfumery::Anelo Sample":"https://zgoperfumery.com/cdn/shop/files/03_color.jpg?v=1729974765&width=4000",
+  "fragrance::ZGO Perfumery::Pernoire Anelo Extrait":"assets/photos/photo-001.webp"
+};
+const seed = {
+  items:[
+    ...rowsToItems(wardrobeRows,"wardrobe"),
+    ...rowsToFrags(fragranceRows),
+    item("wishlist","Saint Laurent","Le Loafer Supple in Eel","Scotch Brown","EU 43 / US 10",1350,"2026-04","Shoes",{notes:"Eel leather, gold monogram buckle."}),
+    item("wishlist","Adello","Adello EDP","all","Full Bottle",0,"2026-04","Fragrances",{notes:"Been on rotation as a sample."}),
+    item("wishlist","Boadicea The Victorious","Bodacious","Full Bottle","100 ml",0,"2026-04","Fragrances",{notes:"Upgrade from 10 ml. Wishlist full bottle.",photo:"assets/photos/photo-078-bodacious.jpg"})
+  ],
+  outfits:[]
+};
+let state = load();
+let activeTab = "wardrobe";
+let activeCategory = "All";
+let editingId = null;
+let currentFit = {};
+let currentJudgement = null;
+let pendingPhoto = "";
+let photoTargetId = null;
+let activeSlot = null;
+
+function item(type,brand,name,color,size,price,date,category,extra={}){
+  return {id:uid(),type,brand,name,color,size,price:Number(price)||0,date,category,wears:0,photo:"",notes:"",...extra};
+}
+function uid(){
+  if(window.crypto && typeof crypto.randomUUID === "function") return crypto.randomUUID();
+  return "id-"+Date.now().toString(36)+"-"+Math.random().toString(36).slice(2,10);
+}
+function rowsToItems(rows,type){
+  return rows.split("\n").filter(Boolean).map(row => {
+    const [brand,name,color,size,price,date,category] = row.split("|");
+    return item(type,brand,name,color,size,price,date,category);
+  });
+}
+function rowsToFrags(rows){
+  return rows.split("\n").filter(Boolean).map(row => {
+    const [brand,name,season,type,price,projection,rating] = row.split("|");
+    return item("fragrance",brand,name,season,type,price,"2026-04","Fragrances",{projection,rating:Number(rating)||0,photo:starterPhotos[`fragrance::${brand}::${name}`] || ""});
+  });
+}
+function photoSourceKey(x){ return `${x.type}::${x.brand}::${x.name}`; }
+function photoVariantKey(x){ return `${x.type}::${x.brand}::${x.name}::${x.color}`; }
+function starterPhotoFor(x){ return starterPhotos[photoVariantKey(x)] || starterPhotos[photoSourceKey(x)] || ""; }
+function normalizePhotoPath(photo){
+  return String(photo || "").replace(/^\/assets\/photos\//,"assets/photos/");
+}
+function shouldRefreshStarterPhoto(item, photo){
+  if(!photo || !photo.startsWith("assets/photos/")) return false;
+  const current = normalizePhotoPath(item.photo);
+  if(!current) return true;
+  if(current.startsWith("/assets/photos/")) return true;
+  if(current.startsWith("assets/photos/") && current !== photo) return true;
+  return false;
+}
+function displayPhoto(x){
+  return normalizePhotoPath(x.photo || starterPhotoFor(x));
+}
+function load(){
+  try{
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if(raw) return upgradeState(JSON.parse(raw));
+  }catch(e){}
+  return structuredClone(seed);
+}
+function upgradeState(existing){
+  existing.items ||= [];
+  existing.outfits ||= [];
+  existing.wearLog ||= [];
+  existing.fragLayers ||= [];
+  if(existing.items.length === 0){
+    existing.items = structuredClone(seed.items);
+    existing.outfits = existing.outfits || [];
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(existing));
+    return existing;
+  }
+  let changed = false;
+  existing.items.forEach(x => {
+    if(x.type === "fragrance" && x.brand === "Yom and Layl" && x.name === "Imperium (Roja Dove Haute Luxe dupe)"){
+      x.name = "Haute Luxe";
+      changed = true;
+    }
+    if(x.type === "wardrobe" && x.brand === "Generic" && x.name === "White Henley"){
+      x.brand = "Buck Mason";
+      x.name = "Heavy White Henley";
+      x.size = "M";
+      x.price = 130;
+      x.photo = "assets/photos/photo-095-buck-mason-white-henley.jpg";
+      changed = true;
+    }
+    const normalizedPhoto = normalizePhotoPath(x.photo);
+    if(normalizedPhoto !== (x.photo || "")){
+      x.photo = normalizedPhoto;
+      changed = true;
+    }
+    if(x.type === "wardrobe" && x.category === "Accessories" && /sock/i.test(`${x.name} ${x.brand}`)){
+      x.category = "Socks";
+      changed = true;
+    }
+  });
+  const seen = new Set(existing.items.map(itemKey));
+  seed.items.forEach(seedItem => {
+    if(!seen.has(itemKey(seedItem))){
+      existing.items.push(structuredClone(seedItem));
+      changed = true;
+    }
+  });
+  const bodaciousKey = itemKey({type:"wishlist",brand:"Boadicea The Victorious",name:"Bodacious",color:"Full Bottle",size:"100 ml",category:"Fragrances"});
+  if(!seen.has(bodaciousKey)){
+    existing.items.push(item("wishlist","Boadicea The Victorious","Bodacious","Full Bottle","100 ml",0,"2026-04","Fragrances",{notes:"Upgrade from 10 ml. Wishlist full bottle.",photo:"assets/photos/photo-078-bodacious.jpg"}));
+    changed = true;
+  }
+  existing.items.forEach(x => {
+    const photo = normalizePhotoPath(starterPhotoFor(x));
+    if(shouldRefreshStarterPhoto(x, photo)){
+      x.photo = photo;
+      changed = true;
+      return;
+    }
+    if(photo && !x.photo){
+      x.photo = photo;
+      changed = true;
+    }
+  });
+  if(changed) localStorage.setItem(STORAGE_KEY, JSON.stringify(existing));
+  return existing;
+}
+function itemKey(x){
+  return [x.type,x.brand,x.name,x.color,x.size,x.category].map(v=>String(v||"").toLowerCase()).join("::");
+}
+function save(){
+  try{
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+    return true;
+  }catch(e){
+    alert("This browser is out of closet photo storage. Remove a few photos or use smaller images, then try again.");
+    return false;
+  }
+}
+function icon(name){ return `<i data-lucide="${name}"></i>`; }
+function toast(msg){
+  const el = document.getElementById("toast");
+  el.textContent = msg;
+  el.classList.add("show");
+  clearTimeout(toast.t);
+  toast.t = setTimeout(()=>el.classList.remove("show"),1800);
+}
+function filtered(type=activeTab){
+  const q = document.getElementById("search").value.trim().toLowerCase();
+  const results = state.items
+    .filter(x => x.type === type)
+    .filter(x => activeCategory === "All" || x.category === activeCategory || x.color === activeCategory || x.size === activeCategory)
+    .filter(x => !q || [x.brand,x.name,x.color,x.size,x.category,x.notes].join(" ").toLowerCase().includes(q))
+    .sort((a,b)=>{
+      if(type === "fragrance") return `${a.brand} ${a.name}`.localeCompare(`${b.brand} ${b.name}`);
+      return (b.date||"").localeCompare(a.date||"") || b.price-a.price;
+    });
+  return results;
+}
+function clearSearch(){
+  const search = document.getElementById("search");
+  if(search && search.value) search.value = "";
+}
+function hydrateIcons(){ if(window.lucide) lucide.createIcons(); }
+function renderNav(){
+  const html = tabs.map(([id,label,ic]) => `<button class="${activeTab===id?"on":""}" data-tab="${id}">${icon(ic)}<span>${label}</span></button>`).join("");
+  document.getElementById("sideNav").innerHTML = html;
+  document.getElementById("bottomNav").innerHTML = html;
+  hydrateIcons();
+}
+function renderStats(){
+  const wardrobe = state.items.filter(x=>x.type==="wardrobe");
+  const frags = state.items.filter(x=>x.type==="fragrance");
+  const value = state.items.reduce((s,x)=>s+(x.price||0),0);
+  const cpw = wardrobe.filter(x=>x.price && x.wears).map(x=>x.price/x.wears).sort((a,b)=>a-b)[0] || 0;
+  document.getElementById("statPieces").textContent = wardrobe.length;
+  document.getElementById("statFrags").textContent = frags.length;
+  document.getElementById("statValue").textContent = compact(value);
+  document.getElementById("statCPW").textContent = cpw ? "$"+cpw.toFixed(0) : "—";
+}
+function compact(n){ return n >= 1000 ? "$"+Math.round(n/1000)+"k" : money.format(n); }
+function render(){
+  renderNav();
+  renderStats();
+  if(activeTab === "outfits") renderOutfits();
+  else if(activeTab === "analytics") renderAnalytics();
+  else if(activeTab === "fragrance") renderFragrance();
+  else renderCollection(activeTab);
+}
+function header(title,sub,actions=""){
+  return `<div class="section-head"><div><h2 class="section-title">${title}</h2><div class="section-sub">${sub}</div></div>${actions}</div>`;
+}
+function categoriesFor(type){
+  const labels = new Set(["All"]);
+  state.items.filter(x=>x.type===type).forEach(x=>labels.add(type==="fragrance" ? x.color : x.category));
+  return [...labels];
+}
+function renderPills(type){
+  if(type==="fragrance"){
+    const seasons = [
+      ["All","All Scents"],
+      ["fall","Fall/Winter"],
+      ["spring","Spring/Summer"],
+      ["all","All Season"]
+    ];
+    return `<div class="filters">${seasons.map(([value,label])=>`<button class="pill ${activeCategory===value?"on":""}" data-cat="${value}">${label}</button>`).join("")}</div>`;
+  }
+  return `<div class="filters">${categoriesFor(type).map(c=>`<button class="pill ${activeCategory===c?"on":""}" data-cat="${c}">${c}</button>`).join("")}</div>`;
+}
+function renderCollection(type){
+  const names = {wardrobe:"Wardrobe",fragrance:"Fragrance",wishlist:"Wish List"};
+  const items = filtered(type);
+  const value = items.reduce((s,x)=>s+(x.price||0),0);
+  const add = `<button class="primary" data-action="add">${icon("plus")}Add</button>`;
+  document.getElementById("view").innerHTML =
+    header(names[type], `${items.length} items · ${money.format(value)} archive value · v7`, add) +
+    renderPills(type) +
+    (items.length ? `<div class="grid">${items.map(card).join("")}</div>` : emptyMessage(type));
+  hydrateIcons();
+}
+function renderFragrance(){
+  const items = filtered("fragrance");
+  const value = items.reduce((s,x)=>s+(x.price||0),0);
+  document.getElementById("view").innerHTML =
+    header("Fragrance", `${items.length} scents · ${money.format(value)} archive value`, `<button class="primary" data-action="logLayer">${icon("blend")}Log Layer</button>`) +
+    renderPills("fragrance") +
+    `<div class="section-head"><div><h2 class="section-title">Layering Recipes</h2><div class="section-sub">Built from your scent style</div></div></div>
+    <div class="list">${fragranceLayerRecipes.map(layerCard).join("")}</div>
+    <div style="height:18px"></div>
+    <div class="section-head"><div><h2 class="section-title">Layer Log</h2><div class="section-sub">${(state.fragLayers||[]).length} saved layers</div></div></div>
+    <div class="list">${(state.fragLayers||[]).slice(0,8).map(log=>`<div class="row-card"><div><div class="row-title">${esc(log.name)}</div><div class="row-sub">${esc(log.mix)} · ${new Date(log.date).toLocaleDateString()}</div></div></div>`).join("") || `<div class="empty">No fragrance layers logged yet.</div>`}</div>
+    <div style="height:18px"></div>
+    ${items.length ? `<div class="grid">${items.map(card).join("")}</div>` : emptyMessage("fragrance")}`;
+  hydrateIcons();
+}
+function emptyMessage(type){
+  const q = document.getElementById("search").value.trim();
+  if(q){
+    return `<div class="empty">No matches for "${esc(q)}".<br><button class="ghost" style="margin-top:12px" data-action="clearSearch">Clear Search</button></div>`;
+  }
+  return `<div class="empty">Nothing here yet.</div>`;
+}
+function layerCard(r){
+  return `<div class="row-card">
+    <div><div class="row-title">${esc(r.name)}</div><div class="row-sub">${esc(r.base)} ${esc(r.baseSprays)} sprays + ${esc(r.accent)} ${esc(r.accentSprays)} spray · ${esc(r.vibe)}<br>${esc(r.effect)}</div></div>
+    <button class="primary" data-layer-name="${esc(r.name)}" data-layer-mix="${esc(r.base+' '+r.baseSprays+' + '+r.accent+' '+r.accentSprays)}">${icon("plus")}Log</button>
+  </div>`;
+}
+function card(x){
+  const cpw = x.wears && x.price ? "$"+(x.price/x.wears).toFixed(2)+"/wear" : "Log wears";
+  const cardClass = x.type==="fragrance" ? "fragrance-card" : x.type==="wishlist" && x.category==="Fragrances" ? "wishlist-fragrance-card" : "";
+  const photo = displayPhoto(x);
+  const media = photo ? `<img src="${esc(photo)}" alt="">` : x.type==="fragrance" || x.category==="Fragrances" ? fragranceArt(x) : icon("image-plus");
+  return `<article class="card ${cardClass}" data-id="${x.id}">
+    <button class="card-media" data-photo-target="${x.id}" aria-label="Add or change photo for ${esc(x.name)}">${media}</button>
+    <div class="card-body">
+      <div class="eyebrow">${esc(x.brand)}</div>
+      <div class="name">${esc(x.name)}</div>
+      <div class="meta">${esc(x.color || "—")}${x.size ? "<br>"+esc(x.size) : ""}</div>
+      <div class="price-row"><div class="price">${x.price ? money.format(x.price) : "<small>TBD</small>"}</div><div class="eyebrow">${fmtMonth(x.date)}</div></div>
+      ${x.type==="wishlist" ? wishActions(x) : wearActions(x,cpw)}
+      <div class="mini-actions">${buildAroundButton(x)}<button class="ghost" data-detail="${x.id}">${icon("eye")}Detail</button><button class="ghost" data-edit="${x.id}">${icon("pencil")}Edit</button></div>
+    </div>
+  </article>`;
+}
+function wearActions(x,cpw){
+  return `<div class="wear">
+    <div><div class="eyebrow">Cost / Wear</div><div class="wear-val">${cpw}</div></div>
+    <div class="counter">
+      <button class="round" data-wear="${x.id}" data-delta="-1">−</button>
+      <span class="meta">${x.wears || 0}x</span>
+      <button class="round" data-wear="${x.id}" data-delta="1">+</button>
+    </div>
+  </div>`;
+}
+function buildAroundButton(x){
+  if(x.type==="wishlist") return "";
+  return `<button class="primary build-action" data-build-around="${x.id}">${icon("sparkles")}Build Around This</button>`;
+}
+function wishActions(x){
+  return `<div class="wear">
+    <button class="ghost" data-acquire="${x.id}">${icon("check")}Got It</button>
+    <button class="icon-btn" data-edit="${x.id}" aria-label="Edit">${icon("pencil")}</button>
+  </div>`;
+}
+function openDetail(id){
+  const x = state.items.find(i=>i.id===id);
+  if(!x) return;
+  document.getElementById("detailTitle").textContent = x.name;
+  const worn = x.wears || 0;
+  const cpw = x.price && worn ? "$"+(x.price/worn).toFixed(2) : "—";
+  const pairs = suggestPairings(x).slice(0,4);
+  document.getElementById("detailBody").innerHTML = `
+    <div class="detail-photo ${x.type==="fragrance"||x.category==="Fragrances"?"fragrance-photo":""}" data-photo-target="${x.id}">${displayPhoto(x) ? `<img src="${esc(displayPhoto(x))}" alt="">` : x.type==="fragrance" || x.category==="Fragrances" ? fragranceArt(x) : icon("image-plus")}</div>
+    <div class="eyebrow">${esc(x.brand)} · ${esc(x.category)}</div>
+    <div class="section-title" style="margin-top:6px">${esc(x.name)}</div>
+    <div class="detail-grid">
+      <div class="detail-chip"><span>Color</span><strong>${esc(x.color || "—")}</strong></div>
+      <div class="detail-chip"><span>Size</span><strong>${esc(x.size || "—")}</strong></div>
+      <div class="detail-chip"><span>CPW</span><strong>${cpw}</strong></div>
+      <div class="detail-chip"><span>Price</span><strong>${x.price ? money.format(x.price) : "TBD"}</strong></div>
+      <div class="detail-chip"><span>Worn</span><strong>${worn}x</strong></div>
+      <div class="detail-chip"><span>Added</span><strong>${fmtMonth(x.date)}</strong></div>
+    </div>
+    ${x.notes ? `<div class="gap-item">${esc(x.notes)}</div>` : ""}
+    <div class="panel-title" style="margin-top:14px">Best Pairings</div>
+    <div class="gap-list">${pairs.map(p=>`<div class="gap-item">${esc(p.brand)} — ${esc(p.name)} <span style="color:var(--faint)">(${esc(p.color)})</span></div>`).join("") || `<div class="gap-item">Add more pieces to generate pairing ideas.</div>`}</div>
+    <div class="modal-actions">
+      ${x.type==="wishlist" ? "" : `<button class="primary" data-build-around="${x.id}">${icon("sparkles")}Build Around This</button>`}
+      <button class="ghost" data-wear="${x.id}" data-delta="1">${icon("calendar-check")}Wore Today</button>
+      <button class="ghost" data-edit="${x.id}">${icon("pencil")}Edit Item</button>
+    </div>`;
+  document.getElementById("detailModal").classList.add("open");
+  hydrateIcons();
+}
+function suggestPairings(x){
+  const target = x.type === "fragrance" ? "wardrobe" : x.type;
+  return state.items.filter(i=>i.type==="wardrobe" && i.id!==x.id && i.category!==x.category)
+    .map(i=>({i,score:affinityFor(x.color,i.color)+(i.brand===x.brand?1:0)}))
+    .sort((a,b)=>b.score-a.score)
+    .map(x=>x.i);
+}
+function styleProfile(item){
+  const text = `${item.brand||""} ${item.name||""} ${item.color||""} ${item.category||""}`.toLowerCase();
+  const override = styleOverrides.find(o=>text.includes(o.match.toLowerCase()));
+  const tags = new Set(override?.tags || []);
+  const texture = new Set(override?.texture || []);
+  const silhouette = new Set(override?.silhouette || []);
+  let fit = override?.fit || "regular";
+  if(/cropped|crop|hemi|lasso|eternal zip|heavy hood|boxy fit/.test(text)){fit = fit==="regular"?"cropped":fit; tags.add("cropped"); silhouette.add("waist-length");}
+  if(/wide|pleated|barrel|plisse|relaxed|cargo/.test(text)){silhouette.add("wide");}
+  if(/high waist|kody pants|double pleated|barrel|wide-leg/.test(text)){fit = fit==="regular"?"high-waist":fit; tags.add("high-waisted");}
+  ["wool","mohair","leather","suede","denim","corduroy","mesh","nylon","cotton","linen","fleece","sherpa","waxed","quilted"].forEach(t=>{if(text.includes(t)) texture.add(t);});
+  if(/washed|vintage|distressed|light grey|mechanic blue|olive wash|faded/.test(text)){texture.add("vintage"); tags.add("faded");}
+  return {
+    fit,
+    colorFamily: colorGroup(item.color),
+    undertone: override?.undertone || colorGroup(item.color),
+    silhouette:[...silhouette],
+    texture:[...texture],
+    tags:[...tags],
+    bestWith: override?.bestWith || [],
+    avoidWith: override?.avoidWith || [],
+    statement: statementLevel(item)
+  };
+}
+function statementLevel(item){
+  const text = `${item.brand} ${item.name} ${item.color}`.toLowerCase();
+  let s = 3;
+  if(item.price > 250) s += 2;
+  if(/vuitton|bottega|lemaire|issey|mohair|leather|puffer|jersey|craggy|shark|damier/.test(text)) s += 2;
+  if(/black tee|white tee|tank|thermal|sock|belt/.test(text)) s -= 2;
+  return clamp(s);
+}
+function pairScore(a,b){
+  const pa=styleProfile(a), pb=styleProfile(b);
+  let s = affinityFor(a.color,b.color);
+  const txt = `${b.name} ${b.category} ${pb.tags.join(" ")}`.toLowerCase();
+  pa.bestWith.forEach(rule=>{ if(txt.includes(rule.split(" ")[0])) s += 2; });
+  pa.avoidWith.forEach(rule=>{ if(txt.includes(rule.split(" ")[0])) s -= 2; });
+  if(pa.fit==="cropped" && (pb.tags.includes("high-waisted") || pb.silhouette.includes("wide"))) s += 4;
+  if(pa.tags.includes("brown hat") && /brown|tan|espresso/.test(String(b.color).toLowerCase())) s -= 2;
+  if(pa.colorFamily==="blue" && pb.colorFamily==="green") s += 2;
+  if(pa.colorFamily==="earth" && pb.colorFamily==="green") s += 2;
+  return s;
+}
+function affinityFor(a,b){
+  const ga=colorGroup(a), gb=colorGroup(b);
+  if(ga===gb) return 4;
+  if(["black","light-neutral","grey"].includes(ga) || ["black","light-neutral","grey"].includes(gb)) return 3;
+  if((ga==="earth" && gb==="green") || (ga==="green" && gb==="earth")) return 4;
+  if((ga==="blue" && gb==="earth") || (ga==="earth" && gb==="blue")) return 3;
+  return 1;
+}
+function renderOutfits(){
+  const main = mainPieces();
+  const target = 90;
+  document.getElementById("view").innerHTML =
+    header("Outfit Builder", `FireFit target ${target}+ · build or manually pick, then judge`) +
+    `<div class="builder">
+      <div class="panel">
+        <div class="panel-title">Builder Controls</div>
+        <div class="filters" style="padding-bottom:10px">
+          ${["fall","winter","spring","summer","dinner","travel","casual","elevated","statement","low cpw"].map(v=>`<button class="pill ${currentFit.vibe===v?"on":""}" data-vibe="${v}">${v}</button>`).join("")}
+        </div>
+        <button class="primary" style="width:100%;margin-bottom:8px" data-action="random">${icon("sparkles")}Build FireFit</button>
+        <div class="gap-item" style="margin-bottom:8px">Target: 90+. Last build: ${currentFit.fireTarget ? currentFit.fireTarget+"/100" : "not built yet"}.</div>
+        <button class="ghost" style="width:100%;margin-bottom:8px" data-action="judgeFit">${icon("wand-sparkles")}Judge Fit</button>
+        <button class="ghost" style="width:100%;margin-bottom:8px" data-action="wearFit">${icon("calendar-check")}Wore Today</button>
+        <button class="ghost" style="width:100%;margin-bottom:8px" data-action="aiSettings">${icon("key-round")}Optional Online AI</button>
+        <button class="ghost" style="width:100%" data-action="saveFit">${icon("save")}Save Current Fit</button>
+      </div>
+      <div class="panel">
+        <div class="panel-title">Current Fit</div>
+        <div class="slot-grid">
+          ${["top","outerwear","bottoms","shoes","socks","watch","accessory","fragrance"].map(slot=>slotButton(slot)).join("")}
+        </div>
+      </div>
+    </div>
+    ${currentJudgement ? judgeCard(currentJudgement) : ""}
+    <div style="height:14px"></div>
+    ${state.outfits.length ? `<div class="list">${state.outfits.map(savedOutfit).join("")}</div>` : `<div class="empty">No saved outfits yet.</div>`}`;
+  hydrateIcons();
+}
+function mainPieces(){
+  return {
+    top: pickPool("Tops"),
+    outerwear: pickPool("Outerwear"),
+    bottoms: pickPool("Bottoms"),
+    shoes: pickPool("Shoes"),
+    socks: pickPool("Socks"),
+    watch: pickPool("Watches"),
+    accessory: pickPool("Accessories"),
+    fragrance: state.items.filter(x=>x.type==="fragrance")
+  };
+}
+function slotButton(slot){
+  const x = currentFit[slot];
+  const thumb = x ? itemThumb(x,"slot-photo") : "";
+  return `<button class="slot ${x?"filled":""}" data-slot="${slot}">
+    ${thumb}
+    <span class="eyebrow">${slot}</span>
+    ${x ? `<b>${esc(x.name)}</b><small>${esc(x.brand)} · ${esc(x.color)}</small>` : `<b>Tap to pick</b><small>${poolLabel(slot)}</small>`}
+  </button>`;
+}
+function poolLabel(slot){ return ({fragrance:"Scent",outerwear:"Jacket",socks:"Socks",watch:"Watch"})[slot] || slot; }
+function openSlotPicker(slot){
+  activeSlot = slot;
+  document.getElementById("slotTitle").textContent = "Pick "+slotLabel(slot);
+  document.getElementById("slotSearch").value = "";
+  renderSlotPicker();
+  document.getElementById("slotModal").classList.add("open");
+  hydrateIcons();
+}
+function slotLabel(slot){
+  return ({top:"Top",outerwear:"Outerwear",bottoms:"Bottoms",shoes:"Shoes",socks:"Socks",watch:"Watch",accessory:"Accessory / Hat",fragrance:"Fragrance"})[slot] || slot;
+}
+function slotPool(slot){
+  if(slot==="fragrance") return state.items.filter(x=>x.type==="fragrance");
+  if(slot==="accessory") return [...pickPool("Accessories"),...pickPool("Hats")];
+  const map={top:"Tops",outerwear:"Outerwear",bottoms:"Bottoms",shoes:"Shoes",socks:"Socks",watch:"Watches"};
+  return pickPool(map[slot] || "Tops");
+}
+function renderSlotPicker(){
+  const q = document.getElementById("slotSearch").value.toLowerCase();
+  const anchor = currentFit.bottoms || currentFit.top || currentFit.shoes;
+  const items = slotPool(activeSlot)
+    .filter(x=>!q || `${x.brand} ${x.name} ${x.color} ${x.size}`.toLowerCase().includes(q))
+    .map(x=>({x,score:anchor && x.id!==anchor.id ? pairScore(anchor,x) : statementLevel(x)}))
+    .sort((a,b)=>b.score-a.score)
+    .slice(0,60);
+  document.getElementById("slotList").innerHTML = items.map(({x,score})=>`
+    <button class="row-card" data-pick-slot="${activeSlot}" data-pick-id="${x.id}">
+      <div class="row-main">${itemThumb(x)}<div><div class="row-title">${esc(x.name)}</div><div class="row-sub">${esc(x.brand)} · ${esc(x.color)} · match ${score}</div></div></div>
+      <span class="price">${x.price ? money.format(x.price) : ""}</span>
+    </button>`).join("") || `<div class="empty">No items found.</div>`;
+  hydrateIcons();
+}
+function pickSlotItem(slot,id){
+  const x = state.items.find(i=>i.id===id);
+  if(!x) return;
+  currentFit[slot] = x;
+  currentJudgement = null;
+  document.getElementById("slotModal").classList.remove("open");
+  activeTab = "outfits";
+  render();
+}
+function savedOutfit(o){
+  const entries = Object.entries(o.pieces).filter(([,v])=>v);
+  const pieces = entries.map(([k,v])=>`${k}: ${v.name}`).join(" · ");
+  const thumbs = entries.map(([,v])=>itemThumb(v)).join("");
+  return `<div class="row-card"><div><div class="row-title">${esc(o.name)}</div><div class="row-sub">${esc(pieces)}</div><div class="saved-thumbs">${thumbs}</div></div><button class="icon-btn" data-delete-fit="${o.id}">${icon("trash-2")}</button></div>`;
+}
+function itemThumb(x,cls="row-thumb"){
+  if(!x) return "";
+  const fragClass = x.type==="fragrance"||x.category==="Fragrances" ? " frag-thumb" : "";
+  const photo = displayPhoto(x);
+  return `<span class="${cls}${fragClass}" aria-hidden="true">${photo ? `<img src="${esc(photo)}" alt="">` : x.type==="fragrance"||x.category==="Fragrances" ? fragranceArt(x) : icon("image-plus")}</span>`;
+}
+function fragranceArt(x){
+  const initials = String(x.brand || x.name || "F").split(/\s+/).filter(Boolean).slice(0,2).map(w=>w[0]).join("").toUpperCase();
+  return `<span class="frag-art"><span>${esc(initials || "F")}</span></span>`;
+}
+function judgeCard(j){
+  const metrics = j.metrics || {};
+  return `<div class="judge-card">
+    <div class="section-head" style="margin:0">
+      <div><div class="panel-title">Fit Judge ${j.source ? "· "+esc(j.source) : ""}</div><div class="judge-score">${Number(j.score || 0)}/100</div></div>
+      <button class="ghost" data-action="judgeFit">${icon("refresh-cw")}Rejudge</button>
+    </div>
+    <div class="judge-grid">
+      ${Object.entries(metrics).map(([k,v])=>`<div class="judge-metric"><span>${esc(k)}</span><strong>${esc(v)}/10</strong></div>`).join("")}
+    </div>
+    <div class="judge-notes">${(j.notes || []).map(n=>`<div class="judge-note">${esc(n)}</div>`).join("")}</div>
+  </div>`;
+}
+function renderAnalytics(){
+  const groups = ["wardrobe","fragrance","wishlist"].map(t => {
+    const xs = state.items.filter(x=>x.type===t);
+    return {t,count:xs.length,value:xs.reduce((s,x)=>s+(x.price||0),0)};
+  });
+  const totalValue = state.items.reduce((s,x)=>s+(x.price||0),0);
+  const leaders = state.items.filter(x=>x.price && x.wears).sort((a,b)=>a.price/a.wears-b.price/b.wears).slice(0,6);
+  document.getElementById("view").innerHTML =
+    header("Archive Value", "A cleaner read on spend, usage, and best-value pieces") +
+    `<div class="dash-grid"><div class="dash-card"><span>Total Closet</span><strong>${money.format(totalValue)}</strong><div class="meta">${state.items.length} items</div></div>${groups.map(g=>`<div class="dash-card"><span>${g.t}</span><strong>${money.format(g.value)}</strong><div class="meta">${g.count} items</div></div>`).join("")}</div>
+    <div class="section-head"><div><h2 class="section-title">Closet Gaps</h2><div class="section-sub">What would make the archive stronger</div></div></div>
+    <div class="gap-list">${closetGaps().map(g=>`<div class="gap-item">${esc(g)}</div>`).join("")}</div>
+    <div style="height:18px"></div>
+    <div class="section-head"><div><h2 class="section-title">Recent Wears</h2><div class="section-sub">${(state.wearLog||[]).length} logged outfits</div></div></div>
+    <div class="list">${(state.wearLog||[]).slice(0,5).map(log=>`<div class="row-card"><div><div class="row-title">${esc(log.vibe)}</div><div class="row-sub">${new Date(log.date).toLocaleDateString()} · ${log.pieces.length} pieces</div></div></div>`).join("") || `<div class="empty">Tap Wore Today in the outfit builder to start your wear calendar.</div>`}</div>
+    <div style="height:18px"></div>
+    <div class="section-head"><div><h2 class="section-title">Cost Per Wear Leaders</h2><div class="section-sub">Lower is better</div></div></div>
+    ${leaders.length ? `<div class="grid">${leaders.map(card).join("")}</div>` : `<div class="empty">Log wears on a few pieces and this becomes useful.</div>`}`;
+  hydrateIcons();
+}
+function closetGaps(){
+  const counts = Object.fromEntries(["Tops","Bottoms","Outerwear","Shoes","Socks","Watches","Accessories","Hats"].map(c=>[c,pickPool(c).length]));
+  const gaps = [];
+  const summerTops = pickPool("Tops").filter(x=>/mesh|tank|tee|linen|poplin|slub|knit t-shirt/i.test(x.name)).length;
+  const summerBottoms = pickPool("Bottoms").filter(x=>/short|linen|light|cream|white|tan|pull-on/i.test(`${x.name} ${x.color}`)).length;
+  const dressShoes = pickPool("Shoes").filter(x=>/loafer|derby|chelsea|lemaire|loewe|bottega/i.test(`${x.name} ${x.brand}`)).length;
+  const blackHats = pickPool("Hats").filter(x=>/black|jet/.test(`${x.color} ${x.name}`.toLowerCase())).length;
+  gaps.push(`Summer is the thinnest lane: ${summerTops} light tops and ${summerBottoms} obvious warm-weather bottoms. Add one linen/cream pant and one better short.`);
+  gaps.push(`Dress shoe lane has ${dressShoes} strong options. Keep building around loafers/derbies for elevated FireFits.`);
+  gaps.push(`Finishing details: ${counts.Socks} socks and ${counts.Watches} watches now feed the builder score. Those small choices help turn a good fit into a complete one.`);
+  gaps.push(`You have ${blackHats} black hats. Those are important because they balance brown shoes without making the fit too earthy.`);
+  if(counts.Bottoms < counts.Tops/3) gaps.push("You still have more tops than bottoms. More clean bottoms unlock more combinations than another statement top.");
+  if(pickPool("Tops").filter(x=>/cream|white|coconut|ivory/i.test(x.color)).length < 8) gaps.push("Light neutral tops are the easiest bridge between olive, brown, black, denim, and the Porsche palette.");
+  return gaps;
+}
+function openItem(id=null,presetType=activeTab){
+  editingId = id;
+  const x = id ? state.items.find(i=>i.id===id) : item(presetType==="fragrance"?"fragrance":presetType==="wishlist"?"wishlist":"wardrobe","","","","",0,new Date().toISOString().slice(0,7),"Tops");
+  document.getElementById("itemModalTitle").textContent = id ? "Edit Item" : "Add Item";
+  document.getElementById("fType").value = x.type;
+  document.getElementById("fCategory").value = x.category || "Tops";
+  document.getElementById("fBrand").value = x.brand || "";
+  document.getElementById("fName").value = x.name || "";
+  document.getElementById("fColor").value = x.color || "";
+  document.getElementById("fSize").value = x.size || "";
+  document.getElementById("fPrice").value = x.price || "";
+  document.getElementById("fDate").value = x.date || new Date().toISOString().slice(0,7);
+  pendingPhoto = x.photo || "";
+  document.getElementById("fPhoto").value = pendingPhoto;
+  renderPhotoPreview();
+  document.getElementById("fNotes").value = x.notes || "";
+  document.getElementById("deleteItem").style.display = id ? "inline-flex" : "none";
+  document.getElementById("itemModal").classList.add("open");
+  setTimeout(()=>document.getElementById("fBrand").focus(),40);
+  hydrateIcons();
+}
+function closeModal(id){ document.getElementById(id).classList.remove("open"); }
+function submitItem(e){
+  e.preventDefault();
+  const data = {
+    type:fType.value, category:fCategory.value, brand:fBrand.value.trim(), name:fName.value.trim(),
+    color:fColor.value.trim(), size:fSize.value.trim(), price:Number(fPrice.value)||0,
+    date:fDate.value || new Date().toISOString().slice(0,7), photo:pendingPhoto || "", notes:fNotes.value.trim()
+  };
+  if(!data.brand || !data.name) return;
+  if(editingId){
+    const ix = state.items.findIndex(x=>x.id===editingId);
+    state.items[ix] = {...state.items[ix],...data};
+  }else{
+    state.items.unshift({...item(data.type,data.brand,data.name,data.color,data.size,data.price,data.date,data.category),...data});
+  }
+  if(!save()) return;
+  closeModal("itemModal");
+  activeTab = data.type === "fragrance" ? "fragrance" : data.type;
+  activeCategory = "All";
+  render();
+  toast("Saved");
+}
+function deleteCurrent(){
+  if(!editingId) return;
+  state.items = state.items.filter(x=>x.id!==editingId);
+  save();
+  closeModal("itemModal");
+  render();
+  toast("Deleted");
+}
+function renderPhotoPreview(){
+  const preview = document.getElementById("photoPreview");
+  if(!preview) return;
+  preview.innerHTML = pendingPhoto
+    ? `<img src="${esc(pendingPhoto)}" alt="Item photo preview">`
+    : icon("image-plus");
+  document.getElementById("fPhoto").value = pendingPhoto;
+  hydrateIcons();
+}
+function choosePhoto(){
+  photoTargetId = null;
+  document.getElementById("photoFile").click();
+}
+function choosePhotoForItem(id){
+  photoTargetId = id;
+  document.getElementById("photoFile").click();
+}
+async function handlePhotoFile(e){
+  const file = e.target.files && e.target.files[0];
+  if(!file) return;
+  if(!file.type.startsWith("image/")){
+    toast("Choose an image");
+    e.target.value = "";
+    return;
+  }
+  try{
+    const photo = await resizeImage(file, 1200, 0.82);
+    if(photoTargetId){
+      const item = state.items.find(x=>x.id===photoTargetId);
+      if(item){
+        item.photo = photo;
+        save();
+        render();
+        toast("Photo saved");
+      }
+    }else{
+      pendingPhoto = photo;
+      renderPhotoPreview();
+      toast("Photo added");
+    }
+  }catch(err){
+    toast("Photo failed");
+  }
+  photoTargetId = null;
+  e.target.value = "";
+}
+async function identifyPhoto(){
+  if(!pendingPhoto){ toast("Add a photo first"); return; }
+  toast("Identifying...");
+  try{
+    const model = currentAiModel();
+    const data = await openAiResponse({
+      model,
+      instructions:"Identify a clothing, shoe, accessory, or fragrance item from the image. Return only valid JSON with brand, name, color, category, size, price_estimate, and notes. If unsure, use best_guess language in notes and leave exact fields broad.",
+      input:[{role:"user",content:[
+        {type:"input_text",text:"Identify this closet item and fill app fields."},
+        {type:"input_image",image_url:pendingPhoto,detail:"high"}
+      ]}]
+    });
+    const text = data.output_text || data.output?.flatMap(o=>o.content||[]).map(c=>c.text||"").join("") || "";
+    const guess = JSON.parse(text.replace(/^```json|```$/g,"").trim());
+    if(guess.brand) fBrand.value = guess.brand;
+    if(guess.name) fName.value = guess.name;
+    if(guess.color) fColor.value = guess.color;
+    if(guess.category) fCategory.value = guess.category;
+    if(guess.size) fSize.value = guess.size;
+    if(guess.price_estimate) fPrice.value = Number(guess.price_estimate) || "";
+    if(guess.notes) fNotes.value = guess.notes;
+    toast("Fields filled");
+  }catch(e){
+    toast(e.message || "AI needs internet/key");
+  }
+}
+function removePhoto(){
+  pendingPhoto = "";
+  renderPhotoPreview();
+  toast("Photo removed");
+}
+function resizeImage(file,maxSide=1200,quality=0.82){
+  return new Promise((resolve,reject)=>{
+    const reader = new FileReader();
+    reader.onerror = reject;
+    reader.onload = () => {
+      const img = new Image();
+      img.onerror = reject;
+      img.onload = () => {
+        const scale = Math.min(1, maxSide / Math.max(img.width,img.height));
+        const canvas = document.createElement("canvas");
+        canvas.width = Math.max(1, Math.round(img.width * scale));
+        canvas.height = Math.max(1, Math.round(img.height * scale));
+        const ctx = canvas.getContext("2d");
+        ctx.drawImage(img,0,0,canvas.width,canvas.height);
+        resolve(canvas.toDataURL("image/jpeg", quality));
+      };
+      img.src = reader.result;
+    };
+    reader.readAsDataURL(file);
+  });
+}
+function changeWear(id,delta){
+  const x = state.items.find(i=>i.id===id);
+  if(!x) return;
+  x.wears = Math.max(0,(x.wears||0)+Number(delta));
+  save();
+  render();
+}
+function acquire(id){
+  const x = state.items.find(i=>i.id===id);
+  if(!x) return;
+  x.type = x.category === "Fragrances" ? "fragrance" : "wardrobe";
+  x.date = new Date().toISOString().slice(0,7);
+  save();
+  activeTab = x.type;
+  render();
+  toast("Moved to archive");
+}
+function randomFit(){
+  currentFit.vibe ||= "fall";
+  let bestFit = null;
+  let bestScore = -1;
+  for(let i=0;i<250;i++){
+    const candidate = buildCandidateFit();
+    const score = localJudgeFit(candidate).score;
+    if(score > bestScore){bestFit = candidate; bestScore = score;}
+    if(score >= 90) break;
+  }
+  if(!bestFit) bestFit = buildCandidateFit();
+  currentFit = {...bestFit,vibe:currentFit.vibe,fireTarget:bestScore};
+  currentJudgement = null;
+  activeTab = "outfits";
+  render();
+}
+function buildAroundItem(id){
+  const anchor = state.items.find(x=>x.id===id);
+  if(!anchor) return;
+  currentFit.vibe ||= inferVibe(anchor);
+  const slot = slotForItem(anchor);
+  let bestFit = null;
+  let bestScore = -1;
+  for(let i=0;i<250;i++){
+    const candidate = buildCandidateFitAround(anchor, slot);
+    const score = localJudgeFit(candidate).score;
+    if(score > bestScore){ bestFit = candidate; bestScore = score; }
+    if(score >= 90) break;
+  }
+  currentFit = {...bestFit,vibe:currentFit.vibe,fireTarget:bestScore,anchorId:anchor.id};
+  currentJudgement = localJudgeFit(bestFit);
+  activeTab = "outfits";
+  closeModal("detailModal");
+  render();
+  toast(`Built around ${anchor.name}`);
+}
+function slotForItem(x){
+  if(x.type==="fragrance") return "fragrance";
+  if(x.category==="Tops") return "top";
+  if(x.category==="Outerwear") return "outerwear";
+  if(x.category==="Bottoms") return "bottoms";
+  if(x.category==="Shoes") return "shoes";
+  if(x.category==="Socks") return "socks";
+  if(x.category==="Watches") return "watch";
+  return "accessory";
+}
+function inferVibe(x){
+  const text = `${x.brand} ${x.name} ${x.color} ${x.category}`.toLowerCase();
+  if(/vuitton|mohair|jersey|leather|craggy|shark|damier|statement/.test(text)) return "statement";
+  if(/loafer|derby|suit|trouser|wool|pinstripe|watch/.test(text)) return "elevated";
+  if(/linen|mesh|tank|short|slub|cycling/.test(text)) return "summer";
+  return "fall";
+}
+function buildCandidateFitAround(anchor, slot){
+  const fit = {[slot]:anchor};
+  const avoid = xs => xs.filter(x=>x.id!==anchor.id);
+  fit.bottoms ||= smartPickFor(avoid(pickPool("Bottoms")), anchor);
+  fit.top ||= smartPickFor(avoid(pickPool("Tops")), fit.bottoms || anchor);
+  const summer = currentFit.vibe === "summer";
+  fit.outerwear ||= summer
+    ? (Math.random() > 0.62 ? smartPickFor(avoid(pickPool("Outerwear").filter(x=>/overshirt|shirt jacket|chore|denim|light|cotton/i.test(x.name))), fit.top || anchor) : null)
+    : smartPickFor(avoid(pickPool("Outerwear")), fit.top || fit.bottoms || anchor);
+  fit.shoes ||= smartPickFor(avoid(pickPool("Shoes")), fit.bottoms || fit.top || anchor);
+  fit.socks ||= smartSocksFor(fit);
+  fit.watch ||= smartWatchFor(fit);
+  fit.accessory ||= smartAccessoryFor(fit);
+  fit.fragrance ||= smartFragrance();
+  if(slot==="accessory") fit.accessory = anchor;
+  if(slot==="fragrance") fit.fragrance = anchor;
+  return fit;
+}
+function buildCandidateFit(){
+  const bottoms = smartPick(pickPool("Bottoms"));
+  const fit = {bottoms};
+  const summer = currentFit.vibe === "summer";
+  fit.outerwear = summer
+    ? (Math.random() > 0.62 ? smartPickFor(pickPool("Outerwear").filter(x=>/overshirt|shirt jacket|chore|denim|light|cotton/i.test(x.name)), bottoms) : null)
+    : smartPickFor(pickPool("Outerwear"), bottoms);
+  fit.top = smartPickFor(summer ? pickPool("Tops").filter(x=>/mesh|tank|tee|linen|poplin|slub|knit t-shirt|shirt|jersey/i.test(x.name)) : pickPool("Tops"), bottoms || fit.outerwear);
+  fit.shoes = smartPickFor(pickPool("Shoes"), bottoms || fit.top);
+  fit.socks = smartSocksFor(fit);
+  fit.watch = smartWatchFor(fit);
+  fit.accessory = smartAccessoryFor(fit);
+  fit.fragrance = smartFragrance();
+  return fit;
+}
+function pickPool(category){ return state.items.filter(x=>x.type==="wardrobe" && x.category===category); }
+function randomFrom(xs){ return xs.length ? xs[Math.floor(Math.random()*xs.length)] : null; }
+function smartPick(xs){
+  if(!xs.length) return null;
+  let pool = xs;
+  if(currentFit.vibe === "low cpw") pool = xs.filter(x=>x.price && x.wears).sort((a,b)=>a.price/a.wears-b.price/b.wears).slice(0,8);
+  if(currentFit.vibe === "elevated" || currentFit.vibe === "dinner") pool = xs.filter(x=>/trouser|loafer|derby|coat|wool|knit|shirt|lemaire|loewe|bottega|vuitton|reiss|cos/i.test(`${x.name} ${x.brand}`));
+  if(currentFit.vibe === "casual" || currentFit.vibe === "travel") pool = xs.filter(x=>/tee|jean|cargo|sneaker|clog|hoodie|hat|jacket|pant/i.test(x.name));
+  if(currentFit.vibe === "summer") pool = xs.filter(x=>/mesh|tank|tee|linen|short|slub|poplin|clog|sneaker|loafer|cotton|camp|knit t-shirt/i.test(`${x.name} ${x.color}`));
+  if(currentFit.vibe === "statement") pool = xs.filter(x=>x.price>250 || /vuitton|bottega|lemaire|issey|puffer|mohair|jersey|leather/i.test(`${x.name} ${x.brand}`));
+  return randomFrom(pool.length ? pool : xs);
+}
+function smartPickFor(xs,anchor){
+  let pool = xs;
+  if(anchor) pool = xs.map(x=>({x,score:pairScore(anchor,x)})).sort((a,b)=>b.score-a.score).slice(0,8).map(v=>v.x);
+  return smartPick(pool.length ? pool : xs);
+}
+function smartAccessory(){
+  return smartAccessoryFor(currentFit);
+}
+function smartSocksFor(fit){
+  const socks = pickPool("Socks");
+  if(!socks.length) return null;
+  const shoe = `${fit.shoes?.name || ""} ${fit.shoes?.color || ""}`.toLowerCase();
+  let pool = socks;
+  if(/loafer|derby|chelsea|brown|tan|pine|green/.test(shoe)){
+    pool = socks.filter(x=>/cream|pristine|grey|white/i.test(`${x.color} ${x.name}`));
+  }else if(/black/.test(shoe)){
+    pool = socks.filter(x=>/black|grey|cream|white/i.test(`${x.color} ${x.name}`));
+  }
+  return smartPickFor(pool.length ? pool : socks, fit.shoes || fit.bottoms);
+}
+function smartWatchFor(fit){
+  const watches = pickPool("Watches");
+  if(!watches.length) return null;
+  const text = `${fit.shoes?.color || ""} ${fit.bottoms?.color || ""} ${fit.top?.color || ""}`.toLowerCase();
+  let pool = watches;
+  if(/brown|tan|espresso|cream|beige/.test(text)) pool = watches.filter(x=>/brown|cream|gold|green/i.test(`${x.color} ${x.size} ${x.name}`));
+  else if(/black|grey|gray|silver/.test(text)) pool = watches.filter(x=>/black|white|steel|silver/i.test(`${x.color} ${x.size} ${x.name}`));
+  return randomFrom(pool.length ? pool : watches);
+}
+function smartAccessoryFor(fit){
+  const hats = pickPool("Hats");
+  const accs = pickPool("Accessories");
+  const base = [...hats,...accs];
+  const anchor = fit.shoes || fit.bottoms || fit.top;
+  let pool = anchor ? base.map(x=>({x,score:pairScore(anchor,x)})).sort((a,b)=>b.score-a.score).slice(0,10).map(v=>v.x) : base;
+  const shoeBrown = fit.shoes && /brown|tan|espresso/.test(String(fit.shoes.color).toLowerCase());
+  if(shoeBrown) pool = pool.filter(x=>!/brown|tan|khaki|chocolate/.test(`${x.name} ${x.color}`.toLowerCase())).concat(pool);
+  return randomFrom(pool);
+}
+function smartFragrance(){
+  const frags = state.items.filter(x=>x.type==="fragrance");
+  let pool = frags;
+  if(["winter","fall","dinner"].includes(currentFit.vibe)) pool = frags.filter(x=>x.color==="fall" || x.color==="all");
+  if(["spring","summer","travel","casual"].includes(currentFit.vibe)) pool = frags.filter(x=>x.color==="spring" || x.color==="all");
+  return randomFrom(pool.length ? pool : frags);
+}
+function saveFit(){
+  const pieces = Object.fromEntries(Object.entries(currentFit).filter(([k,v])=>!["vibe","fireTarget","anchorId"].includes(k) && v && v.id));
+  if(Object.values(pieces).filter(Boolean).length < 2){ toast("Add two pieces"); return; }
+  const name = prompt("Name this outfit:", `${currentFit.vibe || "Archive"} fit`);
+  if(!name) return;
+  state.outfits.unshift({id:uid(),name,pieces,created:new Date().toISOString()});
+  save();
+  render();
+  toast("Outfit saved");
+}
+function wearCurrentFit(){
+  const pieces = Object.values(currentFit).filter(v=>v && v.id);
+  if(!pieces.length){ toast("Build a fit first"); return; }
+  pieces.forEach(p=>{
+    const item = state.items.find(x=>x.id===p.id);
+    if(item) item.wears = (item.wears || 0) + 1;
+  });
+  state.wearLog ||= [];
+  state.wearLog.unshift({id:uid(),date:new Date().toISOString(),pieces:pieces.map(p=>p.id),vibe:currentFit.vibe || "fit"});
+  save();
+  render();
+  toast("Logged today's fit");
+}
+function logLayer(name,mix){
+  state.fragLayers ||= [];
+  if(!name){
+    const custom = prompt("Layer name:", "Custom Layer");
+    if(!custom) return;
+    const details = prompt("Mix:", "Aquatica 8-10 sprays + Lamar 1 spray");
+    if(!details) return;
+    name = custom; mix = details;
+  }
+  state.fragLayers.unshift({id:uid(),name,mix,date:new Date().toISOString()});
+  save();
+  activeTab = "fragrance";
+  render();
+  toast("Layer logged");
+}
+async function judgeFit(){
+  const pieces = Object.fromEntries(Object.entries(currentFit).filter(([k,v])=>!["vibe","fireTarget","anchorId"].includes(k) && v && v.id));
+  if(Object.keys(pieces).length < 2){ toast("Build a fit first"); return; }
+  currentJudgement = {source:"thinking",score:"...",metrics:{},notes:["Judging color, silhouette, formality, texture, proportion, season, accessories, and scent."]};
+  render();
+  try{
+    currentJudgement = await aiJudgeFit(pieces);
+  }catch(e){
+    currentJudgement = localJudgeFit(pieces);
+    currentJudgement.notes.unshift((e.message || "AI judge was unavailable") + ". Local FireFit scored this instead.");
+  }
+  render();
+}
+async function aiJudgeFit(pieces){
+  const model = currentAiModel();
+  const cleanPieces = Object.fromEntries(Object.entries(pieces).map(([slot,x])=>[slot,{
+    brand:x.brand,name:x.name,color:x.color,size:x.size,category:x.category,notes:x.notes,wears:x.wears,price:x.price
+  }]));
+  const content = [
+    {type:"input_text",text:"Judge this outfit. Use the text data and any attached item photos. Outfit data:\n"+JSON.stringify({vibe:currentFit.vibe || "fall", pieces:cleanPieces}, null, 2)}
+  ];
+  Object.entries(pieces).forEach(([slot,x])=>{
+    if(x?.photo){
+      content.push({type:"input_text",text:`Photo for ${slot}: ${x.brand} ${x.name}`});
+      content.push({type:"input_image",image_url:x.photo,detail:"auto"});
+    }
+  });
+  const data = await openAiResponse({
+    model,
+    instructions:"You are a sharp fashion stylist judging men's outfits. Score rigorously based on color harmony, silhouette/proportion, texture/fabric relationship, formality coherence, season/occasion, footwear match, accessory restraint, brand language, whether the fit has a clear focal point, and what you can see in item photos. Return only valid JSON with keys: score number 0-100, metrics object with 0-10 numbers for Color, Silhouette, Texture, Formality, Season, Footwear, Accessories, Cohesion, notes array of 3-5 concise actionable strings, and upgrade string naming one specific better swap.",
+    input:[{role:"user",content}]
+  });
+  const text = data.output_text || data.output?.flatMap(o=>o.content||[]).map(c=>c.text||"").join("") || "";
+  const json = JSON.parse(text.replace(/^```json|```$/g,"").trim());
+  if(json.upgrade) json.notes = [...(json.notes||[]), "Better version: "+json.upgrade];
+  return {...json, source:"OpenAI"};
+}
+async function openAiResponse(payload){
+  const netlifyPath = "/.netlify/functions/openai";
+  const isNetlify = location.protocol.indexOf("http")===0 && location.hostname !== "localhost" && location.hostname !== "127.0.0.1";
+  if(isNetlify){
+    try{
+      const proxy = await fetch(netlifyPath,{
+        method:"POST",
+        headers:{"Content-Type":"application/json"},
+        body:JSON.stringify(payload)
+      });
+      if(proxy.ok) return await proxy.json();
+      let detail = "";
+      try{
+        const data = await proxy.json();
+        detail = errorText(data);
+      }catch(e){}
+      if(proxy.status === 404) throw new Error("AI function missing. Redeploy the full zip, not just index.html");
+      if(proxy.status === 500) throw new Error("Netlify AI key missing or OpenAI rejected the request" + detail);
+      throw new Error("AI request failed (" + proxy.status + ")" + detail);
+    }catch(e){
+      throw e;
+    }
+  }
+  const key = localStorage.getItem(AI_KEY_STORAGE);
+  if(!key){
+    if(location.protocol === "file:") throw new Error("Open the Netlify production link for AI");
+    throw new Error("No AI key available");
+  }
+  const direct = await fetch("https://api.openai.com/v1/responses",{
+    method:"POST",
+    headers:{"Content-Type":"application/json","Authorization":"Bearer "+key},
+    body:JSON.stringify(payload)
+  });
+  if(!direct.ok) throw new Error("AI request failed");
+  return await direct.json();
+}
+function currentAiModel(){
+  const stored = localStorage.getItem(AI_MODEL_STORAGE);
+  if(!stored || stored === "gpt-5.1-mini"){
+    localStorage.setItem(AI_MODEL_STORAGE, DEFAULT_AI_MODEL);
+    return DEFAULT_AI_MODEL;
+  }
+  return stored;
+}
+function errorText(data){
+  if(!data) return "";
+  if(typeof data.error === "string") return ": " + data.error;
+  if(data.error && data.error.message) return ": " + data.error.message;
+  if(data.message) return ": " + data.message;
+  return "";
+}
+function localJudgeFit(pieces){
+  pieces = Object.fromEntries(Object.entries(pieces || {}).filter(([,v])=>v && v.id));
+  const vals = Object.values(pieces).filter(Boolean);
+  if(!vals.length){
+    return {source:"Local Style Engine",score:1,metrics:{Color:1,Silhouette:1,Texture:1,Formality:1,Season:1,Footwear:1,Accessories:1,Cohesion:1},notes:["No usable pieces were selected."]};
+  }
+  const colors = vals.filter(x=>x.category!=="Fragrances").map(x=>x.color || "");
+  const names = vals.map(x=>x.name || "");
+  const text = vals.map(x=>`${x.brand} ${x.name} ${x.color} ${x.category || ""}`).join(" ").toLowerCase();
+  const metrics = {
+    Color: scoreColor(colors),
+    Silhouette: scoreSilhouette(pieces),
+    Texture: scoreTexture(text),
+    Formality: scoreFormality(text),
+    Season: scoreSeason(text,currentFit.vibe || "fall"),
+    Footwear: scoreFootwear(pieces),
+    Accessories: scoreAccessories(pieces),
+    Cohesion: scoreCohesion(vals)
+  };
+  let score = Math.round(Object.values(metrics).reduce((s,n)=>s+n,0) / Object.keys(metrics).length * 10);
+  const minMetric = Math.min(...Object.values(metrics));
+  if(metrics.Silhouette >= 8 && metrics.Footwear >= 8 && metrics.Cohesion >= 8 && metrics.Color >= 7) score += 5;
+  if(metrics.Texture >= 8 && metrics.Formality >= 8) score += 3;
+  if(score >= 86 && minMetric >= 7) score += 4;
+  if((currentFit.vibe || "").toLowerCase()==="summer" && metrics.Season >= 8 && metrics.Color >= 8 && metrics.Footwear >= 8) score += 3;
+  if(minMetric < 6) score -= 4;
+  score = Math.max(1, Math.min(100, score));
+  const notes = buildJudgeNotes(metrics,pieces,names);
+  return {source:"Local Style Engine",score,metrics,notes};
+}
+function colorGroup(c){
+  c = String(c||"").toLowerCase();
+  if(/black|jet|soot|charcoal/.test(c)) return "black";
+  if(/white|cream|ivory|pristine|coconut|oatmeal/.test(c)) return "light-neutral";
+  if(/grey|gray|silver/.test(c)) return "grey";
+  if(/brown|tan|khaki|beige|espresso|foxtrot|camel|kindling|moro/.test(c)) return "earth";
+  if(/olive|green|kelp|loden|pine|cypress|agave/.test(c)) return "green";
+  if(/navy|indigo|blue|sky/.test(c)) return "blue";
+  if(/orange|pink|pimento|citrus|merlot|red/.test(c)) return "accent";
+  return "neutral";
+}
+function scoreColor(colors){
+  const groups = colors.filter(Boolean).map(colorGroup);
+  const unique = [...new Set(groups)];
+  const accents = groups.filter(g=>g==="accent").length;
+  if(unique.length <= 2) return accents ? 8 : 9;
+  if(unique.length === 3) return accents <= 1 ? 8 : 6;
+  return 5;
+}
+function scoreSilhouette(p){
+  const topItems = [p.top,p.outerwear].filter(Boolean);
+  const top = topItems.map(x=>`${x.name} ${styleProfile(x).tags.join(" ")}`).join(" ").toLowerCase();
+  const bottom = p.bottoms ? `${p.bottoms.name} ${styleProfile(p.bottoms).tags.join(" ")} ${styleProfile(p.bottoms).silhouette.join(" ")}`.toLowerCase() : "";
+  let s = 7;
+  if(/wide|pleated|barrel|relaxed|quilted|cargo|plisse|high-waisted/.test(bottom) && /cropped|boxy|split|hemi|lasso|zip|waist-length/.test(top)) s += 3;
+  if(/skinny|slim/.test(top) && /wide|barrel/.test(bottom)) s += 1;
+  if(/long|coat/.test(top) && /shorts/.test(bottom)) s -= 2;
+  if(/high-waisted/.test(bottom) && !/cropped|boxy|waist-length/.test(top)) s -= 2;
+  return clamp(s);
+}
+function scoreTexture(text){
+  const textures = ["wool","mohair","leather","suede","denim","corduroy","mesh","nylon","cotton","linen","fleece","sherpa","waxed","quilted"];
+  const found = textures.filter(t=>text.includes(t)).length;
+  return clamp(6 + Math.min(found,4));
+}
+function scoreFormality(text){
+  const formal = /loafer|derby|trouser|suit|coat|button|oxford|wool|lemaire|loewe|bottega/.test(text);
+  const casual = /clog|jersey|hoodie|tee|tank|sneaker|cargo|hat|shorts/.test(text);
+  if(formal && casual) return 8;
+  if(formal || casual) return 7;
+  return 6;
+}
+function scoreSeason(text,vibe){
+  const warm = /wool|mohair|coat|puffer|fleece|sherpa|beanie|thermal|corduroy/.test(text);
+  const light = /linen|mesh|tank|tee|shorts|poplin|slub/.test(text);
+  if(["winter","fall","dinner"].includes(vibe)) return warm ? 9 : light ? 6 : 7;
+  if(vibe==="summer") return light && !warm ? 10 : light ? 8 : warm ? 4 : 7;
+  if(["spring","travel"].includes(vibe)) return light ? 9 : warm ? 6 : 8;
+  return 7;
+}
+function scoreFootwear(p){
+  if(!p.shoes) return 4;
+  const shoe = p.shoes.name.toLowerCase();
+  const bottom = (p.bottoms?.name || "").toLowerCase();
+  if(/loafer|derby|chelsea/.test(shoe) && /trouser|pleated|plisse|linen|cuffed/.test(bottom)) return 9;
+  if(/clog|sneaker/.test(shoe) && /jean|cargo|short|pant/.test(bottom)) return 8;
+  return 7;
+}
+function scoreAccessories(p){
+  let s = 5;
+  if(p.accessory) s += 2;
+  if(p.watch) s += 1;
+  if(p.socks) s += sockScore(p);
+  if(p.fragrance) s += 1;
+  if(p.accessory && p.watch && p.socks) s += 1;
+  return clamp(s);
+}
+function sockScore(p){
+  if(!p.socks) return 0;
+  const socks = `${p.socks.name} ${p.socks.color}`.toLowerCase();
+  const shoes = `${p.shoes?.name || ""} ${p.shoes?.color || ""}`.toLowerCase();
+  const bottoms = `${p.bottoms?.name || ""} ${p.bottoms?.color || ""}`.toLowerCase();
+  if(/no-show/.test(socks) && /loafer|derby/.test(shoes)) return 1;
+  if(/cream|pristine|white|grey/.test(socks) && /brown|tan|green|pine|loafer|derby/.test(shoes)) return 2;
+  if(/black/.test(socks) && /black|grey|charcoal/.test(`${shoes} ${bottoms}`)) return 2;
+  return 1;
+}
+function scoreCohesion(vals){
+  const premium = vals.filter(x=>/aime|kith|lemaire|loewe|bottega|vuitton|buck mason|cos|reiss|todd snyder|issey|entire|cole buxton|kody/i.test(x.brand)).length;
+  return clamp(6 + Math.min(premium,4));
+}
+function buildJudgeNotes(metrics,p,names){
+  const low = Object.entries(metrics).sort((a,b)=>a[1]-b[1])[0];
+  const high = Object.entries(metrics).sort((a,b)=>b[1]-a[1])[0];
+  const notes = [`Best category: ${high[0]} is carrying the fit.`];
+  notes.push(...styleReasonNotes(p));
+  if(low[1] < 7) notes.push(`${low[0]} needs work: swap one piece to tighten the story.`);
+  if(p.bottoms && !p.shoes) notes.push("Footwear is missing, and that decides the whole silhouette.");
+  if(p.socks && p.shoes) notes.push(`${p.socks.name} supports ${p.shoes.name}; socks now count toward the finish of the fit.`);
+  if(p.watch) notes.push(`${p.watch.name} gives the fit a wrist detail, which helps the outfit feel complete.`);
+  if(p.fragrance) notes.push(`${p.fragrance.name} adds a scent layer, so keep accessories restrained.`);
+  notes.push(`Better version: ${bestSwapSuggestion(p)}`);
+  notes.push(...swapSuggestions(p));
+  notes.push("A stylish fit needs one clear focal point, supporting textures, and no more than one loud move.");
+  return notes.slice(0,8);
+}
+function styleReasonNotes(p){
+  const notes = [];
+  const top = p.outerwear || p.top;
+  const bottom = p.bottoms;
+  const shoe = p.shoes;
+  const acc = p.accessory;
+  if(top && bottom){
+    const tp=styleProfile(top), bp=styleProfile(bottom);
+    if((tp.fit==="cropped" || tp.silhouette.includes("waist-length")) && (bp.tags.includes("high-waisted") || bp.silhouette.includes("wide"))){
+      notes.push(`${top.name} works with ${bottom.name} because the cropped/boxy top balances the high-waisted volume.`);
+    }
+    if(tp.texture.includes("vintage") && bp.colorFamily==="green"){
+      notes.push(`The faded/vintage texture against green pants gives the fit a stronger workwear story.`);
+    }
+    if(tp.colorFamily==="blue" && bp.colorFamily==="green"){
+      notes.push(`Blue plus green works here because both sit in a cool heritage palette; brown leather can warm it up.`);
+    }
+  }
+  if(shoe && bottom && /brown|tan|espresso/.test(String(shoe.color).toLowerCase()) && styleProfile(bottom).colorFamily==="green"){
+    notes.push(`Brown shoes are right with green pants; they add leather warmth without fighting the color.`);
+  }
+  if(acc && shoe && /brown|tan|khaki|chocolate/.test(`${acc.name} ${acc.color}`.toLowerCase()) && /brown|tan|espresso/.test(`${shoe.name} ${shoe.color}`.toLowerCase())){
+    notes.push(`The hat/accessory may be too warm with brown shoes. Try black, navy, cream, or green instead.`);
+  }
+  return notes;
+}
+function bestSwapSuggestion(p){
+  if(!p.shoes) return "add a deliberate shoe before judging anything else.";
+  if(scoreColor(Object.values(p).map(x=>x?.color)) < 7) return "swap one accent color for cream, black, olive, or brown.";
+  if(p.bottoms && /wide|pleated|barrel|plisse|kody/i.test(p.bottoms.name) && !(p.top && /cropped|boxy|split|zip|lasso/i.test(p.top.name))) return "use a cropped or boxy top with that bottom shape.";
+  if(p.shoes && p.accessory && /brown|tan|espresso/.test(`${p.shoes.color}`.toLowerCase()) && /brown|tan|khaki/.test(`${p.accessory.color}`.toLowerCase())) return "switch the brown hat/accessory to black, navy, cream, or green.";
+  if(!p.socks && p.shoes) return "add socks deliberately; cream/grey with leather shoes or black socks with black footwear.";
+  if(!p.watch) return "add a watch to finish the wrist and make the fit feel intentional.";
+  return "keep the focal piece and simplify one supporting layer.";
+}
+function swapSuggestions(p){
+  const ideas = [];
+  if(!p.socks && p.shoes){
+    const socks = smartSocksFor(p);
+    if(socks) ideas.push(`Add ${socks.name}; socks can sharpen the shoe-to-pant transition.`);
+  }
+  if(!p.watch){
+    const watch = smartWatchFor(p);
+    if(watch) ideas.push(`Add ${watch.name}; a watch makes the fit feel more finished.`);
+  }
+  if(p.accessory && p.shoes && /brown|tan|espresso/.test(`${p.shoes.color}`.toLowerCase()) && /brown|tan|khaki|chocolate/.test(`${p.accessory.color}`.toLowerCase())){
+    const better = [...pickPool("Hats"),...pickPool("Accessories")].filter(x=>/black|navy|cream|white|green|jet|indigo/.test(`${x.color} ${x.name}`.toLowerCase())).slice(0,3);
+    better.forEach(x=>ideas.push(`Swap ${p.accessory.name} for ${x.name} to avoid over-warming the fit.`));
+  }
+  if(p.bottoms && /kody|wide|barrel|pleated|plisse/i.test(p.bottoms.name) && p.top && !/cropped|boxy|lasso|zip|hemi|split/i.test(p.top.name)){
+    pickPool("Tops").filter(x=>/cropped|boxy|lasso|zip|hemi|split|heavy hood/i.test(x.name)).slice(0,3).forEach(x=>ideas.push(`Try ${x.name}; cropped/boxy works better with ${p.bottoms.name}.`));
+  }
+  if(currentFit.vibe==="summer"){
+    [p.outerwear,p.top].filter(Boolean).forEach(layer=>{
+      if(/wool|mohair|puffer|coat|sherpa|fleece/i.test(layer.name)){
+        pickPool("Tops").filter(x=>/mesh|tank|tee|linen|poplin|slub|knit t-shirt/i.test(x.name)).slice(0,2).forEach(x=>ideas.push(`For summer, swap ${layer.name} for ${x.name}.`));
+      }
+    });
+  }
+  return ideas.slice(0,4);
+}
+function clamp(n){ return Math.max(1,Math.min(10,Math.round(n))); }
+function openAiSettings(){
+  document.getElementById("aiKey").value = localStorage.getItem(AI_KEY_STORAGE) || "";
+  document.getElementById("aiModel").value = currentAiModel();
+  document.getElementById("aiModal").classList.add("open");
+  hydrateIcons();
+}
+function saveAiSettings(){
+  const key = document.getElementById("aiKey").value.trim();
+  const model = document.getElementById("aiModel").value.trim() || DEFAULT_AI_MODEL;
+  if(key) localStorage.setItem(AI_KEY_STORAGE,key);
+  localStorage.setItem(AI_MODEL_STORAGE,model);
+  closeModal("aiModal");
+  toast("AI judge saved");
+}
+function clearAiSettings(){
+  localStorage.removeItem(AI_KEY_STORAGE);
+  closeModal("aiModal");
+  toast("AI key cleared");
+}
+function openArchive(){
+  archiveText.value = JSON.stringify(state,null,2);
+  document.getElementById("importModal").classList.add("open");
+}
+function applyImport(){
+  try{
+    const next = parseArchiveInput(archiveText.value);
+    if(!Array.isArray(next.items)) throw new Error("Missing items array");
+    state = {items:next.items,outfits:Array.isArray(next.outfits)?next.outfits:[]};
+    save();
+    closeModal("importModal");
+    render();
+    toast("Archive imported");
+  }catch(e){ alert("That JSON does not look like a Closet Archive export."); }
+}
+function parseArchiveInput(text){
+  try{ return JSON.parse(text); }catch(e){}
+  const legacy = parseLegacyV21(text);
+  if(legacy) return legacy;
+  throw new Error("Unsupported archive format");
+}
+function parseLegacyV21(text){
+  const grab = name => {
+    const start = text.indexOf("var "+name+"=");
+    if(start < 0) return null;
+    const arrStart = text.indexOf("[", start);
+    if(arrStart < 0) return null;
+    let depth = 0;
+    for(let i=arrStart;i<text.length;i++){
+      if(text[i] === "[") depth++;
+      if(text[i] === "]") depth--;
+      if(depth === 0) return text.slice(arrStart, i+1);
+    }
+    return null;
+  };
+  const run = src => src ? Function('"use strict";return ('+src+');')() : [];
+  try{
+    const W = run(grab("W"));
+    const F = run(grab("F"));
+    const WISHLIST = run(grab("WISHLIST"));
+    if(!W.length && !F.length && !WISHLIST.length) return null;
+    const items = [
+      ...W.map(x => normalizeLegacy(x,"wardrobe")),
+      ...F.map(x => normalizeLegacyFrag(x)),
+      ...WISHLIST.map(x => normalizeLegacyWish(x))
+    ];
+    return {items,outfits:[]};
+  }catch(e){
+    return null;
+  }
+}
+function normalizeLegacy(x,type){
+  return {
+    id:uid(), type, brand:x.brand || "", name:x.item || x.name || "", color:x.color || "",
+    size:x.size || "", price:Number(x.price)||0, date:x.date || new Date().toISOString().slice(0,7),
+    category:x.cat || "Wardrobe", wears:0, photo:"", notes:x.est ? "Retail estimate" : ""
+  };
+}
+function normalizeLegacyFrag(x){
+  return {
+    id:uid(), type:"fragrance", brand:x.house || "", name:x.name || "", color:x.season || "all",
+    size:x.type || "", price:Number(x.price)||0, date:new Date().toISOString().slice(0,7),
+    category:"Fragrances", wears:0, photo:"", notes:x.est ? "Retail estimate" : "",
+    projection:x.projection || "", rating:x.rating || 0
+  };
+}
+function normalizeLegacyWish(x){
+  return {
+    id:uid(), type:"wishlist", brand:x.brand || "", name:x.item || "", color:x.color || "",
+    size:x.size || "", price:Number(x.price)||0, date:x.added || new Date().toISOString().slice(0,7),
+    category:x.cat || "Wishlist", wears:0, photo:"", notes:x.note || ""
+  };
+}
+function fmtMonth(m){
+  if(!m) return "";
+  const [y,mo] = m.split("-").map(Number);
+  return y && mo ? monthFmt.format(new Date(y,mo-1,1)) : m;
+}
+function esc(v){
+  return String(v ?? "").replace(/[&<>"']/g, ch => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[ch]));
+}
+document.addEventListener("click", e => {
+  const tab = e.target.closest("[data-tab]");
+  if(tab){ activeTab = tab.dataset.tab; activeCategory = "All"; clearSearch(); render(); return; }
+  const cat = e.target.closest("[data-cat]");
+  if(cat){ activeCategory = cat.dataset.cat; render(); return; }
+  const close = e.target.closest("[data-close]");
+  if(close){ closeModal(close.dataset.close); return; }
+  const photoTarget = e.target.closest("[data-photo-target]");
+  if(photoTarget){ choosePhotoForItem(photoTarget.dataset.photoTarget); return; }
+  const edit = e.target.closest("[data-edit]");
+  if(edit){ openItem(edit.dataset.edit); return; }
+  const detail = e.target.closest("[data-detail]");
+  if(detail){ openDetail(detail.dataset.detail); return; }
+  const buildAround = e.target.closest("[data-build-around]");
+  if(buildAround){ buildAroundItem(buildAround.dataset.buildAround); return; }
+  const wear = e.target.closest("[data-wear]");
+  if(wear){ changeWear(wear.dataset.wear, wear.dataset.delta); return; }
+  const acq = e.target.closest("[data-acquire]");
+  if(acq){ acquire(acq.dataset.acquire); return; }
+  const fitDel = e.target.closest("[data-delete-fit]");
+  if(fitDel){ state.outfits = state.outfits.filter(o=>o.id!==fitDel.dataset.deleteFit); save(); render(); return; }
+  const layer = e.target.closest("[data-layer-name]");
+  if(layer){ logLayer(layer.dataset.layerName, layer.dataset.layerMix); return; }
+  const pick = e.target.closest("[data-pick-slot]");
+  if(pick){ pickSlotItem(pick.dataset.pickSlot, pick.dataset.pickId); return; }
+  const slot = e.target.closest("[data-slot]");
+  if(slot){ openSlotPicker(slot.dataset.slot); return; }
+  const vibe = e.target.closest("[data-vibe]");
+  if(vibe){ currentFit.vibe = vibe.dataset.vibe; currentJudgement = null; render(); return; }
+  const action = e.target.closest("[data-action]")?.dataset.action;
+  if(action === "add") openItem();
+  if(action === "clearSearch"){ clearSearch(); render(); }
+  if(action === "random") randomFit();
+  if(action === "judgeFit") judgeFit();
+  if(action === "wearFit") wearCurrentFit();
+  if(action === "logLayer") logLayer();
+  if(action === "aiSettings") openAiSettings();
+  if(action === "saveFit") saveFit();
+  if(action === "export" || action === "import" || action === "menu") openArchive();
+});
+document.getElementById("search").addEventListener("input", render);
+document.getElementById("slotSearch").addEventListener("input", renderSlotPicker);
+document.getElementById("itemForm").addEventListener("submit", submitItem);
+document.getElementById("deleteItem").addEventListener("click", deleteCurrent);
+document.getElementById("uploadPhoto").addEventListener("click", choosePhoto);
+document.getElementById("photoPreview").addEventListener("click", choosePhoto);
+document.getElementById("identifyPhoto").addEventListener("click", identifyPhoto);
+document.getElementById("removePhoto").addEventListener("click", removePhoto);
+document.getElementById("photoFile").addEventListener("change", handlePhotoFile);
+document.getElementById("applyImport").addEventListener("click", applyImport);
+document.getElementById("saveAiKey").addEventListener("click", saveAiSettings);
+document.getElementById("clearAiKey").addEventListener("click", clearAiSettings);
+document.getElementById("copyArchive").addEventListener("click", async()=>{
+  await navigator.clipboard.writeText(archiveText.value);
+  toast("Copied");
+});
+if("serviceWorker" in navigator && location.protocol.indexOf("http") === 0){
+  window.addEventListener("load", () => {
+    navigator.serviceWorker.register("/sw.js").then(reg => reg.update()).catch(() => {});
+  });
+}
+render();
+</script>
+</body>
+</html>

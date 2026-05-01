@@ -1,0 +1,19 @@
+{
+  "name": "Devin's Closet Archive",
+  "short_name": "Closet",
+  "description": "Personal wardrobe, fragrance, wishlist, and FireFit builder.",
+  "start_url": "/index.html",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#07100c",
+  "theme_color": "#07100c",
+  "orientation": "portrait",
+  "icons": [
+    {
+      "src": "/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}
