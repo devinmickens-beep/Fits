@@ -1314,7 +1314,7 @@ function renderCollection(type){
   const value = items.reduce((s,x)=>s+(x.price||0),0);
   const add = `<button class="primary" data-action="add">${icon("plus")}Add</button>`;
   document.getElementById("view").innerHTML =
-    header(names[type], `${items.length} items · ${money.format(value)} archive value · v7`, add) +
+    header(names[type], `${items.length} items · ${money.format(value)} archive value · v8`, add) +
     renderPills(type) +
     (items.length ? `<div class="grid">${items.map(card).join("")}</div>` : emptyMessage(type));
   hydrateIcons();
@@ -1494,7 +1494,7 @@ function renderOutfits(){
       <div class="panel">
         <div class="panel-title">Current Fit</div>
         <div class="slot-grid">
-          ${["top","outerwear","bottoms","shoes","socks","watch","accessory","fragrance"].map(slot=>slotButton(slot)).join("")}
+          ${["baseLayer","midLayer","outerwear","bottoms","shoes","socks","watch","accessory","fragrance"].map(slot=>slotButton(slot)).join("")}
         </div>
       </div>
     </div>
@@ -1505,7 +1505,8 @@ function renderOutfits(){
 }
 function mainPieces(){
   return {
-    top: pickPool("Tops"),
+    baseLayer: topPool("baseLayer"),
+    midLayer: topPool("midLayer"),
     outerwear: pickPool("Outerwear"),
     bottoms: pickPool("Bottoms"),
     shoes: pickPool("Shoes"),
@@ -1524,7 +1525,7 @@ function slotButton(slot){
     ${x ? `<b>${esc(x.name)}</b><small>${esc(x.brand)} · ${esc(x.color)}</small>` : `<b>Tap to pick</b><small>${poolLabel(slot)}</small>`}
   </button>`;
 }
-function poolLabel(slot){ return ({fragrance:"Scent",outerwear:"Jacket",socks:"Socks",watch:"Watch"})[slot] || slot; }
+function poolLabel(slot){ return ({baseLayer:"Tee / shirt / thermal",midLayer:"Sweater / hoodie / knit",fragrance:"Scent",outerwear:"Jacket",socks:"Socks",watch:"Watch"})[slot] || slot; }
 function openSlotPicker(slot){
   activeSlot = slot;
   document.getElementById("slotTitle").textContent = "Pick "+slotLabel(slot);
@@ -1534,17 +1535,18 @@ function openSlotPicker(slot){
   hydrateIcons();
 }
 function slotLabel(slot){
-  return ({top:"Top",outerwear:"Outerwear",bottoms:"Bottoms",shoes:"Shoes",socks:"Socks",watch:"Watch",accessory:"Accessory / Hat",fragrance:"Fragrance"})[slot] || slot;
+  return ({baseLayer:"Base Layer",midLayer:"Mid Layer",top:"Top",outerwear:"Outer Layer",bottoms:"Bottoms",shoes:"Shoes",socks:"Socks",watch:"Watch",accessory:"Accessory / Hat",fragrance:"Fragrance"})[slot] || slot;
 }
 function slotPool(slot){
   if(slot==="fragrance") return state.items.filter(x=>x.type==="fragrance");
   if(slot==="accessory") return [...pickPool("Accessories"),...pickPool("Hats")];
+  if(slot==="baseLayer" || slot==="midLayer") return topPool(slot);
   const map={top:"Tops",outerwear:"Outerwear",bottoms:"Bottoms",shoes:"Shoes",socks:"Socks",watch:"Watches"};
   return pickPool(map[slot] || "Tops");
 }
 function renderSlotPicker(){
   const q = document.getElementById("slotSearch").value.toLowerCase();
-  const anchor = currentFit.bottoms || currentFit.top || currentFit.shoes;
+  const anchor = currentFit.bottoms || currentFit.midLayer || currentFit.baseLayer || currentFit.top || currentFit.shoes;
   const items = slotPool(activeSlot)
     .filter(x=>!q || `${x.brand} ${x.name} ${x.color} ${x.size}`.toLowerCase().includes(q))
     .map(x=>({x,score:anchor && x.id!==anchor.id ? pairScore(anchor,x) : statementLevel(x)}))
@@ -1835,13 +1837,45 @@ function buildAroundItem(id){
 }
 function slotForItem(x){
   if(x.type==="fragrance") return "fragrance";
-  if(x.category==="Tops") return "top";
+  if(x.category==="Tops") return topLayerSlot(x);
   if(x.category==="Outerwear") return "outerwear";
   if(x.category==="Bottoms") return "bottoms";
   if(x.category==="Shoes") return "shoes";
   if(x.category==="Socks") return "socks";
   if(x.category==="Watches") return "watch";
   return "accessory";
+}
+function layerText(x){
+  return `${x?.brand || ""} ${x?.name || ""} ${x?.color || ""} ${x?.category || ""}`.toLowerCase();
+}
+function isMidLayer(x){
+  const text = layerText(x);
+  if(/thermal|tee|t-shirt|tank|henley|button|oxford|poplin|rugby|jersey|camp|shirt$/.test(text)) return false;
+  return /sweater|hoodie|cardigan|quarter.?zip|half.?zip|full zip|mohair|knit|sherpa|fleece|heavy hood|split/.test(text);
+}
+function topLayerSlot(x){
+  return isMidLayer(x) ? "midLayer" : "baseLayer";
+}
+function topPool(role){
+  const tops = pickPool("Tops");
+  return tops.filter(x=>role==="midLayer" ? isMidLayer(x) : !isMidLayer(x));
+}
+function normalizeFitLayers(fit){
+  if(fit.top && !fit.baseLayer && !fit.midLayer){
+    fit[topLayerSlot(fit.top)] = fit.top;
+    delete fit.top;
+  }
+  return fit;
+}
+function wantsMidLayer(){
+  return !["summer"].includes(currentFit.vibe) && Math.random() > 0.38;
+}
+function midLayerAllowsOuter(x){
+  if(!x) return true;
+  return !/hoodie|sherpa|fleece|full zip|jacket|overshirt|shirt jacket|coat|puffer|cape/.test(layerText(x));
+}
+function layerAnchor(fit, fallback){
+  return fit.midLayer || fit.baseLayer || fit.top || fallback;
 }
 function inferVibe(x){
   const text = `${x.brand} ${x.name} ${x.color} ${x.category}`.toLowerCase();
@@ -1851,15 +1885,20 @@ function inferVibe(x){
   return "fall";
 }
 function buildCandidateFitAround(anchor, slot){
-  const fit = {[slot]:anchor};
+  const fit = normalizeFitLayers({[slot]:anchor});
   const avoid = xs => xs.filter(x=>x.id!==anchor.id);
   fit.bottoms ||= smartPickFor(avoid(pickPool("Bottoms")), anchor);
-  fit.top ||= smartPickFor(avoid(pickPool("Tops")), fit.bottoms || anchor);
+  fit.baseLayer ||= smartPickFor(avoid(topPool("baseLayer")), fit.midLayer || fit.bottoms || anchor);
   const summer = currentFit.vibe === "summer";
-  fit.outerwear ||= summer
-    ? (Math.random() > 0.62 ? smartPickFor(avoid(pickPool("Outerwear").filter(x=>/overshirt|shirt jacket|chore|denim|light|cotton/i.test(x.name))), fit.top || anchor) : null)
-    : smartPickFor(avoid(pickPool("Outerwear")), fit.top || fit.bottoms || anchor);
-  fit.shoes ||= smartPickFor(avoid(pickPool("Shoes")), fit.bottoms || fit.top || anchor);
+  if(!fit.midLayer && wantsMidLayer()){
+    fit.midLayer = smartPickFor(avoid(topPool("midLayer")), fit.baseLayer || fit.bottoms || anchor);
+  }
+  if(!fit.outerwear && midLayerAllowsOuter(fit.midLayer)){
+    fit.outerwear = summer
+      ? (Math.random() > 0.72 ? smartPickFor(avoid(pickPool("Outerwear").filter(x=>/overshirt|shirt jacket|chore|denim|light|cotton/i.test(x.name))), layerAnchor(fit, anchor)) : null)
+      : smartPickFor(avoid(pickPool("Outerwear")), layerAnchor(fit, fit.bottoms || anchor));
+  }
+  fit.shoes ||= smartPickFor(avoid(pickPool("Shoes")), fit.bottoms || layerAnchor(fit, anchor));
   fit.socks ||= smartSocksFor(fit);
   fit.watch ||= smartWatchFor(fit);
   fit.accessory ||= smartAccessoryFor(fit);
@@ -1872,11 +1911,16 @@ function buildCandidateFit(){
   const bottoms = smartPick(pickPool("Bottoms"));
   const fit = {bottoms};
   const summer = currentFit.vibe === "summer";
-  fit.outerwear = summer
-    ? (Math.random() > 0.62 ? smartPickFor(pickPool("Outerwear").filter(x=>/overshirt|shirt jacket|chore|denim|light|cotton/i.test(x.name)), bottoms) : null)
-    : smartPickFor(pickPool("Outerwear"), bottoms);
-  fit.top = smartPickFor(summer ? pickPool("Tops").filter(x=>/mesh|tank|tee|linen|poplin|slub|knit t-shirt|shirt|jersey/i.test(x.name)) : pickPool("Tops"), bottoms || fit.outerwear);
-  fit.shoes = smartPickFor(pickPool("Shoes"), bottoms || fit.top);
+  fit.baseLayer = smartPickFor(summer ? topPool("baseLayer").filter(x=>/mesh|tank|tee|linen|poplin|slub|knit t-shirt|shirt|jersey/i.test(x.name)) : topPool("baseLayer"), bottoms);
+  if(wantsMidLayer()){
+    fit.midLayer = smartPickFor(topPool("midLayer"), fit.baseLayer || bottoms);
+  }
+  if(midLayerAllowsOuter(fit.midLayer)){
+    fit.outerwear = summer
+      ? (Math.random() > 0.72 ? smartPickFor(pickPool("Outerwear").filter(x=>/overshirt|shirt jacket|chore|denim|light|cotton/i.test(x.name)), layerAnchor(fit, bottoms)) : null)
+      : smartPickFor(pickPool("Outerwear"), layerAnchor(fit, bottoms));
+  }
+  fit.shoes = smartPickFor(pickPool("Shoes"), bottoms || layerAnchor(fit));
   fit.socks = smartSocksFor(fit);
   fit.watch = smartWatchFor(fit);
   fit.accessory = smartAccessoryFor(fit);
@@ -1918,7 +1962,7 @@ function smartSocksFor(fit){
 function smartWatchFor(fit){
   const watches = pickPool("Watches");
   if(!watches.length) return null;
-  const text = `${fit.shoes?.color || ""} ${fit.bottoms?.color || ""} ${fit.top?.color || ""}`.toLowerCase();
+  const text = `${fit.shoes?.color || ""} ${fit.bottoms?.color || ""} ${fit.baseLayer?.color || ""} ${fit.midLayer?.color || ""} ${fit.top?.color || ""}`.toLowerCase();
   let pool = watches;
   if(/brown|tan|espresso|cream|beige/.test(text)) pool = watches.filter(x=>/brown|cream|gold|green/i.test(`${x.color} ${x.size} ${x.name}`));
   else if(/black|grey|gray|silver/.test(text)) pool = watches.filter(x=>/black|white|steel|silver/i.test(`${x.color} ${x.size} ${x.name}`));
@@ -1928,7 +1972,7 @@ function smartAccessoryFor(fit){
   const hats = pickPool("Hats");
   const accs = pickPool("Accessories");
   const base = [...hats,...accs];
-  const anchor = fit.shoes || fit.bottoms || fit.top;
+  const anchor = fit.shoes || fit.bottoms || layerAnchor(fit);
   let pool = anchor ? base.map(x=>({x,score:pairScore(anchor,x)})).sort((a,b)=>b.score-a.score).slice(0,10).map(v=>v.x) : base;
   const shoeBrown = fit.shoes && /brown|tan|espresso/.test(String(fit.shoes.color).toLowerCase());
   if(shoeBrown) pool = pool.filter(x=>!/brown|tan|khaki|chocolate/.test(`${x.name} ${x.color}`.toLowerCase())).concat(pool);
@@ -2117,7 +2161,7 @@ function scoreColor(colors){
   return 5;
 }
 function scoreSilhouette(p){
-  const topItems = [p.top,p.outerwear].filter(Boolean);
+  const topItems = [p.baseLayer,p.midLayer,p.top,p.outerwear].filter(Boolean);
   const top = topItems.map(x=>`${x.name} ${styleProfile(x).tags.join(" ")}`).join(" ").toLowerCase();
   const bottom = p.bottoms ? `${p.bottoms.name} ${styleProfile(p.bottoms).tags.join(" ")} ${styleProfile(p.bottoms).silhouette.join(" ")}`.toLowerCase() : "";
   let s = 7;
@@ -2195,7 +2239,7 @@ function buildJudgeNotes(metrics,p,names){
 }
 function styleReasonNotes(p){
   const notes = [];
-  const top = p.outerwear || p.top;
+  const top = p.outerwear || p.midLayer || p.baseLayer || p.top;
   const bottom = p.bottoms;
   const shoe = p.shoes;
   const acc = p.accessory;
@@ -2222,7 +2266,8 @@ function styleReasonNotes(p){
 function bestSwapSuggestion(p){
   if(!p.shoes) return "add a deliberate shoe before judging anything else.";
   if(scoreColor(Object.values(p).map(x=>x?.color)) < 7) return "swap one accent color for cream, black, olive, or brown.";
-  if(p.bottoms && /wide|pleated|barrel|plisse|kody/i.test(p.bottoms.name) && !(p.top && /cropped|boxy|split|zip|lasso/i.test(p.top.name))) return "use a cropped or boxy top with that bottom shape.";
+  const top = p.midLayer || p.baseLayer || p.top;
+  if(p.bottoms && /wide|pleated|barrel|plisse|kody/i.test(p.bottoms.name) && !(top && /cropped|boxy|split|zip|lasso/i.test(top.name))) return "use a cropped or boxy top with that bottom shape.";
   if(p.shoes && p.accessory && /brown|tan|espresso/.test(`${p.shoes.color}`.toLowerCase()) && /brown|tan|khaki/.test(`${p.accessory.color}`.toLowerCase())) return "switch the brown hat/accessory to black, navy, cream, or green.";
   if(!p.socks && p.shoes) return "add socks deliberately; cream/grey with leather shoes or black socks with black footwear.";
   if(!p.watch) return "add a watch to finish the wrist and make the fit feel intentional.";
@@ -2242,11 +2287,12 @@ function swapSuggestions(p){
     const better = [...pickPool("Hats"),...pickPool("Accessories")].filter(x=>/black|navy|cream|white|green|jet|indigo/.test(`${x.color} ${x.name}`.toLowerCase())).slice(0,3);
     better.forEach(x=>ideas.push(`Swap ${p.accessory.name} for ${x.name} to avoid over-warming the fit.`));
   }
-  if(p.bottoms && /kody|wide|barrel|pleated|plisse/i.test(p.bottoms.name) && p.top && !/cropped|boxy|lasso|zip|hemi|split/i.test(p.top.name)){
+  const top = p.midLayer || p.baseLayer || p.top;
+  if(p.bottoms && /kody|wide|barrel|pleated|plisse/i.test(p.bottoms.name) && top && !/cropped|boxy|lasso|zip|hemi|split/i.test(top.name)){
     pickPool("Tops").filter(x=>/cropped|boxy|lasso|zip|hemi|split|heavy hood/i.test(x.name)).slice(0,3).forEach(x=>ideas.push(`Try ${x.name}; cropped/boxy works better with ${p.bottoms.name}.`));
   }
   if(currentFit.vibe==="summer"){
-    [p.outerwear,p.top].filter(Boolean).forEach(layer=>{
+    [p.outerwear,p.midLayer,p.baseLayer,p.top].filter(Boolean).forEach(layer=>{
       if(/wool|mohair|puffer|coat|sherpa|fleece/i.test(layer.name)){
         pickPool("Tops").filter(x=>/mesh|tank|tee|linen|poplin|slub|knit t-shirt/i.test(x.name)).slice(0,2).forEach(x=>ideas.push(`For summer, swap ${layer.name} for ${x.name}.`));
       }
