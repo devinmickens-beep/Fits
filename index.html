@@ -818,6 +818,8 @@ Generic|Western Belt|Black|L|45|2026-04|Accessories
 Generic|Belt Gold Buckle|Black|L|35|2026-04|Accessories
 Generic|Belt Brown|Brown|L|30|2026-04|Accessories
 Generic|Belt Brown 2|Brown|L|30|2026-04|Accessories
+UNIQLO|Leather Mesh Belt|Black|MEN L|30|2026-05|Accessories
+UNIQLO|Leather Mesh Belt|Dark Brown|MEN L|30|2026-05|Accessories
 Joshua Mohamed|Merino Wool Split Sweater|Black|M|159|2026-04|Tops
 Reiss|Cream Textured Knit Shirt|Cream|L|145|2026-04|Tops
 Reiss|Houndstooth Knit Shirt|Grey White|L|145|2026-04|Tops
@@ -1072,6 +1074,8 @@ const starterPhotos = {
   "wardrobe::Generic::Belt Gold Buckle":"assets/photos/photo-097-generic-black-gold-belt.jpg",
   "wardrobe::Generic::Belt Brown":"assets/photos/photo-098-generic-brown-belt.jpg",
   "wardrobe::Generic::Belt Brown 2":"assets/photos/photo-099-generic-brown-belt-2.jpg",
+  "wardrobe::UNIQLO::Leather Mesh Belt::Black":"assets/photos/photo-110-uniqlo-leather-mesh-belt-black.png",
+  "wardrobe::UNIQLO::Leather Mesh Belt::Dark Brown":"assets/photos/photo-111-uniqlo-leather-mesh-belt-dark-brown.png",
   "wardrobe::Buck Mason::Heavy White Henley":"assets/photos/photo-095-buck-mason-white-henley.jpg",
   "wardrobe::Abercrombie::Quarter Zip::Cream":"assets/photos/photo-100-quarterzip-cream.jpg",
   "wardrobe::Abercrombie::Quarter Zip::Grey":"assets/photos/photo-101-quarterzip-grey.jpg",
@@ -1367,7 +1371,7 @@ function renderCollection(type){
   const value = items.reduce((s,x)=>s+(x.price||0),0);
   const add = `<button class="primary" data-action="add">${icon("plus")}Add</button>`;
   document.getElementById("view").innerHTML =
-    header(names[type], `${items.length} items · ${money.format(value)} archive value · v14`, add) +
+    header(names[type], `${items.length} items · ${money.format(value)} archive value · v15`, add) +
     renderPills(type) +
     (items.length ? `<div class="grid">${items.map(card).join("")}</div>` : emptyMessage(type));
   hydrateIcons();
