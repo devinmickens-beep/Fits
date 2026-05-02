@@ -125,6 +125,9 @@ h1{font-family:var(--serif);font-weight:400;font-size:30px;line-height:1;margin:
 .toolbar{display:flex;gap:8px;align-items:center}
 .wishlist-actions{display:flex;gap:10px;margin:12px 0 14px}
 .wishlist-actions .ghost,.wishlist-actions .primary{flex:1;min-height:44px}
+.sort-controls{display:flex;gap:8px;overflow:auto;margin:2px 0 12px;padding-bottom:4px;scrollbar-width:none}
+.sort-controls::-webkit-scrollbar{display:none}
+.sort-controls .pill{white-space:nowrap}
 .verdict-badge{display:inline-flex;align-items:center;border:1px solid var(--line);border-radius:999px;padding:4px 9px;margin-right:6px;color:var(--paper);font-family:var(--mono);font-size:11px;letter-spacing:.12em;text-transform:uppercase}
 .verdict-buy{border-color:var(--green);color:var(--paper);background:rgba(76,122,79,.18)}
 .verdict-wait{border-color:var(--gold);color:var(--gold);background:rgba(199,173,122,.12)}
@@ -720,7 +723,7 @@ const tabs = [
 ];
 const releaseNotes = [
   "Deep green, cognac, cream, navy, and espresso interface palette.",
-  "Full v28 wardrobe seed with 152 clothing pieces and 21 fragrances.",
+  "Full v29 wardrobe seed with 152 clothing pieces and 21 fragrances.",
   "Photo-first add flow with phone camera upload and saved item photos.",
   "AI Identify can fill item fields from a photo when an API key is saved.",
   "Item detail pages with CPW, wear count, notes, and best pairings.",
@@ -1203,6 +1206,8 @@ let activeSlot = null;
 let pendingBuildAroundId = null;
 let currentGapInsight = null;
 let currentWishlistInsight = null;
+let currentLayerIdeas = null;
+let wardrobeSortMode = "recent";
 
 function item(type,brand,name,color,size,price,date,category,extra={}){
   return {id:uid(),type,brand,name,color,size,price:Number(price)||0,date,category,wears:0,photo:"",notes:"",...extra};
@@ -1360,6 +1365,11 @@ function filtered(type=activeTab){
     .filter(x => !q || [x.brand,x.name,x.color,x.size,x.category,x.notes].join(" ").toLowerCase().includes(q))
     .sort((a,b)=>{
       if(type === "fragrance") return `${a.brand} ${a.name}`.localeCompare(`${b.brand} ${b.name}`);
+      if(type === "wardrobe"){
+        if(wardrobeSortMode === "abc") return `${a.brand} ${a.name}`.localeCompare(`${b.brand} ${b.name}`);
+        if(wardrobeSortMode === "type") return `${inferredCategory(a)} ${a.brand} ${a.name}`.localeCompare(`${inferredCategory(b)} ${b.brand} ${b.name}`);
+        if(wardrobeSortMode === "price") return (b.price||0)-(a.price||0) || `${a.brand} ${a.name}`.localeCompare(`${b.brand} ${b.name}`);
+      }
       return (b.date||"").localeCompare(a.date||"") || b.price-a.price;
     });
   return results;
@@ -1414,6 +1424,11 @@ function renderPills(type){
   }
   return `<div class="filters">${categoriesFor(type).map(c=>`<button class="pill ${activeCategory===c?"on":""}" data-cat="${c}">${c}</button>`).join("")}</div>`;
 }
+function renderSortControls(type){
+  if(type !== "wardrobe") return "";
+  const sorts = [["recent","Recent"],["abc","A-Z"],["type","Type"],["price","Price"]];
+  return `<div class="sort-controls">${sorts.map(([value,label])=>`<button class="pill ${wardrobeSortMode===value?"on":""}" data-sort="${value}">${label}</button>`).join("")}</div>`;
+}
 function renderCollection(type){
   const names = {wardrobe:"Wardrobe",fragrance:"Fragrance",wishlist:"Wish List"};
   const items = filtered(type);
@@ -1422,8 +1437,9 @@ function renderCollection(type){
     ? `<div class="toolbar"><button class="ghost" data-action="rateWishlist">${icon("sparkles")}AI Rate Wishlist</button><button class="primary" data-action="add">${icon("plus")}Add</button></div>`
     : `<button class="primary" data-action="add">${icon("plus")}Add</button>`;
   document.getElementById("view").innerHTML =
-    header(names[type], `${items.length} items · ${money.format(value)} archive value · v28`, add) +
+    header(names[type], `${items.length} items · ${money.format(value)} archive value · v29`, add) +
     renderPills(type) +
+    renderSortControls(type) +
     (type==="wishlist" ? wishlistActions() : "") +
     (type==="wishlist" ? wishlistInsightCard() : "") +
     (items.length ? `<div class="grid">${items.map(card).join("")}</div>` : emptyMessage(type));
@@ -1457,16 +1473,32 @@ function renderFragrance(){
   const items = filtered("fragrance");
   const value = items.reduce((s,x)=>s+(x.price||0),0);
   document.getElementById("view").innerHTML =
-    header("Fragrance", `${items.length} scents · ${money.format(value)} archive value`, `<button class="primary" data-action="logLayer">${icon("blend")}Log Layer</button>`) +
+    header("Fragrance", `${items.length} scents · ${money.format(value)} archive value`, `<div class="toolbar"><button class="ghost" data-action="aiLayerIdeas">${icon("sparkles")}AI Layer Ideas</button><button class="primary" data-action="logLayer">${icon("blend")}Log Layer</button></div>`) +
     renderPills("fragrance") +
+    `<div class="wishlist-actions"><button class="ghost" data-action="aiLayerIdeas">${icon("sparkles")}AI Layer Ideas</button><button class="primary" data-action="logLayer">${icon("blend")}Log Layer</button></div>` +
+    layerIdeasCard() +
     `<div class="section-head"><div><h2 class="section-title">Layering Recipes</h2><div class="section-sub">Built from your scent style</div></div></div>
     <div class="list">${fragranceLayerRecipes.map(layerCard).join("")}</div>
     <div style="height:18px"></div>
     <div class="section-head"><div><h2 class="section-title">Layer Log</h2><div class="section-sub">${(state.fragLayers||[]).length} saved layers</div></div></div>
-    <div class="list">${(state.fragLayers||[]).slice(0,8).map(log=>`<div class="row-card"><div><div class="row-title">${esc(log.name)}</div><div class="row-sub">${esc(log.mix)} · ${new Date(log.date).toLocaleDateString()}</div></div></div>`).join("") || `<div class="empty">No fragrance layers logged yet.</div>`}</div>
+    <div class="list">${(state.fragLayers||[]).slice(0,5).map(log=>`<div class="row-card"><div><div class="row-title">${esc(log.name)}</div><div class="row-sub">${esc(log.mix)} · ${new Date(log.date).toLocaleDateString()}</div></div><button class="icon-btn" data-delete-layer="${esc(log.id)}">${icon("trash-2")}</button></div>`).join("") || `<div class="empty">No fragrance layers logged yet.</div>`}</div>
     <div style="height:18px"></div>
     ${items.length ? `<div class="grid">${items.map(card).join("")}</div>` : emptyMessage("fragrance")}`;
   hydrateIcons();
+}
+function layerIdeasCard(){
+  if(!currentLayerIdeas) return "";
+  if(currentLayerIdeas.loading){
+    return `<div class="judge-card" style="margin-bottom:12px"><div class="panel-title">AI Layer Ideas</div><div class="judge-notes"><div class="judge-note">Building scent combinations from your bottle list...</div></div></div>`;
+  }
+  if(currentLayerIdeas.error){
+    return `<div class="judge-card" style="margin-bottom:12px"><div class="panel-title">AI Layer Ideas</div><div class="judge-notes"><div class="judge-note">${esc(currentLayerIdeas.error)}</div></div></div>`;
+  }
+  const ideas = currentLayerIdeas.ideas || [];
+  return `<div class="judge-card" style="margin-bottom:12px">
+    <div class="section-head" style="margin:0 0 10px"><div><div class="panel-title">AI Layer Ideas</div><div class="section-sub">${esc(currentLayerIdeas.summary || "Seasonal combinations from your scents")}</div></div><button class="ghost" data-action="aiLayerIdeas">${icon("refresh-cw")}Refresh</button></div>
+    <div class="list">${ideas.map(idea=>`<div class="row-card"><div><div class="row-title">${esc(idea.name)}</div><div class="row-sub">${esc(idea.mix)} · ${esc(idea.season || activeCategory)}<br>${esc(idea.why || "")}</div></div><button class="primary" data-layer-name="${esc(idea.name)}" data-layer-mix="${esc(idea.mix)}">${icon("plus")}Log</button></div>`).join("")}</div>
+  </div>`;
 }
 function emptyMessage(type){
   const q = document.getElementById("search").value.trim();
@@ -1624,7 +1656,6 @@ function renderOutfits(){
         <div class="gap-item" style="margin-bottom:8px">Target: 90+. Last build: ${currentFit.fireTarget ? currentFit.fireTarget+"/100" : "not built yet"}${weatherLine}.</div>
         <button class="ghost" style="width:100%;margin-bottom:8px" data-action="judgeFit">${icon("wand-sparkles")}Judge Fit</button>
         <button class="ghost" style="width:100%;margin-bottom:8px" data-action="wearFit">${icon("calendar-check")}Wore Today</button>
-        <button class="ghost" style="width:100%;margin-bottom:8px" data-action="aiSettings">${icon("key-round")}Optional Online AI</button>
         <button class="ghost" style="width:100%" data-action="saveFit">${icon("save")}Save Current Fit</button>
       </div>
       <div class="panel">
@@ -1766,6 +1797,9 @@ function renderAnalytics(){
   document.getElementById("view").innerHTML =
     header("Archive Value", "A cleaner read on spend, usage, and best-value pieces") +
     `<div class="dash-grid"><div class="dash-card"><span>Total Closet</span><strong>${money.format(totalValue)}</strong><div class="meta">${state.items.length} items</div></div>${groups.map(g=>`<div class="dash-card"><span>${g.t}</span><strong>${money.format(g.value)}</strong><div class="meta">${g.count} items</div></div>`).join("")}</div>
+    <div class="section-head"><div><h2 class="section-title">Wishlist Priority</h2><div class="section-sub">Buy / wait / skip against your real wardrobe</div></div><button class="ghost" data-action="rateWishlist">${icon("sparkles")}AI Rate Wishlist</button></div>
+    ${wishlistInsightCard()}
+    <div style="height:18px"></div>
     <div class="section-head"><div><h2 class="section-title">Closet Gaps</h2><div class="section-sub">What would make the archive stronger</div></div><button class="ghost" data-action="findGaps">${icon("search-check")}AI Find Real Gaps</button></div>
     <div class="gap-list">${closetGaps().map(g=>`<div class="gap-item">${esc(g)}</div>`).join("")}</div>
     ${gapInsightCard()}
@@ -1926,7 +1960,7 @@ function cleanGapIdeas(ideas){
 }
 async function rateWishlistValue(){
   currentWishlistInsight = {loading:true};
-  activeTab = "wishlist";
+  activeTab = activeTab === "analytics" ? "analytics" : "wishlist";
   render();
   try{
     currentWishlistInsight = cleanWishlistInsight(await aiRateWishlistValue());
@@ -1997,6 +2031,65 @@ function cleanWishlistInsight(insight){
     return {...x, verdict, score:Math.round(Number(x.score || 0))};
   });
   return {...insight,items};
+}
+async function suggestFragranceLayers(){
+  const season = activeCategory && activeCategory !== "All" ? activeCategory : "all";
+  currentLayerIdeas = {loading:true};
+  activeTab = "fragrance";
+  render();
+  try{
+    currentLayerIdeas = await aiSuggestFragranceLayers(season);
+  }catch(e){
+    const fallback = fragranceLayerRecipes
+      .filter(x=>season === "all" || x.vibe.includes(season) || (season === "fall" && x.vibe.includes("winter")) || (season === "spring" && x.vibe.includes("summer")))
+      .slice(0,5)
+      .map(x=>({name:x.name,mix:`${x.base} ${x.baseSprays} sprays + ${x.accent} ${x.accentSprays} spray`,season:x.vibe,why:x.effect}));
+    currentLayerIdeas = {summary:"Local layer ideas until AI is available",ideas:fallback.length ? fallback : fragranceLayerRecipes.slice(0,5).map(x=>({name:x.name,mix:`${x.base} ${x.baseSprays} sprays + ${x.accent} ${x.accentSprays} spray`,season:x.vibe,why:x.effect}))};
+  }
+  render();
+}
+async function aiSuggestFragranceLayers(season){
+  const scents = state.items
+    .filter(x=>x.type==="fragrance")
+    .map(x=>({brand:x.brand,name:x.name,season:x.color,type:x.size,notes:x.notes,projection:x.projection,rating:x.rating}))
+    .slice(0,90);
+  const data = await openAiResponse({
+    model:currentAiModel(),
+    instructions:"You are a fragrance layering advisor for a stylish menswear wardrobe. Build wearable, specific layering combinations using only the user's owned fragrance list. Do not invent bottles. Tie each combo to season, weather, and the user's elevated ALD/Drake's/Ralph/Buck Mason style. Keep spray counts realistic; if both fragrances project loudly, reduce sprays. Return only valid JSON.",
+    text:{
+      format:{
+        type:"json_schema",
+        name:"fragrance_layer_ideas",
+        strict:true,
+        schema:{
+          type:"object",
+          additionalProperties:false,
+          properties:{
+            summary:{type:"string"},
+            ideas:{
+              type:"array",
+              items:{
+                type:"object",
+                additionalProperties:false,
+                properties:{
+                  name:{type:"string"},
+                  mix:{type:"string"},
+                  season:{type:"string"},
+                  why:{type:"string"}
+                },
+                required:["name","mix","season","why"]
+              }
+            }
+          },
+          required:["summary","ideas"]
+        }
+      }
+    },
+    input:[{role:"user",content:[{type:"input_text",text:"Suggest 5 fragrance layering combinations for season/filter: "+season+". Use only owned scents. Data:\n"+JSON.stringify({season,scents,styleProfile:AI_STYLE_PROFILE}, null, 2)}]}]
+  });
+  const text = data.output_text || data.output?.flatMap(o=>o.content||[]).map(c=>c.text||"").join("") || "";
+  const parsed = JSON.parse(text.replace(/^```json|```$/g,"").trim());
+  return {...parsed,ideas:(parsed.ideas || []).slice(0,5)};
 }
 function openItem(id=null,presetType=activeTab){
   editingId = id;
@@ -2254,7 +2347,7 @@ async function buildAroundItem(id, opts={}){
       let feedback = "";
       for(let attempt=0; attempt<3; attempt++){
         const aiFit = await aiBuildFitAround(anchor, weather, slot, feedback);
-        if(!aiFit || Object.values(aiFit).filter(v=>v && v.id).length < 3) continue;
+        if(!aiFit || !requiredFitComplete(aiFit)) continue;
         const judge = localJudgeFit(aiFit);
         if(!bestAiJudge || judge.score > bestAiJudge.score){
           bestAiFit = aiFit;
@@ -2410,6 +2503,43 @@ function polishFitLogic(fit){
   }
   return fit;
 }
+function requiredFitComplete(fit){
+  const hasTop = Boolean(fit.baseLayer || fit.midLayer);
+  return hasTop && ["bottoms","shoes","socks","hat","watch","accessory","fragrance"].every(slot=>fit[slot] && fit[slot].id);
+}
+function completeRequiredFitSlots(fit){
+  fit = normalizeFitLayers(fit || {});
+  const avoidId = fit.lockedSlot && fit[fit.lockedSlot]?.id;
+  const avoid = xs => avoidId ? xs.filter(x=>x.id!==avoidId) : xs;
+  if(!fit.baseLayer && !fit.midLayer){
+    fit.baseLayer = smartPickFor(avoid(weatherBasePool(topPool("baseLayer"))), fit.outerwear || fit.bottoms || fit.shoes || fit.hat);
+  }
+  if(!fit.bottoms){
+    fit.bottoms = smartPickFor(avoid(pickPool("Bottoms")), fit.baseLayer || fit.midLayer || fit.outerwear || fit.shoes);
+  }
+  if(!fit.baseLayer && !fit.midLayer){
+    fit.baseLayer = smartPickFor(avoid(weatherBasePool(topPool("baseLayer"))), fit.bottoms || fit.shoes);
+  }
+  if(!fit.shoes){
+    fit.shoes = smartPickFor(avoid(pickPool("Shoes")), fit.bottoms || layerAnchor(fit));
+  }
+  if(!fit.socks){
+    fit.socks = smartSocksFor(fit) || smartPickFor(avoid(pickPool("Socks")), fit.shoes || fit.bottoms);
+  }
+  if(!fit.hat){
+    fit.hat = smartHatFor(fit) || smartPickFor(avoid(pickPool("Hats")), fit.shoes || fit.bottoms);
+  }
+  if(!fit.watch){
+    fit.watch = smartWatchFor(fit) || smartPickFor(avoid(pickPool("Watches")), fit.shoes || fit.bottoms);
+  }
+  if(!fit.accessory){
+    fit.accessory = smartAccessoryFor(fit) || smartPickFor(avoid(pickPool("Accessories")), fit.shoes || fit.bottoms);
+  }
+  if(!fit.fragrance){
+    fit.fragrance = smartFragrance() || randomFrom(state.items.filter(x=>x.type==="fragrance"));
+  }
+  return polishFitLogic(fit);
+}
 function wantsMidLayer(){
   const temp = Number(currentFit.weatherTemp || 58);
   if(temp >= 72) return false;
@@ -2482,7 +2612,7 @@ function buildCandidateFitAround(anchor, slot){
   if(slot==="hat") fit.hat = anchor;
   if(slot==="accessory") fit.accessory = anchor;
   if(slot==="fragrance") fit.fragrance = anchor;
-  return normalizeFitLayers(fit);
+  return completeRequiredFitSlots(fit);
 }
 function buildCandidateFit(){
   const bottoms = smartPick(pickPool("Bottoms"));
@@ -2500,7 +2630,7 @@ function buildCandidateFit(){
   fit.watch = smartWatchFor(fit);
   fit.accessory = smartAccessoryFor(fit);
   fit.fragrance = smartFragrance();
-  return normalizeFitLayers(fit);
+  return completeRequiredFitSlots(fit);
 }
 function pickPool(category){ return state.items.filter(x=>x.type==="wardrobe" && inferredCategory(x)===category); }
 function randomFrom(xs){ return xs.length ? xs[Math.floor(Math.random()*xs.length)] : null; }
@@ -2560,6 +2690,8 @@ function smartAccessoryFor(fit){
   if(!accs.length) return null;
   const anchor = fit.shoes || fit.bottoms || fit.hat || layerAnchor(fit);
   let pool = anchor ? accs.map(x=>({x,score:pairScore(anchor,x)})).sort((a,b)=>b.score-a.score).slice(0,10).map(v=>v.x) : accs;
+  const belts = pool.filter(x=>/belt/i.test(`${x.name} ${x.category}`));
+  if(belts.length) pool = belts;
   const shoeBrown = fit.shoes && /brown|tan|espresso/.test(String(fit.shoes.color).toLowerCase());
   if(shoeBrown) pool = pool.filter(x=>!/brown|tan|khaki|chocolate/.test(`${x.name} ${x.color}`.toLowerCase())).concat(pool);
   return randomFrom(pool.length ? pool : accs);
@@ -2606,6 +2738,7 @@ function logLayer(name,mix){
     name = custom; mix = details;
   }
   state.fragLayers.unshift({id:uid(),name,mix,date:new Date().toISOString()});
+  state.fragLayers = state.fragLayers.slice(0,5);
   save();
   activeTab = "fragrance";
   render();
@@ -2622,7 +2755,7 @@ async function aiBuildFitAround(anchor, weather, anchorSlot, feedback=""){
   const slots = ["baseLayer","midLayer","outerwear","bottoms","shoes","socks","hat","watch","accessory","fragrance"];
   const data = await openAiResponse({
     model:currentAiModel(),
-    instructions:"You build practical but stylish men's outfits from the user's own closet. "+AI_STYLE_PROFILE+" Your target is an 85/100 or better outfit, not merely a complete outfit. Choose item ids only from closetOptions and only place an item in one of its allowedSlots. Hard slot rules: fragrance items can only go in fragrance; Bottoms can only go in bottoms; Shoes only in shoes; Socks only in socks; Hats only in hat; Watches only in watch; Accessories only in accessory; Outerwear only in outerwear; Tops marked baseLayer only touch the body; Tops marked midLayer are sweaters/hoodies/knits/quarter zips over base. Respect layer order: baseLayer touches body, midLayer is a sweater/hoodie/knit/quarter zip over base, outerwear is a jacket/coat over both. Do not put a jacket-like mid layer under another jacket unless it is cold enough and the proportions make sense. Weather matters: 55-65F usually wants two visible layers, not base + sweater + jacket, unless rain/wind/snow demands protection. Do not pair summer mesh/tank/camp/linen base layers under wool/cable/mohair/sherpa layers. Warm temps need breathable base layers and lighter scents; at 64F or below, avoid bright summer fragrances like Vibrato unless the user asks for fresh and prefer woody/amber/tea/tobacco/leather warmth. Choose fragrance with weather and palette in mind: a warm amber, boozy, tobacco, leather, tea, or woody scent can be fire on a 50-60F dry day because it adds warmth and contrast against olive, black, cream, grey, or brown clothes; bright aquatic/citrus scents are mostly warm-weather choices unless intentionally used for contrast. Hats and watches are separate slots; the user commonly wears both. Accessory means belt/scarf/keychain/etc. Fragrance should fit the temperature. Make one confident, high-cohesion choice per slot and skip layers that would make the fit worse.",
+    instructions:"You build practical but stylish men's outfits from the user's own closet. "+AI_STYLE_PROFILE+" Your target is an 85/100 or better outfit, not merely a complete outfit. Choose item ids only from closetOptions and only place an item in one of its allowedSlots. Mandatory outfit slots: choose at least one real shirt/top in baseLayer or midLayer, and always choose bottoms, shoes, socks, hat, watch, accessory, and fragrance. Never leave pants/bottoms empty. Outerwear is optional and should only appear when it improves the weather/layering logic. Accessory should strongly prefer a belt when a belt works with the shoes. Hard slot rules: fragrance items can only go in fragrance; Bottoms can only go in bottoms; Shoes only in shoes; Socks only in socks; Hats only in hat; Watches only in watch; Accessories only in accessory; Outerwear only in outerwear; Tops marked baseLayer only touch the body; Tops marked midLayer are sweaters/hoodies/knits/quarter zips over base. Respect layer order: baseLayer touches body, midLayer is a sweater/hoodie/knit/quarter zip over base, outerwear is a jacket/coat over both. Do not put a jacket-like mid layer under another jacket unless it is cold enough and the proportions make sense. Weather matters: 55-65F usually wants two visible layers, not base + sweater + jacket, unless rain/wind/snow demands protection. Do not pair summer mesh/tank/camp/linen base layers under wool/cable/mohair/sherpa layers. Warm temps need breathable base layers and lighter scents; at 64F or below, avoid bright summer fragrances like Vibrato unless the user asks for fresh and prefer woody/amber/tea/tobacco/leather warmth. Choose fragrance with weather and palette in mind: a warm amber, boozy, tobacco, leather, tea, or woody scent can be fire on a 50-60F dry day because it adds warmth and contrast against olive, black, cream, grey, or brown clothes; bright aquatic/citrus scents are mostly warm-weather choices unless intentionally used for contrast. Hats and watches are separate slots; the user commonly wears both. Fragrance should fit the temperature. Make one confident, high-cohesion choice per required slot.",
     text:{
       format:{
         type:"json_schema",
@@ -2659,7 +2792,7 @@ async function aiBuildFitAround(anchor, weather, anchorSlot, feedback=""){
   fit[anchorSlot] = anchor;
   fit.lockedSlot = anchorSlot;
   fit.buildReason = json.reason || "";
-  return normalizeFitLayers(fit);
+  return completeRequiredFitSlots(fit);
 }
 function fitFromSlotIds(slots){
   const fit = {};
@@ -3276,6 +3409,8 @@ document.addEventListener("click", e => {
   if(tab){ activeTab = tab.dataset.tab; activeCategory = "All"; clearSearch(); render(); return; }
   const cat = e.target.closest("[data-cat]");
   if(cat){ activeCategory = cat.dataset.cat; render(); return; }
+  const sort = e.target.closest("[data-sort]");
+  if(sort){ wardrobeSortMode = sort.dataset.sort; render(); return; }
   const close = e.target.closest("[data-close]");
   if(close){ closeModal(close.dataset.close); return; }
   const photoTarget = e.target.closest("[data-photo-target]");
@@ -3292,6 +3427,8 @@ document.addEventListener("click", e => {
   if(acq){ acquire(acq.dataset.acquire); return; }
   const fitDel = e.target.closest("[data-delete-fit]");
   if(fitDel){ state.outfits = state.outfits.filter(o=>o.id!==fitDel.dataset.deleteFit); save(); render(); return; }
+  const layerDel = e.target.closest("[data-delete-layer]");
+  if(layerDel){ state.fragLayers = (state.fragLayers||[]).filter(log=>log.id!==layerDel.dataset.deleteLayer); save(); render(); toast("Layer deleted"); return; }
   const layer = e.target.closest("[data-layer-name]");
   if(layer){ logLayer(layer.dataset.layerName, layer.dataset.layerMix); return; }
   const pick = e.target.closest("[data-pick-slot]");
@@ -3307,6 +3444,7 @@ document.addEventListener("click", e => {
   if(action === "judgeFit") judgeFit();
   if(action === "findGaps") findRealClosetGaps();
   if(action === "rateWishlist") rateWishlistValue();
+  if(action === "aiLayerIdeas") suggestFragranceLayers();
   if(action === "wearFit") wearCurrentFit();
   if(action === "logLayer") logLayer();
   if(action === "aiSettings") openAiSettings();
