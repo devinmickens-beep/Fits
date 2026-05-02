@@ -633,6 +633,49 @@ label{display:grid;gap:5px;color:var(--muted);font-size:8px;text-transform:upper
   </div>
 </div>
 
+<div class="modal-wrap" id="buildModal" role="dialog" aria-modal="true">
+  <div class="modal">
+    <div class="modal-head">
+      <div class="modal-title">Build Around This</div>
+      <button type="button" class="icon-btn" data-close="buildModal" aria-label="Close"><i data-lucide="x"></i></button>
+    </div>
+    <div class="modal-body">
+      <div class="gap-item" id="buildAnchorName" style="margin-bottom:12px"></div>
+      <label>Temperature
+        <input id="weatherTemp" type="range" min="25" max="95" step="1" value="58">
+      </label>
+      <div class="gap-item" id="weatherTempLabel" style="margin:8px 0 12px"></div>
+      <div class="form-grid">
+        <label>Weather
+          <select id="weatherCondition">
+            <option value="dry">Dry</option>
+            <option value="rain">Rain</option>
+            <option value="wind">Wind</option>
+            <option value="snow">Snow</option>
+            <option value="humid">Humid</option>
+          </select>
+        </label>
+        <label>Intent
+          <select id="weatherIntent">
+            <option value="auto">Auto</option>
+            <option value="casual">Casual</option>
+            <option value="elevated">Elevated</option>
+            <option value="dinner">Dinner</option>
+            <option value="travel">Travel</option>
+            <option value="statement">Statement</option>
+          </select>
+        </label>
+      </div>
+      <small style="display:block;margin-top:10px;color:var(--muted);line-height:1.6">AI can build the outfit with weather context when the Vercel key is available. Local weather rules are always available.</small>
+      <div class="modal-actions">
+        <button type="button" class="ghost" data-close="buildModal">Cancel</button>
+        <button type="button" class="ghost" id="localWeatherBuild"><i data-lucide="cloud-sun"></i>Build Locally</button>
+        <button type="button" class="primary" id="aiWeatherBuild"><i data-lucide="wand-sparkles"></i>Build with AI</button>
+      </div>
+    </div>
+  </div>
+</div>
+
 <div class="toast" id="toast"></div>
 
 <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
@@ -641,6 +684,7 @@ const STORAGE_KEY = "closet_archive_v2";
 const AI_KEY_STORAGE = "closet_openai_key";
 const AI_MODEL_STORAGE = "closet_openai_model";
 const DEFAULT_AI_MODEL = "gpt-4.1-mini";
+const FIT_META_KEYS = ["vibe","fireTarget","anchorId","weatherTemp","weatherCondition","builderSource","buildReason"];
 const money = new Intl.NumberFormat("en-US",{style:"currency",currency:"USD",maximumFractionDigits:0});
 const monthFmt = new Intl.DateTimeFormat("en-US",{month:"short",year:"numeric"});
 const tabs = [
@@ -1127,6 +1171,7 @@ let currentJudgement = null;
 let pendingPhoto = "";
 let photoTargetId = null;
 let activeSlot = null;
+let pendingBuildAroundId = null;
 
 function item(type,brand,name,color,size,price,date,category,extra={}){
   return {id:uid(),type,brand,name,color,size,price:Number(price)||0,date,category,wears:0,photo:"",notes:"",...extra};
@@ -1321,7 +1366,7 @@ function renderCollection(type){
   const value = items.reduce((s,x)=>s+(x.price||0),0);
   const add = `<button class="primary" data-action="add">${icon("plus")}Add</button>`;
   document.getElementById("view").innerHTML =
-    header(names[type], `${items.length} items · ${money.format(value)} archive value · v11`, add) +
+    header(names[type], `${items.length} items · ${money.format(value)} archive value · v12`, add) +
     renderPills(type) +
     (items.length ? `<div class="grid">${items.map(card).join("")}</div>` : emptyMessage(type));
   hydrateIcons();
@@ -1483,6 +1528,7 @@ function affinityFor(a,b){
 function renderOutfits(){
   const main = mainPieces();
   const target = 90;
+  const weatherLine = currentFit.weatherTemp ? ` · ${weatherSummary(currentFit.weatherTemp,currentFit.weatherCondition)}` : "";
   document.getElementById("view").innerHTML =
     header("Outfit Builder", `FireFit target ${target}+ · build or manually pick, then judge`) +
     `<div class="builder">
@@ -1492,7 +1538,7 @@ function renderOutfits(){
           ${["fall","winter","spring","summer","dinner","travel","casual","elevated","statement","low cpw"].map(v=>`<button class="pill ${currentFit.vibe===v?"on":""}" data-vibe="${v}">${v}</button>`).join("")}
         </div>
         <button class="primary" style="width:100%;margin-bottom:8px" data-action="random">${icon("sparkles")}Build FireFit</button>
-        <div class="gap-item" style="margin-bottom:8px">Target: 90+. Last build: ${currentFit.fireTarget ? currentFit.fireTarget+"/100" : "not built yet"}.</div>
+        <div class="gap-item" style="margin-bottom:8px">Target: 90+. Last build: ${currentFit.fireTarget ? currentFit.fireTarget+"/100" : "not built yet"}${weatherLine}.</div>
         <button class="ghost" style="width:100%;margin-bottom:8px" data-action="judgeFit">${icon("wand-sparkles")}Judge Fit</button>
         <button class="ghost" style="width:100%;margin-bottom:8px" data-action="wearFit">${icon("calendar-check")}Wore Today</button>
         <button class="ghost" style="width:100%;margin-bottom:8px" data-action="aiSettings">${icon("key-round")}Optional Online AI</button>
@@ -1808,6 +1854,63 @@ function acquire(id){
   render();
   toast("Moved to archive");
 }
+function weatherSeason(temp){
+  temp = Number(temp || currentFit.weatherTemp || 58);
+  if(temp <= 35) return "winter";
+  if(temp <= 55) return "fall";
+  if(temp <= 70) return "spring";
+  return "summer";
+}
+function weatherSummary(temp=currentFit.weatherTemp, condition=currentFit.weatherCondition){
+  return `${Number(temp || 58)}°F ${condition || "dry"}`;
+}
+function openBuildWeather(id){
+  const anchor = state.items.find(x=>x.id===id);
+  if(!anchor) return;
+  pendingBuildAroundId = id;
+  const temp = currentFit.weatherTemp || defaultWeatherTempFor(anchor);
+  document.getElementById("buildAnchorName").textContent = `${anchor.brand} ${anchor.name}`;
+  document.getElementById("weatherTemp").value = temp;
+  document.getElementById("weatherCondition").value = currentFit.weatherCondition || "dry";
+  document.getElementById("weatherIntent").value = "auto";
+  updateWeatherLabel();
+  document.getElementById("buildModal").classList.add("open");
+  hydrateIcons();
+}
+function defaultWeatherTempFor(anchor){
+  const vibe = inferVibe(anchor);
+  if(vibe === "summer") return 78;
+  if(vibe === "winter") return 38;
+  return 58;
+}
+function updateWeatherLabel(){
+  const temp = Number(document.getElementById("weatherTemp").value || 58);
+  const condition = document.getElementById("weatherCondition").value || "dry";
+  const season = weatherSeason(temp);
+  document.getElementById("weatherTempLabel").textContent = `${weatherSummary(temp,condition)} · ${season} logic · ${weatherFragranceLabel(temp,condition)}`;
+}
+function readBuildWeather(){
+  const temp = Number(document.getElementById("weatherTemp").value || 58);
+  const condition = document.getElementById("weatherCondition").value || "dry";
+  const intent = document.getElementById("weatherIntent").value || "auto";
+  return {temp, condition, intent};
+}
+function weatherFragranceLabel(temp, condition){
+  if(condition === "humid" || temp >= 72) return "fresh fragrance";
+  if(temp <= 50) return "warm fragrance";
+  return "balanced fragrance";
+}
+async function buildAroundWithWeather(useAi){
+  if(!pendingBuildAroundId) return;
+  const weather = readBuildWeather();
+  if(useAi){
+    toast("AI building with weather...");
+    await buildAroundItem(pendingBuildAroundId,{weather,useAi:true});
+  }else{
+    buildAroundItem(pendingBuildAroundId,{weather,useAi:false});
+  }
+  closeModal("buildModal");
+}
 function randomFit(){
   currentFit.vibe ||= "fall";
   let bestFit = null;
@@ -1824,11 +1927,35 @@ function randomFit(){
   activeTab = "outfits";
   render();
 }
-function buildAroundItem(id){
+async function buildAroundItem(id, opts={}){
   const anchor = state.items.find(x=>x.id===id);
   if(!anchor) return;
-  currentFit.vibe ||= inferVibe(anchor);
+  const weather = opts.weather || {temp:currentFit.weatherTemp || defaultWeatherTempFor(anchor), condition:currentFit.weatherCondition || "dry", intent:"auto"};
+  const weatherVibe = weather.intent && weather.intent !== "auto" ? weather.intent : weatherSeason(weather.temp);
+  currentFit.vibe = weatherVibe || currentFit.vibe || inferVibe(anchor);
+  currentFit.weatherTemp = weather.temp;
+  currentFit.weatherCondition = weather.condition;
   const slot = slotForItem(anchor);
+  if(opts.useAi){
+    try{
+      const aiFit = await aiBuildFitAround(anchor, weather, slot);
+      if(aiFit && Object.values(aiFit).filter(v=>v && v.id).length >= 3){
+        const score = localJudgeFit(aiFit).score;
+        currentFit = {...aiFit,vibe:currentFit.vibe,fireTarget:score,anchorId:anchor.id,weatherTemp:weather.temp,weatherCondition:weather.condition,builderSource:"OpenAI Builder"};
+        currentJudgement = localJudgeFit(aiFit);
+        currentJudgement.source = "OpenAI Builder + Local Score";
+        if(currentFit.buildReason) currentJudgement.notes.unshift(currentFit.buildReason);
+        currentJudgement.notes.unshift(`Built for ${weatherSummary(weather.temp,weather.condition)}.`);
+        activeTab = "outfits";
+        closeModal("detailModal");
+        render();
+        toast(`AI built around ${anchor.name}`);
+        return;
+      }
+    }catch(e){
+      toast("AI builder unavailable; using weather rules");
+    }
+  }
   let bestFit = null;
   let bestScore = -1;
   for(let i=0;i<250;i++){
@@ -1837,8 +1964,9 @@ function buildAroundItem(id){
     if(score > bestScore){ bestFit = candidate; bestScore = score; }
     if(score >= 90) break;
   }
-  currentFit = {...bestFit,vibe:currentFit.vibe,fireTarget:bestScore,anchorId:anchor.id};
+  currentFit = {...bestFit,vibe:currentFit.vibe,fireTarget:bestScore,anchorId:anchor.id,weatherTemp:weather.temp,weatherCondition:weather.condition,builderSource:"Weather Rules"};
   currentJudgement = localJudgeFit(bestFit);
+  currentJudgement.notes.unshift(`Built for ${weatherSummary(weather.temp,weather.condition)} with ${weatherFragranceLabel(weather.temp,weather.condition)} logic.`);
   activeTab = "outfits";
   closeModal("detailModal");
   render();
@@ -1878,7 +2006,42 @@ function normalizeFitLayers(fit){
   return fit;
 }
 function wantsMidLayer(){
-  return !["summer"].includes(currentFit.vibe) && Math.random() > 0.38;
+  const temp = Number(currentFit.weatherTemp || 58);
+  if(temp >= 72) return false;
+  if(temp <= 42) return Math.random() > 0.12;
+  if(temp <= 58) return Math.random() > 0.28;
+  return Math.random() > 0.62;
+}
+function wantsOuterLayer(){
+  const temp = Number(currentFit.weatherTemp || 58);
+  if(temp >= 76) return false;
+  if(temp >= 68) return Math.random() > 0.72;
+  if(temp >= 56) return Math.random() > 0.32;
+  return true;
+}
+function weatherOuterPool(xs){
+  const temp = Number(currentFit.weatherTemp || 58);
+  const condition = currentFit.weatherCondition || "dry";
+  let pool = xs;
+  if(temp >= 68) pool = xs.filter(x=>/overshirt|shirt jacket|chore|denim|light|cotton|work jacket/i.test(`${x.name} ${x.notes}`));
+  else if(temp <= 45) pool = xs.filter(x=>/coat|wool|puffer|down|sherpa|fleece|cpo|jacket/i.test(`${x.name} ${x.color}`));
+  if(["rain","wind","snow"].includes(condition)){
+    const protective = pool.filter(x=>/jacket|coat|parka|cpo|down|work|wax|nylon|shell/i.test(`${x.name} ${x.notes}`));
+    if(protective.length) pool = protective;
+  }
+  return pool.length ? pool : xs;
+}
+function weatherBasePool(xs){
+  const temp = Number(currentFit.weatherTemp || 58);
+  if(temp >= 72){
+    const warm = xs.filter(x=>/tee|t-shirt|tank|linen|slub|poplin|camp|mesh|knit t-shirt/i.test(`${x.name} ${x.color}`));
+    return warm.length ? warm : xs;
+  }
+  if(temp <= 45){
+    const cold = xs.filter(x=>/thermal|henley|wool|heavy|flannel|shirt/i.test(`${x.name} ${x.color}`));
+    return cold.length ? cold : xs;
+  }
+  return xs;
 }
 function midLayerAllowsOuter(x){
   if(!x) return true;
@@ -1898,15 +2061,12 @@ function buildCandidateFitAround(anchor, slot){
   const fit = normalizeFitLayers({[slot]:anchor});
   const avoid = xs => xs.filter(x=>x.id!==anchor.id);
   fit.bottoms ||= smartPickFor(avoid(pickPool("Bottoms")), anchor);
-  fit.baseLayer ||= smartPickFor(avoid(topPool("baseLayer")), fit.midLayer || fit.bottoms || anchor);
-  const summer = currentFit.vibe === "summer";
+  fit.baseLayer ||= smartPickFor(avoid(weatherBasePool(topPool("baseLayer"))), fit.midLayer || fit.bottoms || anchor);
   if(!fit.midLayer && wantsMidLayer()){
     fit.midLayer = smartPickFor(avoid(topPool("midLayer")), fit.baseLayer || fit.bottoms || anchor);
   }
-  if(!fit.outerwear && midLayerAllowsOuter(fit.midLayer)){
-    fit.outerwear = summer
-      ? (Math.random() > 0.72 ? smartPickFor(avoid(pickPool("Outerwear").filter(x=>/overshirt|shirt jacket|chore|denim|light|cotton/i.test(x.name))), layerAnchor(fit, anchor)) : null)
-      : smartPickFor(avoid(pickPool("Outerwear")), layerAnchor(fit, fit.bottoms || anchor));
+  if(!fit.outerwear && wantsOuterLayer() && midLayerAllowsOuter(fit.midLayer)){
+    fit.outerwear = smartPickFor(avoid(weatherOuterPool(pickPool("Outerwear"))), layerAnchor(fit, fit.bottoms || anchor));
   }
   fit.shoes ||= smartPickFor(avoid(pickPool("Shoes")), fit.bottoms || layerAnchor(fit, anchor));
   fit.socks ||= smartSocksFor(fit);
@@ -1922,15 +2082,12 @@ function buildCandidateFitAround(anchor, slot){
 function buildCandidateFit(){
   const bottoms = smartPick(pickPool("Bottoms"));
   const fit = {bottoms};
-  const summer = currentFit.vibe === "summer";
-  fit.baseLayer = smartPickFor(summer ? topPool("baseLayer").filter(x=>/mesh|tank|tee|linen|poplin|slub|knit t-shirt|shirt|jersey/i.test(x.name)) : topPool("baseLayer"), bottoms);
+  fit.baseLayer = smartPickFor(weatherBasePool(topPool("baseLayer")), bottoms);
   if(wantsMidLayer()){
     fit.midLayer = smartPickFor(topPool("midLayer"), fit.baseLayer || bottoms);
   }
-  if(midLayerAllowsOuter(fit.midLayer)){
-    fit.outerwear = summer
-      ? (Math.random() > 0.72 ? smartPickFor(pickPool("Outerwear").filter(x=>/overshirt|shirt jacket|chore|denim|light|cotton/i.test(x.name)), layerAnchor(fit, bottoms)) : null)
-      : smartPickFor(pickPool("Outerwear"), layerAnchor(fit, bottoms));
+  if(wantsOuterLayer() && midLayerAllowsOuter(fit.midLayer)){
+    fit.outerwear = smartPickFor(weatherOuterPool(pickPool("Outerwear")), layerAnchor(fit, bottoms));
   }
   fit.shoes = smartPickFor(pickPool("Shoes"), bottoms || layerAnchor(fit));
   fit.socks = smartSocksFor(fit);
@@ -2005,12 +2162,14 @@ function smartAccessoryFor(fit){
 function smartFragrance(){
   const frags = state.items.filter(x=>x.type==="fragrance");
   let pool = frags;
-  if(["winter","fall","dinner"].includes(currentFit.vibe)) pool = frags.filter(x=>x.color==="fall" || x.color==="all");
-  if(["spring","summer","travel","casual"].includes(currentFit.vibe)) pool = frags.filter(x=>x.color==="spring" || x.color==="all");
+  const temp = Number(currentFit.weatherTemp || 58);
+  const condition = currentFit.weatherCondition || "dry";
+  if(temp <= 50 || ["winter","fall","dinner"].includes(currentFit.vibe)) pool = frags.filter(x=>x.color==="fall" || x.color==="all");
+  if(temp >= 70 || condition === "humid" || ["spring","summer","travel","casual"].includes(currentFit.vibe)) pool = frags.filter(x=>x.color==="spring" || x.color==="all");
   return randomFrom(pool.length ? pool : frags);
 }
 function saveFit(){
-  const pieces = Object.fromEntries(Object.entries(currentFit).filter(([k,v])=>!["vibe","fireTarget","anchorId"].includes(k) && v && v.id));
+  const pieces = Object.fromEntries(Object.entries(currentFit).filter(([k,v])=>!FIT_META_KEYS.includes(k) && v && v.id));
   if(Object.values(pieces).filter(Boolean).length < 2){ toast("Add two pieces"); return; }
   const name = prompt("Name this outfit:", `${currentFit.vibe || "Archive"} fit`);
   if(!name) return;
@@ -2047,8 +2206,63 @@ function logLayer(name,mix){
   render();
   toast("Layer logged");
 }
+async function aiBuildFitAround(anchor, weather, anchorSlot){
+  const closetOptions = state.items
+    .filter(x=>x.type==="wardrobe" || x.type==="fragrance")
+    .map(x=>({
+      id:x.id,type:x.type,brand:x.brand,name:x.name,color:x.color,size:x.size,category:x.category,
+      price:x.price,wears:x.wears,notes:x.notes,photo:x.photo ? absolutePhotoUrl(x.photo) : ""
+    }))
+    .slice(0,260);
+  const slots = ["baseLayer","midLayer","outerwear","bottoms","shoes","socks","hat","watch","accessory","fragrance"];
+  const data = await openAiResponse({
+    model:currentAiModel(),
+    instructions:"You build practical but stylish men's outfits from the user's own closet. Choose item ids only from closetOptions. Respect layer order: baseLayer touches body, midLayer is a sweater/hoodie/knit/quarter zip over base, outerwear is a jacket/coat over both. Do not put a jacket-like mid layer under another jacket unless it is cold enough and the proportions make sense. Weather matters: warm temps need breathable base layers and lighter scents; cold temps need warmth and outerwear; rain/wind/snow should favor protective outerwear and grounded shoes. Hats and watches are separate slots; the user commonly wears both. Accessory means belt/scarf/keychain/etc. Fragrance should fit the temperature.",
+    text:{
+      format:{
+        type:"json_schema",
+        name:"fit_build",
+        strict:true,
+        schema:{
+          type:"object",
+          additionalProperties:false,
+          properties:{
+            slots:{
+              type:"object",
+              additionalProperties:false,
+              properties:Object.fromEntries(slots.map(slot=>[slot,{type:"string"}])),
+              required:slots
+            },
+            reason:{type:"string"}
+          },
+          required:["slots","reason"]
+        }
+      }
+    },
+    input:[{role:"user",content:[{type:"input_text",text:"Build an outfit around the anchor item. Return empty string for any slot that should intentionally be skipped. Data:\n"+JSON.stringify({
+      anchor:{id:anchor.id,slot:anchorSlot,type:anchor.type,brand:anchor.brand,name:anchor.name,color:anchor.color,size:anchor.size,category:anchor.category,price:anchor.price},
+      weather:{tempF:weather.temp,condition:weather.condition,intent:weather.intent},
+      closetOptions
+    }, null, 2)}]}]
+  });
+  const text = data.output_text || data.output?.flatMap(o=>o.content||[]).map(c=>c.text||"").join("") || "";
+  const json = JSON.parse(text.replace(/^```json|```$/g,"").trim());
+  const fit = fitFromSlotIds(json.slots || {});
+  fit[anchorSlot] = anchor;
+  fit.buildReason = json.reason || "";
+  return normalizeFitLayers(fit);
+}
+function fitFromSlotIds(slots){
+  const fit = {};
+  Object.entries(slots || {}).forEach(([slot,id])=>{
+    if(!id) return;
+    const item = state.items.find(x=>x.id===id);
+    if(item) fit[slot] = item;
+  });
+  return fit;
+}
 async function judgeFit(){
-  const pieces = Object.fromEntries(Object.entries(currentFit).filter(([k,v])=>!["vibe","fireTarget","anchorId"].includes(k) && v && v.id));
+  const pieces = Object.fromEntries(Object.entries(currentFit).filter(([k,v])=>!FIT_META_KEYS.includes(k) && v && v.id));
   if(Object.keys(pieces).length < 2){ toast("Build a fit first"); return; }
   currentJudgement = {source:"thinking",score:"...",metrics:{},notes:["Judging color, silhouette, formality, texture, proportion, season, accessories, and scent."]};
   render();
@@ -2070,7 +2284,7 @@ async function aiJudgeFit(pieces){
     .map(x=>({id:x.id,brand:x.brand,name:x.name,color:x.color,size:x.size,category:x.category,price:x.price,wears:x.wears}))
     .slice(0,220);
   const content = [
-    {type:"input_text",text:"Judge this outfit like a sharp men's stylist, not like a spreadsheet. Use the text data, the layer slots, the closet options, and any attached item photos. Outfit data:\n"+JSON.stringify({vibe:currentFit.vibe || "fall", pieces:cleanPieces, closetOptions}, null, 2)}
+    {type:"input_text",text:"Judge this outfit like a sharp men's stylist, not like a spreadsheet. Use the text data, the layer slots, the closet options, weather context, and any attached item photos. Outfit data:\n"+JSON.stringify({vibe:currentFit.vibe || "fall", weather:currentFit.weatherTemp ? {tempF:currentFit.weatherTemp,condition:currentFit.weatherCondition || "dry"} : null, pieces:cleanPieces, closetOptions}, null, 2)}
   ];
   Object.entries(pieces).forEach(([slot,x])=>{
     if(x?.photo && isAiReadableImage(x.photo)){
@@ -2494,7 +2708,7 @@ document.addEventListener("click", e => {
   const detail = e.target.closest("[data-detail]");
   if(detail){ openDetail(detail.dataset.detail); return; }
   const buildAround = e.target.closest("[data-build-around]");
-  if(buildAround){ buildAroundItem(buildAround.dataset.buildAround); return; }
+  if(buildAround){ openBuildWeather(buildAround.dataset.buildAround); return; }
   const wear = e.target.closest("[data-wear]");
   if(wear){ changeWear(wear.dataset.wear, wear.dataset.delta); return; }
   const acq = e.target.closest("[data-acquire]");
@@ -2528,6 +2742,10 @@ document.getElementById("uploadPhoto").addEventListener("click", choosePhoto);
 document.getElementById("photoPreview").addEventListener("click", choosePhoto);
 document.getElementById("identifyPhoto").addEventListener("click", identifyPhoto);
 document.getElementById("removePhoto").addEventListener("click", removePhoto);
+document.getElementById("weatherTemp").addEventListener("input", updateWeatherLabel);
+document.getElementById("weatherCondition").addEventListener("change", updateWeatherLabel);
+document.getElementById("localWeatherBuild").addEventListener("click", ()=>buildAroundWithWeather(false));
+document.getElementById("aiWeatherBuild").addEventListener("click", ()=>buildAroundWithWeather(true));
 document.getElementById("photoFile").addEventListener("change", handlePhotoFile);
 document.getElementById("applyImport").addEventListener("click", applyImport);
 document.getElementById("saveAiKey").addEventListener("click", saveAiSettings);
