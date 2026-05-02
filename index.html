@@ -367,6 +367,8 @@ h1{font-family:var(--serif);font-weight:400;font-size:30px;line-height:1;margin:
 .suggestion-card span{display:block;color:var(--leather);font-size:9px;text-transform:uppercase;letter-spacing:.16em;margin-bottom:6px}
 .suggestion-card strong{display:block;font-family:var(--serif);font-size:18px;font-weight:400;margin-bottom:6px}
 .suggestion-card p{margin:0;color:var(--muted);font-size:11px;line-height:1.5}
+.suggestion-card.with-item{display:grid;grid-template-columns:62px 1fr;gap:10px;align-items:start}
+.suggestion-card img{width:62px;height:62px;object-fit:cover;border-radius:8px;background:#f4f1ec;border:1px solid rgba(127,160,109,.45)}
 .dash-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:18px}
 .dash-card{
   border:1px solid rgba(111,150,88,.58);
@@ -712,7 +714,7 @@ const tabs = [
 ];
 const releaseNotes = [
   "Deep green, cognac, cream, navy, and espresso interface palette.",
-  "Full v23 wardrobe seed with 152 clothing pieces and 21 fragrances.",
+  "Full v24 wardrobe seed with 152 clothing pieces and 21 fragrances.",
   "Photo-first add flow with phone camera upload and saved item photos.",
   "AI Identify can fill item fields from a photo when an API key is saved.",
   "Item detail pages with CPW, wear count, notes, and best pairings.",
@@ -1414,7 +1416,7 @@ function renderCollection(type){
     ? `<div class="toolbar"><button class="ghost" data-action="rateWishlist">${icon("sparkles")}AI Rate Wishlist</button><button class="primary" data-action="add">${icon("plus")}Add</button></div>`
     : `<button class="primary" data-action="add">${icon("plus")}Add</button>`;
   document.getElementById("view").innerHTML =
-    header(names[type], `${items.length} items · ${money.format(value)} archive value · v23`, add) +
+    header(names[type], `${items.length} items · ${money.format(value)} archive value · v24`, add) +
     renderPills(type) +
     (type==="wishlist" ? wishlistInsightCard() : "") +
     (items.length ? `<div class="grid">${items.map(card).join("")}</div>` : emptyMessage(type));
@@ -1728,12 +1730,19 @@ function judgeSuggestions(j){
   if(!suggestions.length) return "";
   return `<div class="judge-suggestions">
     <div class="panel-title">Make It Better</div>
-    ${suggestions.map((s,i)=>`<div class="suggestion-card">
-      <span>${s.targetScore ? `Could push toward ${esc(s.targetScore)}/100` : `Suggestion ${i+1}`}</span>
-      <strong>${esc(s.title || "Upgrade move")}</strong>
-      <p>${esc(s.change || "")}</p>
-      ${s.why ? `<p>${esc(s.why)}</p>` : ""}
-    </div>`).join("")}
+    ${suggestions.map((s,i)=>{
+      const item = s.suggestedItemId ? state.items.find(x=>x.id===s.suggestedItemId) : null;
+      const photo = item ? displayPhoto(item) : "";
+      return `<div class="suggestion-card ${item ? "with-item" : ""}">
+        ${item ? `<img src="${esc(photo)}" alt="">` : ""}
+        <div>
+          <span>${s.targetScore ? `Could push toward ${esc(s.targetScore)}/100` : `Suggestion ${i+1}`}${s.slot ? ` · ${esc(slotLabel(s.slot))}` : ""}</span>
+          <strong>${esc(s.title || "Upgrade move")}</strong>
+          <p>${esc(s.change || "")}</p>
+          ${s.why ? `<p>${esc(s.why)}</p>` : ""}
+        </div>
+      </div>`;
+    }).join("")}
   </div>`;
 }
 function renderAnalytics(){
@@ -2655,11 +2664,11 @@ async function judgeFit(){
 async function aiJudgeFit(pieces){
   const model = currentAiModel();
   const cleanPieces = Object.fromEntries(Object.entries(pieces).map(([slot,x])=>[slot,{
-    brand:x.brand,name:x.name,color:x.color,size:x.size,category:x.category,notes:x.notes,wears:x.wears,price:x.price,photo:x.photo ? absolutePhotoUrl(x.photo) : ""
+    id:x.id,brand:x.brand,name:x.name,color:x.color,size:x.size,category:inferredCategory(x),notes:x.notes,wears:x.wears,price:x.price,photo:x.photo ? absolutePhotoUrl(x.photo) : ""
   }]));
   const closetOptions = state.items
     .filter(x=>x.type==="wardrobe")
-    .map(x=>({id:x.id,brand:x.brand,name:x.name,color:x.color,size:x.size,category:x.category,price:x.price,wears:x.wears}))
+    .map(x=>({id:x.id,brand:x.brand,name:x.name,color:x.color,size:x.size,category:inferredCategory(x),price:x.price,wears:x.wears,allowedSlots:allowedSlotsForItem(x)}))
     .slice(0,220);
   const content = [
     {type:"input_text",text:"Judge this outfit like a sharp men's stylist, not like a spreadsheet. Use the text data, the layer slots, the closet options, weather context, style profile, and any attached item photos. Outfit data:\n"+JSON.stringify({styleProfile:AI_STYLE_PROFILE, vibe:currentFit.vibe || "fall", weather:currentFit.weatherTemp ? {tempF:currentFit.weatherTemp,condition:currentFit.weatherCondition || "dry"} : null, pieces:cleanPieces, closetOptions}, null, 2)}
@@ -2672,7 +2681,7 @@ async function aiJudgeFit(pieces){
   });
   const data = await openAiResponse({
     model,
-    instructions:"You are a stylish, honest men's fashion friend judging whether an outfit is actually fire. "+AI_STYLE_PROFILE+" Be conversational, specific, and visually literate. Reward intention, proportion, color story, texture, confidence, personality, and elevated streetwear polish. Penalize awkward layering, generic matching, dead silhouettes, bad shoe/pant relationships, too many focal points, or pieces that technically match but do not have sauce. Layering logic matters: base layer sits closest to body, mid layer goes over base, outer layer goes over both. A jacket-like mid layer should usually not get another jacket over it. Hat and watch are separate finishers for this user; do not treat a watch as replacing headwear, and do not treat a belt/scarf/keychain as replacing a hat. Use the user's own closetOptions for upgrades whenever possible. Return concrete suggestions that say exactly what to add, remove, or swap, why it helps, and the realistic score it could push toward. Return only valid JSON with keys: score number 0-100, metrics object with 0-10 numbers for Color, Proportion, Layering, Texture, Footwear, Personality, Cohesion, notes array of 4-6 concise natural-language notes, verdict string that sounds like a human stylist, upgrade string naming one specific swap or removal, and suggestions array of 1-3 upgrade cards.",
+    instructions:"You are a stylish, honest men's fashion friend judging whether an outfit is actually fire. "+AI_STYLE_PROFILE+" Be conversational, specific, and visually literate. Reward intention, proportion, color story, texture, confidence, personality, and elevated streetwear polish. Penalize awkward layering, generic matching, dead silhouettes, bad shoe/pant relationships, too many focal points, or pieces that technically match but do not have sauce. Layering logic matters: base layer sits closest to body, mid layer goes over base, outer layer goes over both. A jacket-like mid layer should usually not get another jacket over it. Hat and watch are separate finishers for this user; do not treat a watch as replacing headwear, and do not treat a belt/scarf/keychain as replacing a hat. Use the user's own closetOptions for upgrades whenever possible. Make every suggestion concrete and collection-aware: name the exact current slot or missing slot, name the exact item from closetOptions to add/swap, and return its id as suggestedItemId. Avoid vague advice like 'swap one accent color'; instead say 'swap X for Y' using an actual owned item. Only use suggestedItemId values from closetOptions and only when the item is valid for that slot. Return valid JSON with keys: score number 0-100, metrics object with 0-10 numbers for Color, Proportion, Layering, Texture, Footwear, Personality, Cohesion, notes array of 4-6 concise natural-language notes, verdict string that sounds like a human stylist, upgrade string naming one specific swap or removal, and suggestions array of 1-3 upgrade cards.",
     text:{
       format:{
         type:"json_schema",
@@ -2709,11 +2718,14 @@ async function aiJudgeFit(pieces){
                 additionalProperties:false,
                 properties:{
                   title:{type:"string"},
+                  slot:{type:"string"},
+                  currentItem:{type:"string"},
+                  suggestedItemId:{type:"string"},
                   change:{type:"string"},
                   why:{type:"string"},
                   targetScore:{type:"number"}
                 },
-                required:["title","change","why","targetScore"]
+                required:["title","slot","currentItem","suggestedItemId","change","why","targetScore"]
               }
             }
           },
@@ -2725,6 +2737,7 @@ async function aiJudgeFit(pieces){
   });
   const text = data.output_text || data.output?.flatMap(o=>o.content||[]).map(c=>c.text||"").join("") || "";
   const json = JSON.parse(text.replace(/^```json|```$/g,"").trim());
+  json.suggestions = cleanJudgeSuggestions(json.suggestions || [], pieces, Number(json.score || 0));
   if(json.upgrade) json.notes = [...(json.notes||[]), "Better version: "+json.upgrade];
   if(json.verdict) json.notes = [json.verdict, ...(json.notes||[])];
   return {...json, source:"OpenAI"};
@@ -2989,42 +3002,109 @@ function swapSuggestions(p){
 }
 function localFitSuggestions(p,score){
   const suggestions = [];
-  const addSuggestion = (title,change,why,bump=6) => {
-    suggestions.push({title,change,why,targetScore:Math.min(96, Math.max(score + bump, 85))});
+  const addSuggestion = (title,change,why,bump=6,item=null,slot="",currentItem="") => {
+    suggestions.push({
+      title,
+      slot,
+      currentItem,
+      suggestedItemId:item?.id || "",
+      change,
+      why,
+      targetScore:Math.min(96, Math.max(score + bump, 85))
+    });
   };
   if(!p.shoes){
     const shoe = smartPickFor(pickPool("Shoes"), p.bottoms || p.outerwear || p.baseLayer);
-    if(shoe) addSuggestion("Set the foundation",`Add ${shoe.brand} ${shoe.name}.`,"The shoe controls whether this reads elevated streetwear or just clothes put together.",10);
+    if(shoe) addSuggestion("Set the foundation",`Add ${shoe.brand} ${shoe.name}.`,"The shoe controls whether this reads elevated streetwear or just clothes put together.",10,shoe,"shoes","Missing shoes");
   }
   if(!p.hat){
     const hat = smartHatFor(p);
-    if(hat) addSuggestion("Finish the ALD shape",`Add ${hat.brand} ${hat.name}.`,"Headwear is part of your style language; it makes tailoring and basics feel intentional instead of plain.",6);
+    if(hat) addSuggestion("Finish the ALD shape",`Add ${hat.brand} ${hat.name}.`,"Headwear is part of your style language; it makes tailoring and basics feel intentional instead of plain.",6,hat,"hat","Missing hat");
   }
   if(!p.watch){
     const watch = smartWatchFor(p);
-    if(watch) addSuggestion("Add a wrist detail",`Add ${watch.brand} ${watch.name}.`,"A watch gives the fit that grown, styled finish without making it louder.",4);
+    if(watch) addSuggestion("Add a wrist detail",`Add ${watch.brand} ${watch.name}.`,"A watch gives the fit that grown, styled finish without making it louder.",4,watch,"watch","Missing watch");
   }
   if(!p.socks && p.shoes){
     const socks = smartSocksFor(p);
-    if(socks) addSuggestion("Clean up the shoe break",`Add ${socks.brand} ${socks.name}.`,"Socks help the pant-to-shoe transition feel designed, especially with loafers, derbies, and clogs.",4);
+    if(socks) addSuggestion("Clean up the shoe break",`Add ${socks.brand} ${socks.name}.`,"Socks help the pant-to-shoe transition feel designed, especially with loafers, derbies, and clogs.",4,socks,"socks","Missing socks");
   }
   if(p.hat && p.shoes && /brown|tan|espresso/.test(`${p.shoes.color}`.toLowerCase()) && /brown|tan|khaki|chocolate|beige/.test(`${p.hat.color}`.toLowerCase())){
     const hat = pickPool("Hats").find(x=>/black|navy|cream|white|green|jet|indigo/.test(`${x.color} ${x.name}`.toLowerCase()));
-    if(hat) addSuggestion("Cool off the top",`Swap ${p.hat.name} for ${hat.brand} ${hat.name}.`,"Too much brown can make the fit read earthy instead of elevated; a cooler hat restores balance.",7);
+    if(hat) addSuggestion("Cool off the top",`Swap ${p.hat.name} for ${hat.brand} ${hat.name}.`,"Too much brown can make the fit read earthy instead of elevated; a cooler hat restores balance.",7,hat,"hat",itemLabel(p.hat));
   }
   const top = p.midLayer || p.baseLayer || p.top;
   if(p.bottoms && /kody|wide|barrel|pleated|plisse/i.test(p.bottoms.name) && top && !/cropped|boxy|lasso|zip|hemi|split/i.test(top.name)){
     const betterTop = pickPool("Tops").find(x=>/cropped|boxy|lasso|zip|hemi|split|heavy hood/i.test(x.name));
-    if(betterTop) addSuggestion("Fix the proportion",`Swap ${top.name} for ${betterTop.brand} ${betterTop.name}.`,"Wide or pleated bottoms usually need a shorter, boxier top so the silhouette looks deliberate.",8);
+    if(betterTop) addSuggestion("Fix the proportion",`Swap ${top.name} for ${betterTop.brand} ${betterTop.name}.`,"Wide or pleated bottoms usually need a shorter, boxier top so the silhouette looks deliberate.",8,betterTop,top === p.midLayer ? "midLayer" : "baseLayer",itemLabel(top));
   }
   if(p.accessory && /brown|tan|khaki/.test(`${p.accessory.color} ${p.accessory.name}`.toLowerCase()) && p.shoes && /black/.test(`${p.shoes.color} ${p.shoes.name}`.toLowerCase())){
     const belt = pickPool("Accessories").find(x=>/black/.test(`${x.color} ${x.name}`.toLowerCase()) && /belt/.test(x.name.toLowerCase()));
-    if(belt) addSuggestion("Tighten the accessory story",`Swap ${p.accessory.name} for ${belt.brand} ${belt.name}.`,"A black belt will echo the shoes and make the fit feel cleaner.",5);
+    if(belt) addSuggestion("Tighten the accessory story",`Swap ${p.accessory.name} for ${belt.brand} ${belt.name}.`,"A black belt will echo the shoes and make the fit feel cleaner.",5,belt,"accessory",itemLabel(p.accessory));
   }
   if(!suggestions.length){
-    addSuggestion("One-step polish",bestSwapSuggestion(p),"This is the smallest move that would make the outfit feel more intentional.",4);
+    const concrete = concreteOneStepSuggestion(p,score);
+    if(concrete) suggestions.push(concrete);
   }
   return suggestions.slice(0,3);
+}
+function itemLabel(x){
+  return x ? `${x.brand} ${x.name}`.trim() : "";
+}
+function slotLabel(slot){
+  return ({
+    baseLayer:"Base layer",midLayer:"Mid layer",outerwear:"Outerwear",bottoms:"Bottoms",
+    shoes:"Shoes",socks:"Socks",hat:"Hat",watch:"Watch",accessory:"Accessory",fragrance:"Fragrance"
+  })[slot] || slot || "";
+}
+function poolForSlot(slot){
+  if(slot==="baseLayer") return topPool("baseLayer");
+  if(slot==="midLayer") return topPool("midLayer");
+  if(slot==="outerwear") return pickPool("Outerwear");
+  if(slot==="bottoms") return pickPool("Bottoms");
+  if(slot==="shoes") return pickPool("Shoes");
+  if(slot==="socks") return pickPool("Socks");
+  if(slot==="hat") return pickPool("Hats");
+  if(slot==="watch") return pickPool("Watches");
+  if(slot==="accessory") return pickPool("Accessories");
+  if(slot==="fragrance") return state.items.filter(x=>x.type==="fragrance");
+  return [];
+}
+function concreteOneStepSuggestion(p,score){
+  const slots = ["baseLayer","midLayer","outerwear","bottoms","shoes","hat","accessory","socks","watch","fragrance"];
+  const coreColor = x=>/cream|ivory|white|black|jet|olive|green|brown|espresso|navy|grey|gray|charcoal/.test(`${x?.color || ""} ${x?.name || ""}`.toLowerCase());
+  const currentSlot = slots.find(slot=>p[slot] && !coreColor(p[slot])) || slots.find(slot=>p[slot]);
+  if(currentSlot){
+    const current = p[currentSlot];
+    const anchor = p.shoes || p.bottoms || p.outerwear || p.baseLayer;
+    const candidates = poolForSlot(currentSlot).filter(x=>x.id !== current.id && coreColor(x));
+    const item = smartPickFor(candidates.length ? candidates : poolForSlot(currentSlot).filter(x=>x.id !== current.id), anchor);
+    if(item){
+      return {
+        title:"Concrete polish swap",
+        slot:currentSlot,
+        currentItem:itemLabel(current),
+        suggestedItemId:item.id,
+        change:`Swap ${itemLabel(current)} for ${itemLabel(item)}.`,
+        why:`This keeps the advice inside your actual closet and tightens the color story with a piece you already own.`,
+        targetScore:Math.min(96, Math.max(score + 5, 85))
+      };
+    }
+  }
+  return null;
+}
+function cleanJudgeSuggestions(suggestions,pieces,score){
+  const cleaned = suggestions
+    .map(s=>{
+      const item = s.suggestedItemId ? state.items.find(x=>x.id===s.suggestedItemId) : null;
+      if(!item || (s.slot && !slotAllowsItem(s.slot,item))) return null;
+      const current = s.currentItem || itemLabel(pieces[s.slot]);
+      return {...s,currentItem:current,suggestedItemId:item.id};
+    })
+    .filter(Boolean);
+  if(cleaned.length) return cleaned.slice(0,3);
+  const local = localFitSuggestions(pieces,score);
+  return local.length ? local : [];
 }
 function clamp(n){ return Math.max(1,Math.min(10,Math.round(n))); }
 function openAiSettings(){
