@@ -2057,6 +2057,38 @@ async function aiJudgeFit(pieces){
   const data = await openAiResponse({
     model,
     instructions:"You are a stylish, honest men's fashion friend judging whether an outfit is actually fire. Be conversational, specific, and visually literate. Reward intention, proportion, color story, texture, confidence, and personality. Penalize awkward layering, generic matching, dead silhouettes, bad shoe/pant relationships, too many focal points, or pieces that technically match but do not have sauce. Layering logic matters: base layer sits closest to body, mid layer goes over base, outer layer goes over both. A jacket-like mid layer should usually not get another jacket over it. Use the user's own closetOptions for the upgrade when possible. Return only valid JSON with keys: score number 0-100, metrics object with 0-10 numbers for Color, Proportion, Layering, Texture, Footwear, Personality, Cohesion, notes array of 4-6 concise natural-language notes, verdict string that sounds like a human stylist, and upgrade string naming one specific swap or removal.",
+    text:{
+      format:{
+        type:"json_schema",
+        name:"fit_judgement",
+        strict:true,
+        schema:{
+          type:"object",
+          additionalProperties:false,
+          properties:{
+            score:{type:"number"},
+            metrics:{
+              type:"object",
+              additionalProperties:false,
+              properties:{
+                Color:{type:"number"},
+                Proportion:{type:"number"},
+                Layering:{type:"number"},
+                Texture:{type:"number"},
+                Footwear:{type:"number"},
+                Personality:{type:"number"},
+                Cohesion:{type:"number"}
+              },
+              required:["Color","Proportion","Layering","Texture","Footwear","Personality","Cohesion"]
+            },
+            notes:{type:"array",items:{type:"string"}},
+            verdict:{type:"string"},
+            upgrade:{type:"string"}
+          },
+          required:["score","metrics","notes","verdict","upgrade"]
+        }
+      }
+    },
     input:[{role:"user",content}]
   });
   const text = data.output_text || data.output?.flatMap(o=>o.content||[]).map(c=>c.text||"").join("") || "";
