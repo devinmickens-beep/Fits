@@ -714,7 +714,7 @@ const tabs = [
 ];
 const releaseNotes = [
   "Deep green, cognac, cream, navy, and espresso interface palette.",
-  "Full v24 wardrobe seed with 152 clothing pieces and 21 fragrances.",
+  "Full v25 wardrobe seed with 152 clothing pieces and 21 fragrances.",
   "Photo-first add flow with phone camera upload and saved item photos.",
   "AI Identify can fill item fields from a photo when an API key is saved.",
   "Item detail pages with CPW, wear count, notes, and best pairings.",
@@ -1416,7 +1416,7 @@ function renderCollection(type){
     ? `<div class="toolbar"><button class="ghost" data-action="rateWishlist">${icon("sparkles")}AI Rate Wishlist</button><button class="primary" data-action="add">${icon("plus")}Add</button></div>`
     : `<button class="primary" data-action="add">${icon("plus")}Add</button>`;
   document.getElementById("view").innerHTML =
-    header(names[type], `${items.length} items · ${money.format(value)} archive value · v24`, add) +
+    header(names[type], `${items.length} items · ${money.format(value)} archive value · v25`, add) +
     renderPills(type) +
     (type==="wishlist" ? wishlistInsightCard() : "") +
     (items.length ? `<div class="grid">${items.map(card).join("")}</div>` : emptyMessage(type));
@@ -2600,7 +2600,7 @@ async function aiBuildFitAround(anchor, weather, anchorSlot, feedback=""){
   const slots = ["baseLayer","midLayer","outerwear","bottoms","shoes","socks","hat","watch","accessory","fragrance"];
   const data = await openAiResponse({
     model:currentAiModel(),
-    instructions:"You build practical but stylish men's outfits from the user's own closet. "+AI_STYLE_PROFILE+" Your target is an 85/100 or better outfit, not merely a complete outfit. Choose item ids only from closetOptions and only place an item in one of its allowedSlots. Hard slot rules: fragrance items can only go in fragrance; Bottoms can only go in bottoms; Shoes only in shoes; Socks only in socks; Hats only in hat; Watches only in watch; Accessories only in accessory; Outerwear only in outerwear; Tops marked baseLayer only touch the body; Tops marked midLayer are sweaters/hoodies/knits/quarter zips over base. Respect layer order: baseLayer touches body, midLayer is a sweater/hoodie/knit/quarter zip over base, outerwear is a jacket/coat over both. Do not put a jacket-like mid layer under another jacket unless it is cold enough and the proportions make sense. Weather matters: 55-65F usually wants two visible layers, not base + sweater + jacket, unless rain/wind/snow demands protection. Do not pair summer mesh/tank/camp/linen base layers under wool/cable/mohair/sherpa layers. Warm temps need breathable base layers and lighter scents; at 64F or below, avoid bright summer fragrances like Vibrato unless the user asks for fresh and prefer woody/amber/tea/tobacco/leather warmth. Hats and watches are separate slots; the user commonly wears both. Accessory means belt/scarf/keychain/etc. Fragrance should fit the temperature. Make one confident, high-cohesion choice per slot and skip layers that would make the fit worse.",
+    instructions:"You build practical but stylish men's outfits from the user's own closet. "+AI_STYLE_PROFILE+" Your target is an 85/100 or better outfit, not merely a complete outfit. Choose item ids only from closetOptions and only place an item in one of its allowedSlots. Hard slot rules: fragrance items can only go in fragrance; Bottoms can only go in bottoms; Shoes only in shoes; Socks only in socks; Hats only in hat; Watches only in watch; Accessories only in accessory; Outerwear only in outerwear; Tops marked baseLayer only touch the body; Tops marked midLayer are sweaters/hoodies/knits/quarter zips over base. Respect layer order: baseLayer touches body, midLayer is a sweater/hoodie/knit/quarter zip over base, outerwear is a jacket/coat over both. Do not put a jacket-like mid layer under another jacket unless it is cold enough and the proportions make sense. Weather matters: 55-65F usually wants two visible layers, not base + sweater + jacket, unless rain/wind/snow demands protection. Do not pair summer mesh/tank/camp/linen base layers under wool/cable/mohair/sherpa layers. Warm temps need breathable base layers and lighter scents; at 64F or below, avoid bright summer fragrances like Vibrato unless the user asks for fresh and prefer woody/amber/tea/tobacco/leather warmth. Choose fragrance with weather and palette in mind: a warm amber, boozy, tobacco, leather, tea, or woody scent can be fire on a 50-60F dry day because it adds warmth and contrast against olive, black, cream, grey, or brown clothes; bright aquatic/citrus scents are mostly warm-weather choices unless intentionally used for contrast. Hats and watches are separate slots; the user commonly wears both. Accessory means belt/scarf/keychain/etc. Fragrance should fit the temperature. Make one confident, high-cohesion choice per slot and skip layers that would make the fit worse.",
     text:{
       format:{
         type:"json_schema",
@@ -2681,7 +2681,7 @@ async function aiJudgeFit(pieces){
   });
   const data = await openAiResponse({
     model,
-    instructions:"You are a stylish, honest men's fashion friend judging whether an outfit is actually fire. "+AI_STYLE_PROFILE+" Be conversational, specific, and visually literate. Reward intention, proportion, color story, texture, confidence, personality, and elevated streetwear polish. Penalize awkward layering, generic matching, dead silhouettes, bad shoe/pant relationships, too many focal points, or pieces that technically match but do not have sauce. Layering logic matters: base layer sits closest to body, mid layer goes over base, outer layer goes over both. A jacket-like mid layer should usually not get another jacket over it. Hat and watch are separate finishers for this user; do not treat a watch as replacing headwear, and do not treat a belt/scarf/keychain as replacing a hat. Use the user's own closetOptions for upgrades whenever possible. Make every suggestion concrete and collection-aware: name the exact current slot or missing slot, name the exact item from closetOptions to add/swap, and return its id as suggestedItemId. Avoid vague advice like 'swap one accent color'; instead say 'swap X for Y' using an actual owned item. Only use suggestedItemId values from closetOptions and only when the item is valid for that slot. Return valid JSON with keys: score number 0-100, metrics object with 0-10 numbers for Color, Proportion, Layering, Texture, Footwear, Personality, Cohesion, notes array of 4-6 concise natural-language notes, verdict string that sounds like a human stylist, upgrade string naming one specific swap or removal, and suggestions array of 1-3 upgrade cards.",
+    instructions:"You are a stylish, honest men's fashion friend judging whether an outfit is actually fire. "+AI_STYLE_PROFILE+" Be conversational, specific, and visually literate. Reward intention, proportion, color story, texture, confidence, personality, and elevated streetwear polish. Penalize awkward layering, generic matching, dead silhouettes, bad shoe/pant relationships, too many focal points, or pieces that technically match but do not have sauce. Layering logic matters: base layer sits closest to body, mid layer goes over base, outer layer goes over both. A jacket-like mid layer should usually not get another jacket over it. Hat and watch are separate finishers for this user; do not treat a watch as replacing headwear, and do not treat a belt/scarf/keychain as replacing a hat. Fragrance is part of the fit logic. When judging fragrance, connect it to weather, temp, outfit palette, and texture. Do not say generic lines like 'adds a scent layer'; say why the scent works or does not, for example a warm amber/boozy scent on a 50-degree dry day contrasting an olive/black palette, or a bright aquatic scent feeling too summery for wool layers. Use the user's own closetOptions for upgrades whenever possible. Make every suggestion concrete and collection-aware: name the exact current slot or missing slot, name the exact item from closetOptions to add/swap, and return its id as suggestedItemId. Avoid vague advice like 'swap one accent color'; instead say 'swap X for Y' using an actual owned item. Only use suggestedItemId values from closetOptions and only when the item is valid for that slot. Return valid JSON with keys: score number 0-100, metrics object with 0-10 numbers for Color, Proportion, Layering, Texture, Footwear, Personality, Cohesion, notes array of 4-6 concise natural-language notes, verdict string that sounds like a human stylist, upgrade string naming one specific swap or removal, and suggestions array of 1-3 upgrade cards.",
     text:{
       format:{
         type:"json_schema",
@@ -2926,11 +2926,53 @@ function buildJudgeNotes(metrics,p,names){
   if(p.socks && p.shoes) notes.push(`${p.socks.name} supports ${p.shoes.name}; socks now count toward the finish of the fit.`);
   if(p.hat) notes.push(`${p.hat.name} gives the fit a headwear finish instead of leaving the top half bare.`);
   if(p.watch) notes.push(`${p.watch.name} gives the fit a wrist detail, which helps the outfit feel complete.`);
-  if(p.fragrance) notes.push(`${p.fragrance.name} adds a scent layer, so keep accessories restrained.`);
+  if(p.fragrance) notes.push(fragranceFitNote(p));
   notes.push(`Better version: ${bestSwapSuggestion(p)}`);
   notes.push(...swapSuggestions(p));
   notes.push("A stylish fit needs one clear focal point, supporting textures, and no more than one loud move.");
   return notes.slice(0,8);
+}
+function outfitPaletteText(p){
+  const text = Object.entries(p)
+    .filter(([slot,x])=>!FIT_META_KEYS.includes(slot) && slot !== "fragrance" && x)
+    .map(([,x])=>`${x.name || ""} ${x.color || ""}`)
+    .join(" ")
+    .toLowerCase();
+  const families = [];
+  if(/olive|green|pine|kalamata|cypress/.test(text)) families.push("olive/green");
+  if(/black|jet|charcoal|grey|gray|slate|silver/.test(text)) families.push("black/grey");
+  if(/brown|espresso|chocolate|truffle|cognac|tan|palo santo/.test(text)) families.push("brown leather");
+  if(/cream|ivory|white|natural|oat|beige|palo santo/.test(text)) families.push("cream");
+  if(/navy|blue|denim/.test(text)) families.push("navy/denim");
+  return families.length ? [...new Set(families)].slice(0,3).join(", ") : "the outfit";
+}
+function fragranceMood(x){
+  const text = layerText(x);
+  if(/havana gold|tobacco|vanille|amber|aoud|oud|naxos|plum|cognac|spicebomb|obsidian|leather|tea|tonka|whiskey|bourbon/.test(text)) return "warm";
+  if(/gris charnel|halfeti|bois|wood|santal|cedar|patchouli|incense/.test(text)) return "woody";
+  if(/vibrato|torino|aquatica|salt and pepper|citrus|fresh|marine|neroli|bergamot|mint/.test(text)) return "bright";
+  return "balanced";
+}
+function fragranceFitNote(p){
+  const frag = p.fragrance;
+  const temp = Number(currentFit.weatherTemp || 58);
+  const condition = currentFit.weatherCondition || "dry";
+  const palette = outfitPaletteText(p);
+  const mood = fragranceMood(frag);
+  const name = frag.name || "The fragrance";
+  if(temp <= 64 && (mood === "warm" || mood === "woody")){
+    return `${name} is right for ${temp}°F ${condition}; its warm/woody depth contrasts the ${palette} palette and makes the fit feel intentional instead of just matched.`;
+  }
+  if(temp <= 64 && mood === "bright"){
+    return `${name} reads fresh for ${temp}°F ${condition}; it can work as contrast, but a warmer amber, tea, tobacco, leather, or woody scent would sit deeper with the ${palette} palette.`;
+  }
+  if(temp >= 72 && mood === "bright"){
+    return `${name} makes sense for ${temp}°F ${condition}; the brighter scent keeps the outfit airy while the clothes carry the texture.`;
+  }
+  if(temp >= 72 && (mood === "warm" || mood === "woody")){
+    return `${name} is a heavier scent for ${temp}°F ${condition}; wear it lightly so it adds polish without weighing down the ${palette} palette.`;
+  }
+  return `${name} works as a balanced scent choice for ${temp}°F ${condition}, tying into the ${palette} palette without stealing the fit's focal point.`;
 }
 function styleReasonNotes(p){
   const notes = [];
