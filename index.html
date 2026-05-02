@@ -723,7 +723,7 @@ const tabs = [
 ];
 const releaseNotes = [
   "Deep green, cognac, cream, navy, and espresso interface palette.",
-  "Full v29 wardrobe seed with 152 clothing pieces and 21 fragrances.",
+  "Full v30 wardrobe seed with 152 clothing pieces and 21 fragrances.",
   "Photo-first add flow with phone camera upload and saved item photos.",
   "AI Identify can fill item fields from a photo when an API key is saved.",
   "Item detail pages with CPW, wear count, notes, and best pairings.",
@@ -1437,7 +1437,7 @@ function renderCollection(type){
     ? `<div class="toolbar"><button class="ghost" data-action="rateWishlist">${icon("sparkles")}AI Rate Wishlist</button><button class="primary" data-action="add">${icon("plus")}Add</button></div>`
     : `<button class="primary" data-action="add">${icon("plus")}Add</button>`;
   document.getElementById("view").innerHTML =
-    header(names[type], `${items.length} items · ${money.format(value)} archive value · v29`, add) +
+    header(names[type], `${items.length} items · ${money.format(value)} archive value · v30`, add) +
     renderPills(type) +
     renderSortControls(type) +
     (type==="wishlist" ? wishlistActions() : "") +
@@ -1984,7 +1984,7 @@ async function aiRateWishlistValue(){
   if(!wishlist.length) return {summary:"No wish items to score yet.",items:[]};
   const data = await openAiResponse({
     model:currentAiModel(),
-    instructions:"You are a strict but stylish wardrobe investment advisor. Score wishlist items against the user's actual wardrobe. Judge whether each item fills a real gap, unlocks better outfits, duplicates something already owned, fits the user's style, and is worth the price. "+AI_STYLE_PROFILE+" Be honest: a cool item can still be low value if it is redundant. Every wishlist item must get one exact verdict: BUY, WAIT, or SKIP. BUY means it clearly elevates the ALD/elevated streetwear lane, fills a real gap, and has strong pairings in the existing closet. WAIT means good but price, redundancy, season, or use case makes it non-urgent. SKIP means redundant, off-lane, too expensive for its impact, or unlikely to unlock better fits. Return only valid JSON.",
+    instructions:"You are a strict but stylish wardrobe investment advisor. Score wishlist items against the user's actual wardrobe. Judge whether each item fills a real gap, unlocks better outfits, duplicates something already owned, fits the user's style, and is worth the price. "+AI_STYLE_PROFILE+" Be honest: a cool item can still be low value if it is redundant. Every wishlist item must get one exact verdict: BUY, WAIT, or SKIP. BUY means it clearly elevates the ALD/elevated streetwear lane, fills a real gap, and has strong pairings in the existing closet. WAIT means good but price, redundancy, season, or use case makes it non-urgent. SKIP means redundant, off-lane, too expensive for its impact, or unlikely to unlock better fits. Fragrance rule: if the wishlist item is a full bottle and the user already owns fragrances in the same lane, recommend a 5-10 ml decant/travel/sample first instead of a full bottle. If the user already has Vibrato, Lamar, Aquatica, or similar pineapple/fresh/tropical coverage, do not tell them to buy a full bottle of another scent in that same lane; say decant first. Treat fragrances as lower wardrobe-impact than clothing, shoes, belts, watches, and hats unless the scent fills a clear missing seasonal/signature lane. Return only valid JSON.",
     text:{
       format:{
         type:"json_schema",
@@ -2016,7 +2016,7 @@ async function aiRateWishlistValue(){
         }
       }
     },
-    input:[{role:"user",content:[{type:"input_text",text:"Rate every wishlist item from 0-100 for wardrobe value. Style profile: "+AI_STYLE_PROFILE+" For every item, give an exact BUY / WAIT / SKIP verdict, why it matters or does not matter for the ALD/elevated streetwear lane, what owned pieces it pairs with, and the buying advice. Be specific about closet gaps and duplicates. Data:\n"+JSON.stringify({wishlist,wardrobe,fragrances,localGaps:closetGaps()}, null, 2)}]}]
+    input:[{role:"user",content:[{type:"input_text",text:"Rate every wishlist item from 0-100 for wardrobe value. Style profile: "+AI_STYLE_PROFILE+" For every item, give an exact BUY / WAIT / SKIP verdict, why it matters or does not matter for the ALD/elevated streetwear lane, what owned pieces it pairs with, and the buying advice. Be specific about closet gaps and duplicates. For fragrance wishlist items, compare scent lanes against owned fragrances: if the user already has similar pineapple/tropical/fresh options like Vibrato, Lamar, Aquatica, or similar fresh citrus fruit scents, advise 5-10 ml decant/travel size before full bottle. Full bottle BUY should be rare for fragrance: only if it fills a missing lane and would become a signature. Data:\n"+JSON.stringify({wishlist,wardrobe,fragrances,localGaps:closetGaps()}, null, 2)}]}]
   });
   const text = data.output_text || data.output?.flatMap(o=>o.content||[]).map(c=>c.text||"").join("") || "";
   return JSON.parse(text.replace(/^```json|```$/g,"").trim());
@@ -2028,9 +2028,58 @@ function cleanWishlistInsight(insight){
       const score = Number(x.score || 0);
       verdict = score >= 82 ? "BUY" : score >= 62 ? "WAIT" : "SKIP";
     }
-    return {...x, verdict, score:Math.round(Number(x.score || 0))};
+    return fragranceWishlistGuard({...x, verdict, score:Math.round(Number(x.score || 0))});
   });
   return {...insight,items};
+}
+function fragranceWishlistGuard(rating){
+  const wish = findWishlistItemFromRating(rating);
+  if(!wish || inferredCategory(wish) !== "Fragrances") return rating;
+  const wishText = `${wish.brand} ${wish.name} ${wish.color} ${wish.size} ${wish.notes}`.toLowerCase();
+  const lanes = fragranceLanes(wishText);
+  const ownedMatches = state.items
+    .filter(x=>x.type==="fragrance")
+    .map(x=>({item:x,lanes:fragranceLanes(`${x.brand} ${x.name} ${x.color} ${x.size} ${x.notes}`.toLowerCase())}))
+    .filter(x=>x.lanes.some(l=>lanes.includes(l)));
+  const wantsFullBottle = /full bottle|100 ml|50 ml|bottle/.test(wishText);
+  const alreadyHasSample = /sample|decant|10 ml|10ml|travel|rotation/.test(wishText);
+  if(wantsFullBottle && (ownedMatches.length || alreadyHasSample)){
+    const priority = /adello|pineapple|tropical|aquatic|fresh|citrus/.test(wishText)
+      ? /vibrato|lamar|aquatica|torino|erba|miami|wasl|al wasl/i
+      : /naxos|tobacco|vanille|vanilla|amber|cognac|plum|oud/i;
+    const examples = ownedMatches
+      .sort((a,b)=>Number(priority.test(`${b.item.brand} ${b.item.name}`))-Number(priority.test(`${a.item.brand} ${a.item.name}`)))
+      .slice(0,3)
+      .map(x=>x.item.name)
+      .join(", ");
+    const covered = examples ? ` You already cover a similar lane with ${examples}.` : "";
+    return {
+      ...rating,
+      verdict:"WAIT",
+      score:Math.min(Number(rating.score || 65), alreadyHasSample ? 66 : 72),
+      why:`Good scent, but full bottle is not the smart move yet.${covered} It will not elevate the wardrobe as much as another clothing, shoe, belt, watch, or hat upgrade.`,
+      pairings:rating.pairings || "Use it as a finishing scent when the outfit already works; it should not drive the wardrobe plan.",
+      buyAdvice:alreadyHasSample
+        ? "Keep enjoying the sample/decant. If you still love it after repeated wears, buy a 10 ml decant or travel size before committing to a full bottle."
+        : "Try a 5-10 ml decant first. Full bottle only makes sense if it becomes a clear signature scent."
+    };
+  }
+  return rating;
+}
+function findWishlistItemFromRating(rating){
+  const text = String(rating.item || "").toLowerCase();
+  return state.items.find(x=>x.type==="wishlist" && text.includes(`${x.brand} ${x.name}`.toLowerCase()))
+    || state.items.find(x=>x.type==="wishlist" && text.includes(String(x.name || "").toLowerCase()));
+}
+function fragranceLanes(text){
+  const lanes = [];
+  if(/pineapple|tropical|mango|coconut|fruit|fruity|aquatica|lamar|vibrato|adello|erba|tygar|torino|citrus|bergamot|grapefruit/.test(text)) lanes.push("fresh-fruity");
+  if(/aquatic|marine|fresh|mint|green|fig|tea|summer|spring/.test(text)) lanes.push("fresh-green");
+  if(/oud|wood|sandal|cedar|vetiver|patchouli|incense/.test(text)) lanes.push("woody-oud");
+  if(/amber|vanilla|tobacco|honey|boozy|rum|cognac|myrrh|tonka|naxos/.test(text)) lanes.push("amber-sweet");
+  if(/rose|floral|iris|violet|jasmine/.test(text)) lanes.push("floral");
+  if(/leather|suede|smoke/.test(text)) lanes.push("leather-smoke");
+  return lanes.length ? lanes : ["general"];
 }
 async function suggestFragranceLayers(){
   const season = activeCategory && activeCategory !== "All" ? activeCategory : "all";

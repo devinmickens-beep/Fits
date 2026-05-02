@@ -1,4 +1,4 @@
-const CACHE_NAME = "closet-archive-v29";
+const CACHE_NAME = "closet-archive-v30";
 const APP_SHELL = [
   "/",
   "/index.html",
