@@ -685,6 +685,7 @@ const AI_KEY_STORAGE = "closet_openai_key";
 const AI_MODEL_STORAGE = "closet_openai_model";
 const DEFAULT_AI_MODEL = "gpt-4.1-mini";
 const FIT_META_KEYS = ["vibe","fireTarget","anchorId","weatherTemp","weatherCondition","builderSource","buildReason"];
+const AI_STYLE_PROFILE = "The user is going for Aime Leon Dore / ALD-style streetwear, but super elevated: Queens/NYC prep-sport energy, Porsche-inspired olive, espresso brown, cream, black, navy, and cognac palette; luxe leather shoes; strong hats; watches; textured knits; tailored wide pants; heritage sportswear; restrained statement pieces; and polished casual proportions. The target is not generic streetwear, hype matching, or stiff formalwear. It should feel wearable, expensive, intentional, layered, a little rare, and quietly fire.";
 const money = new Intl.NumberFormat("en-US",{style:"currency",currency:"USD",maximumFractionDigits:0});
 const monthFmt = new Intl.DateTimeFormat("en-US",{month:"short",year:"numeric"});
 const tabs = [
@@ -1374,7 +1375,7 @@ function renderCollection(type){
     ? `<div class="toolbar"><button class="ghost" data-action="rateWishlist">${icon("sparkles")}AI Rate Wishlist</button><button class="primary" data-action="add">${icon("plus")}Add</button></div>`
     : `<button class="primary" data-action="add">${icon("plus")}Add</button>`;
   document.getElementById("view").innerHTML =
-    header(names[type], `${items.length} items · ${money.format(value)} archive value · v16`, add) +
+    header(names[type], `${items.length} items · ${money.format(value)} archive value · v17`, add) +
     renderPills(type) +
     (type==="wishlist" ? wishlistInsightCard() : "") +
     (items.length ? `<div class="grid">${items.map(card).join("")}</div>` : emptyMessage(type));
@@ -1760,7 +1761,7 @@ async function aiFindRealClosetGaps(){
   const data = await openAiResponse({
     model:currentAiModel(),
     tools:[{type:"web_search_preview"}],
-    instructions:"You are a web-aware menswear wardrobe strategist. Search the web for real items, retailer pages, editorial examples, and resale references that fit the user's style. The user's taste: ALD/Porsche palette, olive, espresso brown, cream, black, elevated casual, loafers/derbies, hats, watches, texture, and wearable statement pieces. Do not recommend generic basics unless they solve a real gap. Explain why each suggestion makes the closet stronger and how it elevates existing pieces. Return only valid JSON.",
+    instructions:"You are a web-aware menswear wardrobe strategist. Search the web for real items, retailer pages, editorial examples, and resale references that fit the user's style. "+AI_STYLE_PROFILE+" Do not recommend generic basics unless they solve a real gap. Explain why each suggestion makes the closet stronger and how it elevates existing pieces. Return only valid JSON.",
     text:{
       format:{
         type:"json_schema",
@@ -1794,7 +1795,7 @@ async function aiFindRealClosetGaps(){
         }
       }
     },
-    input:[{role:"user",content:[{type:"input_text",text:"Find real wardrobe gap suggestions based on this closet and wishlist. Include why each one would upgrade the archive. If a wishlist item is already a strong answer, say why it matters, like Le Loafer Supple in Eel Scotch Brown elevating dress-shoe outfits. Data:\n"+JSON.stringify({localGaps:closetGaps(),wishlist,closet}, null, 2)}]}]
+    input:[{role:"user",content:[{type:"input_text",text:"Find real wardrobe gap suggestions based on this closet and wishlist. Style profile: "+AI_STYLE_PROFILE+" Include why each one would upgrade the archive. If a wishlist item is already a strong answer, say why it matters, like Le Loafer Supple in Eel Scotch Brown elevating dress-shoe outfits. Data:\n"+JSON.stringify({localGaps:closetGaps(),wishlist,closet}, null, 2)}]}]
   });
   const text = data.output_text || data.output?.flatMap(o=>o.content||[]).map(c=>c.text||"").join("") || "";
   return JSON.parse(text.replace(/^```json|```$/g,"").trim());
@@ -1825,7 +1826,7 @@ async function aiRateWishlistValue(){
   if(!wishlist.length) return {summary:"No wish items to score yet.",items:[]};
   const data = await openAiResponse({
     model:currentAiModel(),
-    instructions:"You are a strict but stylish wardrobe investment advisor. Score wishlist items against the user's actual wardrobe. Judge whether each item fills a real gap, unlocks better outfits, duplicates something already owned, fits the user's style, and is worth the price. The user's style leans ALD/Porsche palette, olive, espresso brown, cream, black, elevated casual, loafers/derbies, hats, watches, texture, and wearable statement pieces. Be honest: a cool item can still be low value if it is redundant. Return only valid JSON.",
+    instructions:"You are a strict but stylish wardrobe investment advisor. Score wishlist items against the user's actual wardrobe. Judge whether each item fills a real gap, unlocks better outfits, duplicates something already owned, fits the user's style, and is worth the price. "+AI_STYLE_PROFILE+" Be honest: a cool item can still be low value if it is redundant. Return only valid JSON.",
     text:{
       format:{
         type:"json_schema",
@@ -1857,7 +1858,7 @@ async function aiRateWishlistValue(){
         }
       }
     },
-    input:[{role:"user",content:[{type:"input_text",text:"Rate every wishlist item from 0-100 for wardrobe value. Say whether it elevates the wardrobe, what it pairs with, and whether it is worth buying now. Data:\n"+JSON.stringify({wishlist,wardrobe,fragrances,localGaps:closetGaps()}, null, 2)}]}]
+    input:[{role:"user",content:[{type:"input_text",text:"Rate every wishlist item from 0-100 for wardrobe value. Style profile: "+AI_STYLE_PROFILE+" Say whether it elevates the wardrobe, what it pairs with, and whether it is worth buying now. Data:\n"+JSON.stringify({wishlist,wardrobe,fragrances,localGaps:closetGaps()}, null, 2)}]}]
   });
   const text = data.output_text || data.output?.flatMap(o=>o.content||[]).map(c=>c.text||"").join("") || "";
   return JSON.parse(text.replace(/^```json|```$/g,"").trim());
@@ -2404,7 +2405,7 @@ async function aiBuildFitAround(anchor, weather, anchorSlot, feedback=""){
   const slots = ["baseLayer","midLayer","outerwear","bottoms","shoes","socks","hat","watch","accessory","fragrance"];
   const data = await openAiResponse({
     model:currentAiModel(),
-    instructions:"You build practical but stylish men's outfits from the user's own closet. Your target is an 85/100 or better outfit, not merely a complete outfit. Choose item ids only from closetOptions. Respect layer order: baseLayer touches body, midLayer is a sweater/hoodie/knit/quarter zip over base, outerwear is a jacket/coat over both. Do not put a jacket-like mid layer under another jacket unless it is cold enough and the proportions make sense. Weather matters: warm temps need breathable base layers and lighter scents; cold temps need warmth and outerwear; rain/wind/snow should favor protective outerwear and grounded shoes. Hats and watches are separate slots; the user commonly wears both. Accessory means belt/scarf/keychain/etc. Fragrance should fit the temperature. Make one confident, high-cohesion choice per slot and skip layers that would make the fit worse.",
+    instructions:"You build practical but stylish men's outfits from the user's own closet. "+AI_STYLE_PROFILE+" Your target is an 85/100 or better outfit, not merely a complete outfit. Choose item ids only from closetOptions. Respect layer order: baseLayer touches body, midLayer is a sweater/hoodie/knit/quarter zip over base, outerwear is a jacket/coat over both. Do not put a jacket-like mid layer under another jacket unless it is cold enough and the proportions make sense. Weather matters: warm temps need breathable base layers and lighter scents; cold temps need warmth and outerwear; rain/wind/snow should favor protective outerwear and grounded shoes. Hats and watches are separate slots; the user commonly wears both. Accessory means belt/scarf/keychain/etc. Fragrance should fit the temperature. Make one confident, high-cohesion choice per slot and skip layers that would make the fit worse.",
     text:{
       format:{
         type:"json_schema",
@@ -2426,9 +2427,10 @@ async function aiBuildFitAround(anchor, weather, anchorSlot, feedback=""){
         }
       }
     },
-    input:[{role:"user",content:[{type:"input_text",text:"Build an 85/100 or better outfit around the anchor item. Return empty string for any slot that should intentionally be skipped. Data:\n"+JSON.stringify({
+    input:[{role:"user",content:[{type:"input_text",text:"Build an 85/100 or better outfit around the anchor item. Style profile: "+AI_STYLE_PROFILE+" Return empty string for any slot that should intentionally be skipped. Data:\n"+JSON.stringify({
       anchor:{id:anchor.id,slot:anchorSlot,type:anchor.type,brand:anchor.brand,name:anchor.name,color:anchor.color,size:anchor.size,category:anchor.category,price:anchor.price},
       weather:{tempF:weather.temp,condition:weather.condition,intent:weather.intent},
+      styleProfile:AI_STYLE_PROFILE,
       targetScore:85,
       priorFeedback:feedback,
       closetOptions
@@ -2473,7 +2475,7 @@ async function aiJudgeFit(pieces){
     .map(x=>({id:x.id,brand:x.brand,name:x.name,color:x.color,size:x.size,category:x.category,price:x.price,wears:x.wears}))
     .slice(0,220);
   const content = [
-    {type:"input_text",text:"Judge this outfit like a sharp men's stylist, not like a spreadsheet. Use the text data, the layer slots, the closet options, weather context, and any attached item photos. Outfit data:\n"+JSON.stringify({vibe:currentFit.vibe || "fall", weather:currentFit.weatherTemp ? {tempF:currentFit.weatherTemp,condition:currentFit.weatherCondition || "dry"} : null, pieces:cleanPieces, closetOptions}, null, 2)}
+    {type:"input_text",text:"Judge this outfit like a sharp men's stylist, not like a spreadsheet. Use the text data, the layer slots, the closet options, weather context, style profile, and any attached item photos. Outfit data:\n"+JSON.stringify({styleProfile:AI_STYLE_PROFILE, vibe:currentFit.vibe || "fall", weather:currentFit.weatherTemp ? {tempF:currentFit.weatherTemp,condition:currentFit.weatherCondition || "dry"} : null, pieces:cleanPieces, closetOptions}, null, 2)}
   ];
   Object.entries(pieces).forEach(([slot,x])=>{
     if(x?.photo && isAiReadableImage(x.photo)){
@@ -2483,7 +2485,7 @@ async function aiJudgeFit(pieces){
   });
   const data = await openAiResponse({
     model,
-    instructions:"You are a stylish, honest men's fashion friend judging whether an outfit is actually fire. Be conversational, specific, and visually literate. Reward intention, proportion, color story, texture, confidence, and personality. Penalize awkward layering, generic matching, dead silhouettes, bad shoe/pant relationships, too many focal points, or pieces that technically match but do not have sauce. Layering logic matters: base layer sits closest to body, mid layer goes over base, outer layer goes over both. A jacket-like mid layer should usually not get another jacket over it. Hat and watch are separate finishers for this user; do not treat a watch as replacing headwear, and do not treat a belt/scarf/keychain as replacing a hat. Use the user's own closetOptions for the upgrade when possible. Return only valid JSON with keys: score number 0-100, metrics object with 0-10 numbers for Color, Proportion, Layering, Texture, Footwear, Personality, Cohesion, notes array of 4-6 concise natural-language notes, verdict string that sounds like a human stylist, and upgrade string naming one specific swap or removal.",
+    instructions:"You are a stylish, honest men's fashion friend judging whether an outfit is actually fire. "+AI_STYLE_PROFILE+" Be conversational, specific, and visually literate. Reward intention, proportion, color story, texture, confidence, personality, and elevated streetwear polish. Penalize awkward layering, generic matching, dead silhouettes, bad shoe/pant relationships, too many focal points, or pieces that technically match but do not have sauce. Layering logic matters: base layer sits closest to body, mid layer goes over base, outer layer goes over both. A jacket-like mid layer should usually not get another jacket over it. Hat and watch are separate finishers for this user; do not treat a watch as replacing headwear, and do not treat a belt/scarf/keychain as replacing a hat. Use the user's own closetOptions for the upgrade when possible. Return only valid JSON with keys: score number 0-100, metrics object with 0-10 numbers for Color, Proportion, Layering, Texture, Footwear, Personality, Cohesion, notes array of 4-6 concise natural-language notes, verdict string that sounds like a human stylist, and upgrade string naming one specific swap or removal.",
     text:{
       format:{
         type:"json_schema",
