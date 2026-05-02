@@ -736,6 +736,11 @@ Louis Vuitton|LV Shark Clogs|Brown||765|2026-04|Shoes
 Buck Mason|Japanese Denim Ford Standard Jean|Dark Indigo|34|228|2025-10|Bottoms
 Buck Mason|Field-Spec Cotton Heavy Tee White|White|M|62|2025-10|Tops
 Buck Mason|Field-Spec Cotton Heavy Tee Black|Black|M|62|2025-10|Tops
+Buck Mason|Seastack Wool Tweed Cable Crew|Ivory|L|248|2026-05|Tops
+Buck Mason|Natural Vintage Thermal Henley|Natural|L|108|2026-05|Tops
+Buck Mason|Italian Doeskin Station Jacket|Palo Santo|L|298|2026-05|Outerwear
+Buck Mason x Eddie Bauer|Cascade Down Eddie Bauer Yukon CPO|Burnt Olive|L|225|2026-05|Outerwear
+Buck Mason|Avalon Daybreak Crew|Heather Oat|L|168|2026-05|Tops
 Buck Mason|Seafarer Cotton Beanie Redwood|Redwood|OS|55|2023-12|Hats
 Buck Mason|Seafarer Cotton Beanie Ivory|Vintage Ivory|OS|55|2023-12|Hats
 Cole Buxton|Cotton Chore Jacket|Blue|L|300|2026-03|Outerwear
@@ -998,6 +1003,8 @@ const starterPhotos = {
   "wardrobe::COS::Slim Ribbed Cotton T-Shirt":"assets/photos/photo-070.webp",
   "wardrobe::Aime Leon Dore::Aime Baseball Jersey":"assets/photos/photo-071.webp",
   "wardrobe::Buck Mason::Japanese Denim Ford Standard Jean":"assets/photos/photo-072.jpeg",
+  "wardrobe::Buck Mason::Seastack Wool Tweed Cable Crew":"assets/photos/photo-108-buckmason-seastack-crew.png",
+  "wardrobe::Buck Mason::Italian Doeskin Station Jacket":"assets/photos/photo-109-buckmason-doeskin-station-jacket.png",
   "wardrobe::COS::Wide-Leg Cotton-Twill Pants":"assets/photos/photo-073.jpeg",
   "wardrobe::Vince::Pull-On Shorts":"assets/photos/photo-074.png",
   "wardrobe::Lee::Light Grey Denim Jacket":"assets/photos/photo-075.jpeg",
@@ -1314,7 +1321,7 @@ function renderCollection(type){
   const value = items.reduce((s,x)=>s+(x.price||0),0);
   const add = `<button class="primary" data-action="add">${icon("plus")}Add</button>`;
   document.getElementById("view").innerHTML =
-    header(names[type], `${items.length} items · ${money.format(value)} archive value · v10`, add) +
+    header(names[type], `${items.length} items · ${money.format(value)} archive value · v11`, add) +
     renderPills(type) +
     (items.length ? `<div class="grid">${items.map(card).join("")}</div>` : emptyMessage(type));
   hydrateIcons();
