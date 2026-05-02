@@ -670,7 +670,7 @@ label{display:grid;gap:5px;color:var(--muted);font-size:8px;text-transform:upper
       <div class="modal-actions">
         <button type="button" class="ghost" data-close="buildModal">Cancel</button>
         <button type="button" class="ghost" id="localWeatherBuild"><i data-lucide="cloud-sun"></i>Build Locally</button>
-        <button type="button" class="primary" id="aiWeatherBuild"><i data-lucide="wand-sparkles"></i>Build with AI</button>
+        <button type="button" class="primary" id="aiWeatherBuild"><i data-lucide="wand-sparkles"></i>Build 85+ with AI</button>
       </div>
     </div>
   </div>
@@ -1366,7 +1366,7 @@ function renderCollection(type){
   const value = items.reduce((s,x)=>s+(x.price||0),0);
   const add = `<button class="primary" data-action="add">${icon("plus")}Add</button>`;
   document.getElementById("view").innerHTML =
-    header(names[type], `${items.length} items · ${money.format(value)} archive value · v12`, add) +
+    header(names[type], `${items.length} items · ${money.format(value)} archive value · v13`, add) +
     renderPills(type) +
     (items.length ? `<div class="grid">${items.map(card).join("")}</div>` : emptyMessage(type));
   hydrateIcons();
@@ -1938,18 +1938,30 @@ async function buildAroundItem(id, opts={}){
   const slot = slotForItem(anchor);
   if(opts.useAi){
     try{
-      const aiFit = await aiBuildFitAround(anchor, weather, slot);
-      if(aiFit && Object.values(aiFit).filter(v=>v && v.id).length >= 3){
-        const score = localJudgeFit(aiFit).score;
-        currentFit = {...aiFit,vibe:currentFit.vibe,fireTarget:score,anchorId:anchor.id,weatherTemp:weather.temp,weatherCondition:weather.condition,builderSource:"OpenAI Builder"};
-        currentJudgement = localJudgeFit(aiFit);
+      let bestAiFit = null;
+      let bestAiJudge = null;
+      let feedback = "";
+      for(let attempt=0; attempt<3; attempt++){
+        const aiFit = await aiBuildFitAround(anchor, weather, slot, feedback);
+        if(!aiFit || Object.values(aiFit).filter(v=>v && v.id).length < 3) continue;
+        const judge = localJudgeFit(aiFit);
+        if(!bestAiJudge || judge.score > bestAiJudge.score){
+          bestAiFit = aiFit;
+          bestAiJudge = judge;
+        }
+        if(judge.score >= 85) break;
+        feedback = `Last build scored ${judge.score}/100 locally. Improve it to at least 85/100. Weak points: ${Object.entries(judge.metrics || {}).sort((a,b)=>a[1]-b[1]).slice(0,3).map(([k,v])=>`${k} ${v}/10`).join(", ")}. Notes: ${(judge.notes || []).slice(0,3).join(" ")}`;
+      }
+      if(bestAiFit && bestAiJudge){
+        currentFit = {...bestAiFit,vibe:currentFit.vibe,fireTarget:bestAiJudge.score,anchorId:anchor.id,weatherTemp:weather.temp,weatherCondition:weather.condition,builderSource:"OpenAI Builder"};
+        currentJudgement = bestAiJudge;
         currentJudgement.source = "OpenAI Builder + Local Score";
         if(currentFit.buildReason) currentJudgement.notes.unshift(currentFit.buildReason);
-        currentJudgement.notes.unshift(`Built for ${weatherSummary(weather.temp,weather.condition)}.`);
+        currentJudgement.notes.unshift(`AI aimed for 85+ and built this for ${weatherSummary(weather.temp,weather.condition)}.`);
         activeTab = "outfits";
         closeModal("detailModal");
         render();
-        toast(`AI built around ${anchor.name}`);
+        toast(`AI built ${bestAiJudge.score}/100`);
         return;
       }
     }catch(e){
@@ -2206,7 +2218,7 @@ function logLayer(name,mix){
   render();
   toast("Layer logged");
 }
-async function aiBuildFitAround(anchor, weather, anchorSlot){
+async function aiBuildFitAround(anchor, weather, anchorSlot, feedback=""){
   const closetOptions = state.items
     .filter(x=>x.type==="wardrobe" || x.type==="fragrance")
     .map(x=>({
@@ -2217,7 +2229,7 @@ async function aiBuildFitAround(anchor, weather, anchorSlot){
   const slots = ["baseLayer","midLayer","outerwear","bottoms","shoes","socks","hat","watch","accessory","fragrance"];
   const data = await openAiResponse({
     model:currentAiModel(),
-    instructions:"You build practical but stylish men's outfits from the user's own closet. Choose item ids only from closetOptions. Respect layer order: baseLayer touches body, midLayer is a sweater/hoodie/knit/quarter zip over base, outerwear is a jacket/coat over both. Do not put a jacket-like mid layer under another jacket unless it is cold enough and the proportions make sense. Weather matters: warm temps need breathable base layers and lighter scents; cold temps need warmth and outerwear; rain/wind/snow should favor protective outerwear and grounded shoes. Hats and watches are separate slots; the user commonly wears both. Accessory means belt/scarf/keychain/etc. Fragrance should fit the temperature.",
+    instructions:"You build practical but stylish men's outfits from the user's own closet. Your target is an 85/100 or better outfit, not merely a complete outfit. Choose item ids only from closetOptions. Respect layer order: baseLayer touches body, midLayer is a sweater/hoodie/knit/quarter zip over base, outerwear is a jacket/coat over both. Do not put a jacket-like mid layer under another jacket unless it is cold enough and the proportions make sense. Weather matters: warm temps need breathable base layers and lighter scents; cold temps need warmth and outerwear; rain/wind/snow should favor protective outerwear and grounded shoes. Hats and watches are separate slots; the user commonly wears both. Accessory means belt/scarf/keychain/etc. Fragrance should fit the temperature. Make one confident, high-cohesion choice per slot and skip layers that would make the fit worse.",
     text:{
       format:{
         type:"json_schema",
@@ -2239,9 +2251,11 @@ async function aiBuildFitAround(anchor, weather, anchorSlot){
         }
       }
     },
-    input:[{role:"user",content:[{type:"input_text",text:"Build an outfit around the anchor item. Return empty string for any slot that should intentionally be skipped. Data:\n"+JSON.stringify({
+    input:[{role:"user",content:[{type:"input_text",text:"Build an 85/100 or better outfit around the anchor item. Return empty string for any slot that should intentionally be skipped. Data:\n"+JSON.stringify({
       anchor:{id:anchor.id,slot:anchorSlot,type:anchor.type,brand:anchor.brand,name:anchor.name,color:anchor.color,size:anchor.size,category:anchor.category,price:anchor.price},
       weather:{tempF:weather.temp,condition:weather.condition,intent:weather.intent},
+      targetScore:85,
+      priorFeedback:feedback,
       closetOptions
     }, null, 2)}]}]
   });
