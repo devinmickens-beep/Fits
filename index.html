@@ -689,7 +689,7 @@ const STORAGE_KEY = "closet_archive_v2";
 const AI_KEY_STORAGE = "closet_openai_key";
 const AI_MODEL_STORAGE = "closet_openai_model";
 const DEFAULT_AI_MODEL = "gpt-4.1-mini";
-const FIT_META_KEYS = ["vibe","fireTarget","anchorId","weatherTemp","weatherCondition","builderSource","buildReason"];
+const FIT_META_KEYS = ["vibe","fireTarget","anchorId","weatherTemp","weatherCondition","builderSource","buildReason","lockedSlot"];
 const AI_STYLE_PROFILE = "The user is going for Aime Leon Dore / ALD-style elevated streetwear as a clothing language, not a car reference: Queens/NYC prep, heritage sport, relaxed tailoring, collegiate pieces, loafers, fitted caps, textured knits, rugby/club/soccer details, and clothes that feel worn with taste instead of styled too perfectly. Blend that with Buck Mason's clean heritage basics, Drake's relaxed tailoring and offbeat prep, and Ralph Lauren's classic American sportswear polish. The signature tension is the point: a wool double-breasted suit can work with a fitted cap and Lemaire pipe loafers when the proportions, palette, and attitude are right. Favor olive, espresso brown, cream, black, navy, grey, denim, suede, leather, wool, cotton, and washed textures, but do not reduce the aesthetic to a single color palette. The target is not generic streetwear, hype matching, car cosplay, or stiff formalwear. It should feel wearable, expensive, intentional, layered, a little rare, and quietly fire.";
 const money = new Intl.NumberFormat("en-US",{style:"currency",currency:"USD",maximumFractionDigits:0});
 const monthFmt = new Intl.DateTimeFormat("en-US",{month:"short",year:"numeric"});
@@ -702,7 +702,7 @@ const tabs = [
 ];
 const releaseNotes = [
   "Deep green, cognac, cream, navy, and espresso interface palette.",
-  "Full v21 wardrobe seed with 152 clothing pieces and 21 fragrances.",
+  "Full v22 wardrobe seed with 152 clothing pieces and 21 fragrances.",
   "Photo-first add flow with phone camera upload and saved item photos.",
   "AI Identify can fill item fields from a photo when an API key is saved.",
   "Item detail pages with CPW, wear count, notes, and best pairings.",
@@ -1274,6 +1274,18 @@ function upgradeState(existing){
       x.category = "Socks";
       changed = true;
     }
+    const inferred = inferredCategory(x);
+    if(inferred && x.category !== inferred){
+      x.category = inferred;
+      changed = true;
+    }
+    if(x.type !== "wishlist" && inferred === "Fragrances" && x.type !== "fragrance"){
+      x.type = "fragrance";
+      changed = true;
+    }else if(x.type === "fragrance" && inferred && inferred !== "Fragrances"){
+      x.type = "wardrobe";
+      changed = true;
+    }
   });
   const seen = new Set(existing.items.map(itemKey));
   seed.items.forEach(seedItem => {
@@ -1392,7 +1404,7 @@ function renderCollection(type){
     ? `<div class="toolbar"><button class="ghost" data-action="rateWishlist">${icon("sparkles")}AI Rate Wishlist</button><button class="primary" data-action="add">${icon("plus")}Add</button></div>`
     : `<button class="primary" data-action="add">${icon("plus")}Add</button>`;
   document.getElementById("view").innerHTML =
-    header(names[type], `${items.length} items · ${money.format(value)} archive value · v21`, add) +
+    header(names[type], `${items.length} items · ${money.format(value)} archive value · v22`, add) +
     renderPills(type) +
     (type==="wishlist" ? wishlistInsightCard() : "") +
     (items.length ? `<div class="grid">${items.map(card).join("")}</div>` : emptyMessage(type));
@@ -2192,15 +2204,31 @@ async function buildAroundItem(id, opts={}){
   render();
   toast(`Built around ${anchor.name}`);
 }
+function inferredCategory(x){
+  if(!x) return "";
+  const text = `${x.type || ""} ${x.brand || ""} ${x.name || ""} ${x.color || ""} ${x.size || ""} ${x.category || ""}`.toLowerCase();
+  if(x.type === "fragrance" || x.category === "Fragrances") return "Fragrances";
+  if(/fragrance|parfum|perfume|edt|edp|extrait|cologne|attar|oil|scent split|roja|xerjoff|bdk|memo paris|tom ford|vibrato|aquatica|halfeti|naxos|spicebomb|gris charnel|obsidian|amber aoud|plum in cognac|palais imperial/.test(text)) return "Fragrances";
+  if(/loafer|derby|slipper|clog|sneaker|boot|chelsea|shoe|footwear|lug sole|mule|sandal/.test(text)) return "Shoes";
+  if(/sock/.test(text)) return "Socks";
+  if(/hat|cap|beanie|bucket|earflap|summit hat|craggy/.test(text)) return "Hats";
+  if(/watch|timex|pascal|moon phase|dial|strap/.test(text)) return "Watches";
+  if(/belt|scarf|keychain|glove|wallet|tie\b/.test(text)) return "Accessories";
+  if(/pant|trouser|jean|short|cargo|bottom/.test(text)) return "Bottoms";
+  if(/jacket|coat|overshirt|parka|cpo|outerwear|blazer|suit jacket|station jacket|work jacket|chore|down|puffer|shell/.test(text)) return "Outerwear";
+  if(/tee|t-shirt|thermal|henley|shirt|sweater|crew|hoodie|cardigan|quarter.?zip|half.?zip|full zip|knit|rugby|jersey|tank|polo|baselayer|midlayer/.test(text)) return "Tops";
+  return x.category || "";
+}
 function slotForItem(x){
-  if(x.type==="fragrance") return "fragrance";
-  if(x.category==="Tops") return topLayerSlot(x);
-  if(x.category==="Outerwear") return "outerwear";
-  if(x.category==="Bottoms") return "bottoms";
-  if(x.category==="Shoes") return "shoes";
-  if(x.category==="Socks") return "socks";
-  if(x.category==="Hats") return "hat";
-  if(x.category==="Watches") return "watch";
+  const category = inferredCategory(x);
+  if(x.type==="fragrance" || category==="Fragrances") return "fragrance";
+  if(category==="Tops") return topLayerSlot(x);
+  if(category==="Outerwear") return "outerwear";
+  if(category==="Bottoms") return "bottoms";
+  if(category==="Shoes") return "shoes";
+  if(category==="Socks") return "socks";
+  if(category==="Hats") return "hat";
+  if(category==="Watches") return "watch";
   return "accessory";
 }
 function layerText(x){
@@ -2228,24 +2256,68 @@ function normalizeFitLayers(fit){
     if(FIT_META_KEYS.includes(slot) || !value || !value.id) return;
     if(!slotAllowsItem(slot,value)) delete fit[slot];
   });
-  return fit;
+  return polishFitLogic(fit);
 }
 function allowedSlotsForItem(x){
   if(!x) return [];
-  if(x.type==="fragrance" || x.category==="Fragrances") return ["fragrance"];
+  const category = inferredCategory(x);
+  if(x.type==="fragrance" || category==="Fragrances") return ["fragrance"];
   if(x.type!=="wardrobe") return [];
-  if(x.category==="Tops") return isMidLayer(x) ? ["midLayer"] : ["baseLayer"];
-  if(x.category==="Outerwear") return ["outerwear"];
-  if(x.category==="Bottoms") return ["bottoms"];
-  if(x.category==="Shoes") return ["shoes"];
-  if(x.category==="Socks") return ["socks"];
-  if(x.category==="Hats") return ["hat"];
-  if(x.category==="Watches") return ["watch"];
-  if(x.category==="Accessories") return ["accessory"];
+  if(category==="Tops") return isMidLayer(x) ? ["midLayer"] : ["baseLayer"];
+  if(category==="Outerwear") return ["outerwear"];
+  if(category==="Bottoms") return ["bottoms"];
+  if(category==="Shoes") return ["shoes"];
+  if(category==="Socks") return ["socks"];
+  if(category==="Hats") return ["hat"];
+  if(category==="Watches") return ["watch"];
+  if(category==="Accessories") return ["accessory"];
   return [];
 }
 function slotAllowsItem(slot,x){
   return allowedSlotsForItem(x).includes(slot);
+}
+function isWarmWeatherBase(x){
+  return /mesh|tank|sleeveless|cycling jersey|camp collar|linen/i.test(layerText(x));
+}
+function isHeavyWarmLayer(x){
+  return /wool|tweed|cable|mohair|sherpa|fleece|down|puffer|thermal|heavy|coat|hoodie/i.test(layerText(x));
+}
+function isSummerFragrance(x){
+  return /vibrato|torino 21|aquatica|salt and pepper|citrus|fresh|marine|neroli|summer|spring/i.test(layerText(x));
+}
+function isCoolWeatherFragrance(x){
+  return /gris charnel|tobacco|vanille|halfeti|oud|amber|aoud|naxos|plum|cognac|spicebomb|obsidian|woody|leather|tea|tonka/.test(layerText(x));
+}
+function betterBaseForWeather(fit,temp){
+  const candidates = topPool("baseLayer").filter(x=>x.id !== fit.baseLayer?.id && !isWarmWeatherBase(x));
+  const grounded = candidates.filter(x=>/heavy|henley|thermal|tee|t-shirt|oxford|button|white|cream|black|grey|navy/.test(layerText(x)));
+  return smartPickFor(grounded.length ? grounded : candidates, fit.outerwear || fit.midLayer || fit.bottoms || fit.shoes);
+}
+function betterFragranceForWeather(temp,fit){
+  const frags = state.items.filter(x=>x.type==="fragrance");
+  const pool = temp <= 64 ? frags.filter(isCoolWeatherFragrance) : frags.filter(isSummerFragrance);
+  return smartPickFor(pool.length ? pool : frags, fit.outerwear || fit.shoes || fit.bottoms || fit.baseLayer);
+}
+function polishFitLogic(fit){
+  const temp = Number(fit.weatherTemp || currentFit.weatherTemp || 58);
+  const condition = fit.weatherCondition || currentFit.weatherCondition || "dry";
+  if(fit.baseLayer && isWarmWeatherBase(fit.baseLayer) && temp <= 68 && (isHeavyWarmLayer(fit.midLayer) || fit.outerwear)){
+    const better = betterBaseForWeather(fit,temp);
+    if(better) fit.baseLayer = better;
+  }
+  if(fit.midLayer && fit.outerwear && temp >= 55 && temp <= 66 && !["rain","wind","snow"].includes(condition)){
+    if(fit.lockedSlot === "midLayer") delete fit.outerwear;
+    else delete fit.midLayer;
+  }
+  if(fit.midLayer && fit.outerwear && isHeavyWarmLayer(fit.midLayer) && temp >= 50 && !["rain","wind","snow"].includes(condition)){
+    if(fit.lockedSlot === "midLayer") delete fit.outerwear;
+    else delete fit.midLayer;
+  }
+  if(fit.fragrance && temp <= 64 && isSummerFragrance(fit.fragrance)){
+    const better = betterFragranceForWeather(temp,fit);
+    if(better) fit.fragrance = better;
+  }
+  return fit;
 }
 function wantsMidLayer(){
   const temp = Number(currentFit.weatherTemp || 58);
@@ -2300,7 +2372,7 @@ function inferVibe(x){
   return "fall";
 }
 function buildCandidateFitAround(anchor, slot){
-  const fit = normalizeFitLayers({[slot]:anchor});
+  const fit = normalizeFitLayers({[slot]:anchor,lockedSlot:slot});
   const avoid = xs => xs.filter(x=>x.id!==anchor.id);
   fit.bottoms ||= smartPickFor(avoid(pickPool("Bottoms")), anchor);
   fit.baseLayer ||= smartPickFor(avoid(weatherBasePool(topPool("baseLayer"))), fit.midLayer || fit.bottoms || anchor);
@@ -2319,7 +2391,7 @@ function buildCandidateFitAround(anchor, slot){
   if(slot==="hat") fit.hat = anchor;
   if(slot==="accessory") fit.accessory = anchor;
   if(slot==="fragrance") fit.fragrance = anchor;
-  return fit;
+  return normalizeFitLayers(fit);
 }
 function buildCandidateFit(){
   const bottoms = smartPick(pickPool("Bottoms"));
@@ -2337,9 +2409,9 @@ function buildCandidateFit(){
   fit.watch = smartWatchFor(fit);
   fit.accessory = smartAccessoryFor(fit);
   fit.fragrance = smartFragrance();
-  return fit;
+  return normalizeFitLayers(fit);
 }
-function pickPool(category){ return state.items.filter(x=>x.type==="wardrobe" && x.category===category); }
+function pickPool(category){ return state.items.filter(x=>x.type==="wardrobe" && inferredCategory(x)===category); }
 function randomFrom(xs){ return xs.length ? xs[Math.floor(Math.random()*xs.length)] : null; }
 function smartPick(xs){
   if(!xs.length) return null;
@@ -2459,7 +2531,7 @@ async function aiBuildFitAround(anchor, weather, anchorSlot, feedback=""){
   const slots = ["baseLayer","midLayer","outerwear","bottoms","shoes","socks","hat","watch","accessory","fragrance"];
   const data = await openAiResponse({
     model:currentAiModel(),
-    instructions:"You build practical but stylish men's outfits from the user's own closet. "+AI_STYLE_PROFILE+" Your target is an 85/100 or better outfit, not merely a complete outfit. Choose item ids only from closetOptions and only place an item in one of its allowedSlots. Hard slot rules: fragrance items can only go in fragrance; Bottoms can only go in bottoms; Shoes only in shoes; Socks only in socks; Hats only in hat; Watches only in watch; Accessories only in accessory; Outerwear only in outerwear; Tops marked baseLayer only touch the body; Tops marked midLayer are sweaters/hoodies/knits/quarter zips over base. Respect layer order: baseLayer touches body, midLayer is a sweater/hoodie/knit/quarter zip over base, outerwear is a jacket/coat over both. Do not put a jacket-like mid layer under another jacket unless it is cold enough and the proportions make sense. Weather matters: warm temps need breathable base layers and lighter scents; cold temps need warmth and outerwear; rain/wind/snow should favor protective outerwear and grounded shoes. Hats and watches are separate slots; the user commonly wears both. Accessory means belt/scarf/keychain/etc. Fragrance should fit the temperature. Make one confident, high-cohesion choice per slot and skip layers that would make the fit worse.",
+    instructions:"You build practical but stylish men's outfits from the user's own closet. "+AI_STYLE_PROFILE+" Your target is an 85/100 or better outfit, not merely a complete outfit. Choose item ids only from closetOptions and only place an item in one of its allowedSlots. Hard slot rules: fragrance items can only go in fragrance; Bottoms can only go in bottoms; Shoes only in shoes; Socks only in socks; Hats only in hat; Watches only in watch; Accessories only in accessory; Outerwear only in outerwear; Tops marked baseLayer only touch the body; Tops marked midLayer are sweaters/hoodies/knits/quarter zips over base. Respect layer order: baseLayer touches body, midLayer is a sweater/hoodie/knit/quarter zip over base, outerwear is a jacket/coat over both. Do not put a jacket-like mid layer under another jacket unless it is cold enough and the proportions make sense. Weather matters: 55-65F usually wants two visible layers, not base + sweater + jacket, unless rain/wind/snow demands protection. Do not pair summer mesh/tank/camp/linen base layers under wool/cable/mohair/sherpa layers. Warm temps need breathable base layers and lighter scents; at 64F or below, avoid bright summer fragrances like Vibrato unless the user asks for fresh and prefer woody/amber/tea/tobacco/leather warmth. Hats and watches are separate slots; the user commonly wears both. Accessory means belt/scarf/keychain/etc. Fragrance should fit the temperature. Make one confident, high-cohesion choice per slot and skip layers that would make the fit worse.",
     text:{
       format:{
         type:"json_schema",
@@ -2494,6 +2566,7 @@ async function aiBuildFitAround(anchor, weather, anchorSlot, feedback=""){
   const json = JSON.parse(text.replace(/^```json|```$/g,"").trim());
   const fit = fitFromSlotIds(json.slots || {});
   fit[anchorSlot] = anchor;
+  fit.lockedSlot = anchorSlot;
   fit.buildReason = json.reason || "";
   return normalizeFitLayers(fit);
 }
