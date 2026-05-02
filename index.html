@@ -685,7 +685,7 @@ const AI_KEY_STORAGE = "closet_openai_key";
 const AI_MODEL_STORAGE = "closet_openai_model";
 const DEFAULT_AI_MODEL = "gpt-4.1-mini";
 const FIT_META_KEYS = ["vibe","fireTarget","anchorId","weatherTemp","weatherCondition","builderSource","buildReason"];
-const AI_STYLE_PROFILE = "The user is going for Aime Leon Dore / ALD-style streetwear, but super elevated: Queens/NYC prep-sport energy with Drake's and Ralph Lauren polish, Porsche-inspired olive, espresso brown, cream, black, navy, and cognac palette; luxe leather shoes; strong fitted caps; watches; textured knits; tailored wide pants; heritage sportswear; restrained statement pieces; and polished casual proportions. The signature tension is the point: a wool double-breasted suit can work with a fitted cap and Lemaire pipe loafers when the proportions, palette, and attitude are right. The target is not generic streetwear, hype matching, or stiff formalwear. It should feel wearable, expensive, intentional, layered, a little rare, and quietly fire.";
+const AI_STYLE_PROFILE = "The user is going for Aime Leon Dore / ALD-style elevated streetwear as a clothing language, not a car reference: Queens/NYC prep, heritage sport, relaxed tailoring, collegiate pieces, loafers, fitted caps, textured knits, rugby/club/soccer details, and clothes that feel worn with taste instead of styled too perfectly. Blend that with Buck Mason's clean heritage basics, Drake's relaxed tailoring and offbeat prep, and Ralph Lauren's classic American sportswear polish. The signature tension is the point: a wool double-breasted suit can work with a fitted cap and Lemaire pipe loafers when the proportions, palette, and attitude are right. Favor olive, espresso brown, cream, black, navy, grey, denim, suede, leather, wool, cotton, and washed textures, but do not reduce the aesthetic to a single color palette. The target is not generic streetwear, hype matching, car cosplay, or stiff formalwear. It should feel wearable, expensive, intentional, layered, a little rare, and quietly fire.";
 const money = new Intl.NumberFormat("en-US",{style:"currency",currency:"USD",maximumFractionDigits:0});
 const monthFmt = new Intl.DateTimeFormat("en-US",{month:"short",year:"numeric"});
 const tabs = [
@@ -696,7 +696,7 @@ const tabs = [
   ["analytics","Value","bar-chart-3"]
 ];
 const releaseNotes = [
-  "ALD Porsche-inspired Mulberry Green and cognac leather palette.",
+  "Deep green, cognac, cream, navy, and espresso interface palette.",
   "Full v21 wardrobe seed with 152 clothing pieces and 21 fragrances.",
   "Photo-first add flow with phone camera upload and saved item photos.",
   "AI Identify can fill item fields from a photo when an API key is saved.",
@@ -1387,7 +1387,7 @@ function renderCollection(type){
     ? `<div class="toolbar"><button class="ghost" data-action="rateWishlist">${icon("sparkles")}AI Rate Wishlist</button><button class="primary" data-action="add">${icon("plus")}Add</button></div>`
     : `<button class="primary" data-action="add">${icon("plus")}Add</button>`;
   document.getElementById("view").innerHTML =
-    header(names[type], `${items.length} items · ${money.format(value)} archive value · v18`, add) +
+    header(names[type], `${items.length} items · ${money.format(value)} archive value · v19`, add) +
     renderPills(type) +
     (type==="wishlist" ? wishlistInsightCard() : "") +
     (items.length ? `<div class="grid">${items.map(card).join("")}</div>` : emptyMessage(type));
@@ -1747,7 +1747,7 @@ function closetGaps(){
   gaps.push(`Finishing details: ${counts.Socks} socks and ${counts.Watches} watches now feed the builder score. Those small choices help turn a good fit into a complete one.`);
   gaps.push(`You have ${blackHats} black hats. Those are important because they balance brown shoes without making the fit too earthy.`);
   if(counts.Bottoms < counts.Tops/3) gaps.push("You still have more tops than bottoms. More clean bottoms unlock more combinations than another statement top.");
-  if(pickPool("Tops").filter(x=>/cream|white|coconut|ivory/i.test(x.color)).length < 8) gaps.push("Light neutral tops are the easiest bridge between olive, brown, black, denim, and the Porsche palette.");
+  if(pickPool("Tops").filter(x=>/cream|white|coconut|ivory/i.test(x.color)).length < 8) gaps.push("Light neutral tops are the easiest bridge between olive, brown, black, denim, tailoring, and elevated streetwear layers.");
   return gaps;
 }
 async function findRealClosetGaps(){
