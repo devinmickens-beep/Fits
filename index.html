@@ -1314,7 +1314,7 @@ function renderCollection(type){
   const value = items.reduce((s,x)=>s+(x.price||0),0);
   const add = `<button class="primary" data-action="add">${icon("plus")}Add</button>`;
   document.getElementById("view").innerHTML =
-    header(names[type], `${items.length} items · ${money.format(value)} archive value · v9`, add) +
+    header(names[type], `${items.length} items · ${money.format(value)} archive value · v10`, add) +
     renderPills(type) +
     (items.length ? `<div class="grid">${items.map(card).join("")}</div>` : emptyMessage(type));
   hydrateIcons();
@@ -1494,7 +1494,7 @@ function renderOutfits(){
       <div class="panel">
         <div class="panel-title">Current Fit</div>
         <div class="slot-grid">
-          ${["baseLayer","midLayer","outerwear","bottoms","shoes","socks","watch","accessory","fragrance"].map(slot=>slotButton(slot)).join("")}
+          ${["baseLayer","midLayer","outerwear","bottoms","shoes","socks","hat","watch","accessory","fragrance"].map(slot=>slotButton(slot)).join("")}
         </div>
       </div>
     </div>
@@ -1511,6 +1511,7 @@ function mainPieces(){
     bottoms: pickPool("Bottoms"),
     shoes: pickPool("Shoes"),
     socks: pickPool("Socks"),
+    hat: pickPool("Hats"),
     watch: pickPool("Watches"),
     accessory: pickPool("Accessories"),
     fragrance: state.items.filter(x=>x.type==="fragrance")
@@ -1525,7 +1526,7 @@ function slotButton(slot){
     ${x ? `<b>${esc(x.name)}</b><small>${esc(x.brand)} · ${esc(x.color)}</small>` : `<b>Tap to pick</b><small>${poolLabel(slot)}</small>`}
   </button>`;
 }
-function poolLabel(slot){ return ({baseLayer:"Tee / shirt / thermal",midLayer:"Sweater / hoodie / knit",fragrance:"Scent",outerwear:"Jacket",socks:"Socks",watch:"Watch"})[slot] || slot; }
+function poolLabel(slot){ return ({baseLayer:"Tee / shirt / thermal",midLayer:"Sweater / hoodie / knit",fragrance:"Scent",outerwear:"Jacket",socks:"Socks",hat:"Hat",watch:"Watch",accessory:"Belt / scarf / extra"})[slot] || slot; }
 function openSlotPicker(slot){
   activeSlot = slot;
   document.getElementById("slotTitle").textContent = "Pick "+slotLabel(slot);
@@ -1535,11 +1536,12 @@ function openSlotPicker(slot){
   hydrateIcons();
 }
 function slotLabel(slot){
-  return ({baseLayer:"Base Layer",midLayer:"Mid Layer",top:"Top",outerwear:"Outer Layer",bottoms:"Bottoms",shoes:"Shoes",socks:"Socks",watch:"Watch",accessory:"Accessory / Hat",fragrance:"Fragrance"})[slot] || slot;
+  return ({baseLayer:"Base Layer",midLayer:"Mid Layer",top:"Top",outerwear:"Outer Layer",bottoms:"Bottoms",shoes:"Shoes",socks:"Socks",hat:"Hat",watch:"Watch",accessory:"Accessory",fragrance:"Fragrance"})[slot] || slot;
 }
 function slotPool(slot){
   if(slot==="fragrance") return state.items.filter(x=>x.type==="fragrance");
-  if(slot==="accessory") return [...pickPool("Accessories"),...pickPool("Hats")];
+  if(slot==="hat") return pickPool("Hats");
+  if(slot==="accessory") return pickPool("Accessories");
   if(slot==="baseLayer" || slot==="midLayer") return topPool(slot);
   const map={top:"Tops",outerwear:"Outerwear",bottoms:"Bottoms",shoes:"Shoes",socks:"Socks",watch:"Watches"};
   return pickPool(map[slot] || "Tops");
@@ -1842,6 +1844,7 @@ function slotForItem(x){
   if(x.category==="Bottoms") return "bottoms";
   if(x.category==="Shoes") return "shoes";
   if(x.category==="Socks") return "socks";
+  if(x.category==="Hats") return "hat";
   if(x.category==="Watches") return "watch";
   return "accessory";
 }
@@ -1900,9 +1903,11 @@ function buildCandidateFitAround(anchor, slot){
   }
   fit.shoes ||= smartPickFor(avoid(pickPool("Shoes")), fit.bottoms || layerAnchor(fit, anchor));
   fit.socks ||= smartSocksFor(fit);
+  fit.hat ||= smartHatFor(fit);
   fit.watch ||= smartWatchFor(fit);
   fit.accessory ||= smartAccessoryFor(fit);
   fit.fragrance ||= smartFragrance();
+  if(slot==="hat") fit.hat = anchor;
   if(slot==="accessory") fit.accessory = anchor;
   if(slot==="fragrance") fit.fragrance = anchor;
   return fit;
@@ -1922,6 +1927,7 @@ function buildCandidateFit(){
   }
   fit.shoes = smartPickFor(pickPool("Shoes"), bottoms || layerAnchor(fit));
   fit.socks = smartSocksFor(fit);
+  fit.hat = smartHatFor(fit);
   fit.watch = smartWatchFor(fit);
   fit.accessory = smartAccessoryFor(fit);
   fit.fragrance = smartFragrance();
@@ -1947,6 +1953,18 @@ function smartPickFor(xs,anchor){
 function smartAccessory(){
   return smartAccessoryFor(currentFit);
 }
+function smartHatFor(fit){
+  const hats = pickPool("Hats");
+  if(!hats.length) return null;
+  const anchor = fit.shoes || fit.bottoms || layerAnchor(fit);
+  let pool = anchor ? hats.map(x=>({x,score:pairScore(anchor,x)})).sort((a,b)=>b.score-a.score).slice(0,10).map(v=>v.x) : hats;
+  const shoeBrown = fit.shoes && /brown|tan|espresso/.test(String(fit.shoes.color).toLowerCase());
+  if(shoeBrown){
+    const cooler = pool.filter(x=>!/brown|tan|khaki|chocolate|beige/.test(`${x.name} ${x.color}`.toLowerCase()));
+    if(cooler.length) pool = cooler;
+  }
+  return randomFrom(pool.length ? pool : hats);
+}
 function smartSocksFor(fit){
   const socks = pickPool("Socks");
   if(!socks.length) return null;
@@ -1969,14 +1987,13 @@ function smartWatchFor(fit){
   return randomFrom(pool.length ? pool : watches);
 }
 function smartAccessoryFor(fit){
-  const hats = pickPool("Hats");
   const accs = pickPool("Accessories");
-  const base = [...hats,...accs];
-  const anchor = fit.shoes || fit.bottoms || layerAnchor(fit);
-  let pool = anchor ? base.map(x=>({x,score:pairScore(anchor,x)})).sort((a,b)=>b.score-a.score).slice(0,10).map(v=>v.x) : base;
+  if(!accs.length) return null;
+  const anchor = fit.shoes || fit.bottoms || fit.hat || layerAnchor(fit);
+  let pool = anchor ? accs.map(x=>({x,score:pairScore(anchor,x)})).sort((a,b)=>b.score-a.score).slice(0,10).map(v=>v.x) : accs;
   const shoeBrown = fit.shoes && /brown|tan|espresso/.test(String(fit.shoes.color).toLowerCase());
   if(shoeBrown) pool = pool.filter(x=>!/brown|tan|khaki|chocolate/.test(`${x.name} ${x.color}`.toLowerCase())).concat(pool);
-  return randomFrom(pool);
+  return randomFrom(pool.length ? pool : accs);
 }
 function smartFragrance(){
   const frags = state.items.filter(x=>x.type==="fragrance");
@@ -2056,7 +2073,7 @@ async function aiJudgeFit(pieces){
   });
   const data = await openAiResponse({
     model,
-    instructions:"You are a stylish, honest men's fashion friend judging whether an outfit is actually fire. Be conversational, specific, and visually literate. Reward intention, proportion, color story, texture, confidence, and personality. Penalize awkward layering, generic matching, dead silhouettes, bad shoe/pant relationships, too many focal points, or pieces that technically match but do not have sauce. Layering logic matters: base layer sits closest to body, mid layer goes over base, outer layer goes over both. A jacket-like mid layer should usually not get another jacket over it. Use the user's own closetOptions for the upgrade when possible. Return only valid JSON with keys: score number 0-100, metrics object with 0-10 numbers for Color, Proportion, Layering, Texture, Footwear, Personality, Cohesion, notes array of 4-6 concise natural-language notes, verdict string that sounds like a human stylist, and upgrade string naming one specific swap or removal.",
+    instructions:"You are a stylish, honest men's fashion friend judging whether an outfit is actually fire. Be conversational, specific, and visually literate. Reward intention, proportion, color story, texture, confidence, and personality. Penalize awkward layering, generic matching, dead silhouettes, bad shoe/pant relationships, too many focal points, or pieces that technically match but do not have sauce. Layering logic matters: base layer sits closest to body, mid layer goes over base, outer layer goes over both. A jacket-like mid layer should usually not get another jacket over it. Hat and watch are separate finishers for this user; do not treat a watch as replacing headwear, and do not treat a belt/scarf/keychain as replacing a hat. Use the user's own closetOptions for the upgrade when possible. Return only valid JSON with keys: score number 0-100, metrics object with 0-10 numbers for Color, Proportion, Layering, Texture, Footwear, Personality, Cohesion, notes array of 4-6 concise natural-language notes, verdict string that sounds like a human stylist, and upgrade string naming one specific swap or removal.",
     text:{
       format:{
         type:"json_schema",
@@ -2248,11 +2265,13 @@ function scoreFootwear(p){
 }
 function scoreAccessories(p){
   let s = 5;
-  if(p.accessory) s += 2;
+  if(p.hat) s += 2;
+  if(p.accessory) s += 1;
   if(p.watch) s += 1;
   if(p.socks) s += sockScore(p);
   if(p.fragrance) s += 1;
-  if(p.accessory && p.watch && p.socks) s += 1;
+  if(p.hat && p.watch && p.socks) s += 1;
+  if(p.hat && p.watch && p.accessory) s += 1;
   return clamp(s);
 }
 function sockScore(p){
@@ -2277,6 +2296,7 @@ function buildJudgeNotes(metrics,p,names){
   if(low[1] < 7) notes.push(`${low[0]} needs work: swap one piece to tighten the story.`);
   if(p.bottoms && !p.shoes) notes.push("Footwear is missing, and that decides the whole silhouette.");
   if(p.socks && p.shoes) notes.push(`${p.socks.name} supports ${p.shoes.name}; socks now count toward the finish of the fit.`);
+  if(p.hat) notes.push(`${p.hat.name} gives the fit a headwear finish instead of leaving the top half bare.`);
   if(p.watch) notes.push(`${p.watch.name} gives the fit a wrist detail, which helps the outfit feel complete.`);
   if(p.fragrance) notes.push(`${p.fragrance.name} adds a scent layer, so keep accessories restrained.`);
   notes.push(`Better version: ${bestSwapSuggestion(p)}`);
@@ -2289,7 +2309,7 @@ function styleReasonNotes(p){
   const top = p.outerwear || p.midLayer || p.baseLayer || p.top;
   const bottom = p.bottoms;
   const shoe = p.shoes;
-  const acc = p.accessory;
+  const acc = p.hat || p.accessory;
   if(top && bottom){
     const tp=styleProfile(top), bp=styleProfile(bottom);
     if((tp.fit==="cropped" || tp.silhouette.includes("waist-length")) && (bp.tags.includes("high-waisted") || bp.silhouette.includes("wide"))){
@@ -2315,7 +2335,8 @@ function bestSwapSuggestion(p){
   if(scoreColor(Object.values(p).map(x=>x?.color)) < 7) return "swap one accent color for cream, black, olive, or brown.";
   const top = p.midLayer || p.baseLayer || p.top;
   if(p.bottoms && /wide|pleated|barrel|plisse|kody/i.test(p.bottoms.name) && !(top && /cropped|boxy|split|zip|lasso/i.test(top.name))) return "use a cropped or boxy top with that bottom shape.";
-  if(p.shoes && p.accessory && /brown|tan|espresso/.test(`${p.shoes.color}`.toLowerCase()) && /brown|tan|khaki/.test(`${p.accessory.color}`.toLowerCase())) return "switch the brown hat/accessory to black, navy, cream, or green.";
+  if(!p.hat) return "add a hat; headwear is part of your normal fit formula.";
+  if(p.shoes && p.hat && /brown|tan|espresso/.test(`${p.shoes.color}`.toLowerCase()) && /brown|tan|khaki/.test(`${p.hat.color}`.toLowerCase())) return "switch the brown hat to black, navy, cream, or green.";
   if(!p.socks && p.shoes) return "add socks deliberately; cream/grey with leather shoes or black socks with black footwear.";
   if(!p.watch) return "add a watch to finish the wrist and make the fit feel intentional.";
   return "keep the focal piece and simplify one supporting layer.";
@@ -2330,9 +2351,13 @@ function swapSuggestions(p){
     const watch = smartWatchFor(p);
     if(watch) ideas.push(`Add ${watch.name}; a watch makes the fit feel more finished.`);
   }
-  if(p.accessory && p.shoes && /brown|tan|espresso/.test(`${p.shoes.color}`.toLowerCase()) && /brown|tan|khaki|chocolate/.test(`${p.accessory.color}`.toLowerCase())){
-    const better = [...pickPool("Hats"),...pickPool("Accessories")].filter(x=>/black|navy|cream|white|green|jet|indigo/.test(`${x.color} ${x.name}`.toLowerCase())).slice(0,3);
-    better.forEach(x=>ideas.push(`Swap ${p.accessory.name} for ${x.name} to avoid over-warming the fit.`));
+  if(!p.hat){
+    const hat = smartHatFor(p);
+    if(hat) ideas.push(`Add ${hat.name}; a hat plus watch matches how you actually finish outfits.`);
+  }
+  if(p.hat && p.shoes && /brown|tan|espresso/.test(`${p.shoes.color}`.toLowerCase()) && /brown|tan|khaki|chocolate|beige/.test(`${p.hat.color}`.toLowerCase())){
+    const better = pickPool("Hats").filter(x=>/black|navy|cream|white|green|jet|indigo/.test(`${x.color} ${x.name}`.toLowerCase())).slice(0,3);
+    better.forEach(x=>ideas.push(`Swap ${p.hat.name} for ${x.name} to avoid over-warming the fit.`));
   }
   const top = p.midLayer || p.baseLayer || p.top;
   if(p.bottoms && /kody|wide|barrel|pleated|plisse/i.test(p.bottoms.name) && top && !/cropped|boxy|lasso|zip|hemi|split/i.test(top.name)){
