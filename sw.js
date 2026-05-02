@@ -1,4 +1,4 @@
-const CACHE_NAME = "closet-archive-v8";
+const CACHE_NAME = "closet-archive-v9";
 const APP_SHELL = [
   "/",
   "/index.html",
@@ -24,7 +24,7 @@ self.addEventListener("fetch", event => {
   const request = event.request;
   if (request.method !== "GET") return;
   const url = new URL(request.url);
-  if (url.pathname.startsWith("/.netlify/functions/")) return;
+  if (url.pathname.startsWith("/api/") || url.pathname.startsWith("/.netlify/functions/")) return;
   if (request.mode === "navigate" || url.pathname === "/" || url.pathname.endsWith("/index.html")) {
     event.respondWith(fetch(request).catch(() => caches.match("/index.html")));
     return;

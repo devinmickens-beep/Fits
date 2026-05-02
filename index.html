@@ -607,10 +607,10 @@ label{display:grid;gap:5px;color:var(--muted);font-size:8px;text-transform:upper
       <button type="button" class="icon-btn" data-close="aiModal" aria-label="Close"><i data-lucide="x"></i></button>
     </div>
     <div class="modal-body">
-      <div class="gap-item" style="margin-bottom:12px">Production AI uses the hidden Netlify environment variable <strong>OPENAI_API_KEY</strong>. Leave this blank unless you are testing outside Netlify.</div>
+      <div class="gap-item" style="margin-bottom:12px">Production AI uses the hidden Vercel environment variable <strong>OPENAI_API_KEY</strong>. Leave this blank unless you are testing outside Vercel.</div>
       <label>Browser API Key Backup<input class="field" id="aiKey" type="password" autocomplete="off" placeholder="Optional local-only backup"></label>
       <label style="margin-top:11px">Model<input class="field" id="aiModel" value="gpt-4.1-mini"></label>
-      <small style="display:block;margin-top:10px;color:var(--muted);line-height:1.6">The built-in FireFit judge works offline. The real AI judge only works on your Netlify production link after the full zip, including functions, is deployed.</small>
+      <small style="display:block;margin-top:10px;color:var(--muted);line-height:1.6">The built-in FireFit judge works offline. The real AI judge works on Vercel after OPENAI_API_KEY is added in project settings.</small>
       <div class="modal-actions">
         <button type="button" class="ghost" id="clearAiKey"><i data-lucide="trash-2"></i>Clear</button>
         <button type="button" class="ghost" data-close="aiModal">Cancel</button>
@@ -1314,7 +1314,7 @@ function renderCollection(type){
   const value = items.reduce((s,x)=>s+(x.price||0),0);
   const add = `<button class="primary" data-action="add">${icon("plus")}Add</button>`;
   document.getElementById("view").innerHTML =
-    header(names[type], `${items.length} items · ${money.format(value)} archive value · v8`, add) +
+    header(names[type], `${items.length} items · ${money.format(value)} archive value · v9`, add) +
     renderPills(type) +
     (items.length ? `<div class="grid">${items.map(card).join("")}</div>` : emptyMessage(type));
   hydrateIcons();
@@ -2039,33 +2039,38 @@ async function judgeFit(){
 async function aiJudgeFit(pieces){
   const model = currentAiModel();
   const cleanPieces = Object.fromEntries(Object.entries(pieces).map(([slot,x])=>[slot,{
-    brand:x.brand,name:x.name,color:x.color,size:x.size,category:x.category,notes:x.notes,wears:x.wears,price:x.price
+    brand:x.brand,name:x.name,color:x.color,size:x.size,category:x.category,notes:x.notes,wears:x.wears,price:x.price,photo:x.photo ? absolutePhotoUrl(x.photo) : ""
   }]));
+  const closetOptions = state.items
+    .filter(x=>x.type==="wardrobe")
+    .map(x=>({id:x.id,brand:x.brand,name:x.name,color:x.color,size:x.size,category:x.category,price:x.price,wears:x.wears}))
+    .slice(0,220);
   const content = [
-    {type:"input_text",text:"Judge this outfit. Use the text data and any attached item photos. Outfit data:\n"+JSON.stringify({vibe:currentFit.vibe || "fall", pieces:cleanPieces}, null, 2)}
+    {type:"input_text",text:"Judge this outfit like a sharp men's stylist, not like a spreadsheet. Use the text data, the layer slots, the closet options, and any attached item photos. Outfit data:\n"+JSON.stringify({vibe:currentFit.vibe || "fall", pieces:cleanPieces, closetOptions}, null, 2)}
   ];
   Object.entries(pieces).forEach(([slot,x])=>{
-    if(x?.photo){
+    if(x?.photo && isAiReadableImage(x.photo)){
       content.push({type:"input_text",text:`Photo for ${slot}: ${x.brand} ${x.name}`});
-      content.push({type:"input_image",image_url:x.photo,detail:"auto"});
+      content.push({type:"input_image",image_url:absolutePhotoUrl(x.photo),detail:"auto"});
     }
   });
   const data = await openAiResponse({
     model,
-    instructions:"You are a sharp fashion stylist judging men's outfits. Score rigorously based on color harmony, silhouette/proportion, texture/fabric relationship, formality coherence, season/occasion, footwear match, accessory restraint, brand language, whether the fit has a clear focal point, and what you can see in item photos. Return only valid JSON with keys: score number 0-100, metrics object with 0-10 numbers for Color, Silhouette, Texture, Formality, Season, Footwear, Accessories, Cohesion, notes array of 3-5 concise actionable strings, and upgrade string naming one specific better swap.",
+    instructions:"You are a stylish, honest men's fashion friend judging whether an outfit is actually fire. Be conversational, specific, and visually literate. Reward intention, proportion, color story, texture, confidence, and personality. Penalize awkward layering, generic matching, dead silhouettes, bad shoe/pant relationships, too many focal points, or pieces that technically match but do not have sauce. Layering logic matters: base layer sits closest to body, mid layer goes over base, outer layer goes over both. A jacket-like mid layer should usually not get another jacket over it. Use the user's own closetOptions for the upgrade when possible. Return only valid JSON with keys: score number 0-100, metrics object with 0-10 numbers for Color, Proportion, Layering, Texture, Footwear, Personality, Cohesion, notes array of 4-6 concise natural-language notes, verdict string that sounds like a human stylist, and upgrade string naming one specific swap or removal.",
     input:[{role:"user",content}]
   });
   const text = data.output_text || data.output?.flatMap(o=>o.content||[]).map(c=>c.text||"").join("") || "";
   const json = JSON.parse(text.replace(/^```json|```$/g,"").trim());
   if(json.upgrade) json.notes = [...(json.notes||[]), "Better version: "+json.upgrade];
+  if(json.verdict) json.notes = [json.verdict, ...(json.notes||[])];
   return {...json, source:"OpenAI"};
 }
 async function openAiResponse(payload){
-  const netlifyPath = "/.netlify/functions/openai";
-  const isNetlify = location.protocol.indexOf("http")===0 && location.hostname !== "localhost" && location.hostname !== "127.0.0.1";
-  if(isNetlify){
+  const serverPath = "/api/judge-fit";
+  const hasServer = location.protocol.indexOf("http")===0 && location.hostname !== "localhost" && location.hostname !== "127.0.0.1";
+  if(hasServer){
     try{
-      const proxy = await fetch(netlifyPath,{
+      const proxy = await fetch(serverPath,{
         method:"POST",
         headers:{"Content-Type":"application/json"},
         body:JSON.stringify(payload)
@@ -2076,8 +2081,8 @@ async function openAiResponse(payload){
         const data = await proxy.json();
         detail = errorText(data);
       }catch(e){}
-      if(proxy.status === 404) throw new Error("AI function missing. Redeploy the full zip, not just index.html");
-      if(proxy.status === 500) throw new Error("Netlify AI key missing or OpenAI rejected the request" + detail);
+      if(proxy.status === 404) throw new Error("AI function missing. Vercel has not picked up /api/judge-fit yet");
+      if(proxy.status === 500) throw new Error("Vercel AI key missing or OpenAI rejected the request" + detail);
       throw new Error("AI request failed (" + proxy.status + ")" + detail);
     }catch(e){
       throw e;
@@ -2085,7 +2090,7 @@ async function openAiResponse(payload){
   }
   const key = localStorage.getItem(AI_KEY_STORAGE);
   if(!key){
-    if(location.protocol === "file:") throw new Error("Open the Netlify production link for AI");
+    if(location.protocol === "file:") throw new Error("Open the Vercel production link for AI");
     throw new Error("No AI key available");
   }
   const direct = await fetch("https://api.openai.com/v1/responses",{
@@ -2095,6 +2100,16 @@ async function openAiResponse(payload){
   });
   if(!direct.ok) throw new Error("AI request failed");
   return await direct.json();
+}
+function absolutePhotoUrl(photo){
+  try{
+    return new URL(photo, location.origin).href;
+  }catch(e){
+    return photo;
+  }
+}
+function isAiReadableImage(photo){
+  return !/\.svg($|\?)/i.test(String(photo || ""));
 }
 function currentAiModel(){
   const stored = localStorage.getItem(AI_MODEL_STORAGE);
