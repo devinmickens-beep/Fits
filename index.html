@@ -685,7 +685,7 @@ const AI_KEY_STORAGE = "closet_openai_key";
 const AI_MODEL_STORAGE = "closet_openai_model";
 const DEFAULT_AI_MODEL = "gpt-4.1-mini";
 const FIT_META_KEYS = ["vibe","fireTarget","anchorId","weatherTemp","weatherCondition","builderSource","buildReason"];
-const AI_STYLE_PROFILE = "The user is going for Aime Leon Dore / ALD-style streetwear, but super elevated: Queens/NYC prep-sport energy, Porsche-inspired olive, espresso brown, cream, black, navy, and cognac palette; luxe leather shoes; strong hats; watches; textured knits; tailored wide pants; heritage sportswear; restrained statement pieces; and polished casual proportions. The target is not generic streetwear, hype matching, or stiff formalwear. It should feel wearable, expensive, intentional, layered, a little rare, and quietly fire.";
+const AI_STYLE_PROFILE = "The user is going for Aime Leon Dore / ALD-style streetwear, but super elevated: Queens/NYC prep-sport energy with Drake's and Ralph Lauren polish, Porsche-inspired olive, espresso brown, cream, black, navy, and cognac palette; luxe leather shoes; strong fitted caps; watches; textured knits; tailored wide pants; heritage sportswear; restrained statement pieces; and polished casual proportions. The signature tension is the point: a wool double-breasted suit can work with a fitted cap and Lemaire pipe loafers when the proportions, palette, and attitude are right. The target is not generic streetwear, hype matching, or stiff formalwear. It should feel wearable, expensive, intentional, layered, a little rare, and quietly fire.";
 const money = new Intl.NumberFormat("en-US",{style:"currency",currency:"USD",maximumFractionDigits:0});
 const monthFmt = new Intl.DateTimeFormat("en-US",{month:"short",year:"numeric"});
 const tabs = [
@@ -843,7 +843,7 @@ Banana Republic Factory|Leather Trouser Belt|Black|L|24|2025-04|Accessories
 SHEIN|Street-Style Pleated Casual Shorts|Black|M|16|2025-07|Bottoms
 Elwood Clothing|Work Shirt|Mechanic Blue|L|60|2023-07|Tops
 Elwood Clothing|Oversized Crop Core Tee|Vintage Slate|L|30|2023-06|Tops
-Lemaire|Piped Loafers|Black||650|2026-01|Shoes
+Lemaire|Flat Piped Slippers in Leather|Black / Dark Chocolate|EU 43|795|2026-05|Shoes
 Loewe|Faro Brown Derbies|Brown|43|667|2026-04|Shoes
 Aime Leon Dore|Diner Clog|Green|10|95|2026-04|Shoes
 Stoc and Weber|Black Lugged Loafers|Black||380|2026-01|Shoes
@@ -1005,6 +1005,7 @@ const starterPhotos = {
   "wardrobe::Aime Leon Dore::The Worlds Borough Hat":"assets/photos/photo-021.webp",
   "wardrobe::Aime Leon Dore::Washed A Logo Hat":"assets/photos/photo-022.webp",
   "wardrobe::Aime Leon Dore::Lug Sole Derby":"assets/photos/photo-023.webp",
+  "wardrobe::Lemaire::Flat Piped Slippers in Leather":"assets/photos/photo-112-lemaire-flat-piped-slippers.jpg",
   "wardrobe::Aime Leon Dore::Wool Heritage Hat":"assets/photos/photo-024.webp",
   "wardrobe::Aime Leon Dore::Tropical Wool Suit Trouser":"assets/photos/photo-025.webp",
   "wardrobe::Aime Leon Dore::Diner Clog":"assets/photos/photo-026.webp",
@@ -1248,6 +1249,17 @@ function upgradeState(existing){
       x.photo = "assets/photos/photo-095-buck-mason-white-henley.jpg";
       changed = true;
     }
+    if(x.type === "wardrobe" && x.brand === "Lemaire" && /piped loafer|flat piped slipper/i.test(x.name)){
+      x.name = "Flat Piped Slippers in Leather";
+      x.color = "Black / Dark Chocolate";
+      x.size = "EU 43";
+      x.price = 795;
+      x.date = "2026-05";
+      x.category = "Shoes";
+      x.photo = "assets/photos/photo-112-lemaire-flat-piped-slippers.jpg";
+      x.notes = x.notes || "Minimal black Lemaire pipe loafer/slipper. Fits the elevated ALD/Drake's/Ralph tailoring-with-cap lane.";
+      changed = true;
+    }
     const normalizedPhoto = normalizePhotoPath(x.photo);
     if(normalizedPhoto !== (x.photo || "")){
       x.photo = normalizedPhoto;
@@ -1375,7 +1387,7 @@ function renderCollection(type){
     ? `<div class="toolbar"><button class="ghost" data-action="rateWishlist">${icon("sparkles")}AI Rate Wishlist</button><button class="primary" data-action="add">${icon("plus")}Add</button></div>`
     : `<button class="primary" data-action="add">${icon("plus")}Add</button>`;
   document.getElementById("view").innerHTML =
-    header(names[type], `${items.length} items · ${money.format(value)} archive value · v17`, add) +
+    header(names[type], `${items.length} items · ${money.format(value)} archive value · v18`, add) +
     renderPills(type) +
     (type==="wishlist" ? wishlistInsightCard() : "") +
     (items.length ? `<div class="grid">${items.map(card).join("")}</div>` : emptyMessage(type));
