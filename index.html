@@ -1172,6 +1172,7 @@ let pendingPhoto = "";
 let photoTargetId = null;
 let activeSlot = null;
 let pendingBuildAroundId = null;
+let currentGapInsight = null;
 
 function item(type,brand,name,color,size,price,date,category,extra={}){
   return {id:uid(),type,brand,name,color,size,price:Number(price)||0,date,category,wears:0,photo:"",notes:"",...extra};
@@ -1366,7 +1367,7 @@ function renderCollection(type){
   const value = items.reduce((s,x)=>s+(x.price||0),0);
   const add = `<button class="primary" data-action="add">${icon("plus")}Add</button>`;
   document.getElementById("view").innerHTML =
-    header(names[type], `${items.length} items · ${money.format(value)} archive value · v13`, add) +
+    header(names[type], `${items.length} items · ${money.format(value)} archive value · v14`, add) +
     renderPills(type) +
     (items.length ? `<div class="grid">${items.map(card).join("")}</div>` : emptyMessage(type));
   hydrateIcons();
@@ -1662,8 +1663,9 @@ function renderAnalytics(){
   document.getElementById("view").innerHTML =
     header("Archive Value", "A cleaner read on spend, usage, and best-value pieces") +
     `<div class="dash-grid"><div class="dash-card"><span>Total Closet</span><strong>${money.format(totalValue)}</strong><div class="meta">${state.items.length} items</div></div>${groups.map(g=>`<div class="dash-card"><span>${g.t}</span><strong>${money.format(g.value)}</strong><div class="meta">${g.count} items</div></div>`).join("")}</div>
-    <div class="section-head"><div><h2 class="section-title">Closet Gaps</h2><div class="section-sub">What would make the archive stronger</div></div></div>
+    <div class="section-head"><div><h2 class="section-title">Closet Gaps</h2><div class="section-sub">What would make the archive stronger</div></div><button class="ghost" data-action="findGaps">${icon("search-check")}AI Find Real Gaps</button></div>
     <div class="gap-list">${closetGaps().map(g=>`<div class="gap-item">${esc(g)}</div>`).join("")}</div>
+    ${gapInsightCard()}
     <div style="height:18px"></div>
     <div class="section-head"><div><h2 class="section-title">Recent Wears</h2><div class="section-sub">${(state.wearLog||[]).length} logged outfits</div></div></div>
     <div class="list">${(state.wearLog||[]).slice(0,5).map(log=>`<div class="row-card"><div><div class="row-title">${esc(log.vibe)}</div><div class="row-sub">${new Date(log.date).toLocaleDateString()} · ${log.pieces.length} pieces</div></div></div>`).join("") || `<div class="empty">Tap Wore Today in the outfit builder to start your wear calendar.</div>`}</div>
@@ -1671,6 +1673,26 @@ function renderAnalytics(){
     <div class="section-head"><div><h2 class="section-title">Cost Per Wear Leaders</h2><div class="section-sub">Lower is better</div></div></div>
     ${leaders.length ? `<div class="grid">${leaders.map(card).join("")}</div>` : `<div class="empty">Log wears on a few pieces and this becomes useful.</div>`}`;
   hydrateIcons();
+}
+function gapInsightCard(){
+  if(!currentGapInsight) return "";
+  if(currentGapInsight.loading){
+    return `<div class="judge-card" style="margin-top:12px"><div class="panel-title">AI Gap Scout</div><div class="judge-notes"><div class="judge-note">Searching for real suggestions against your closet style...</div></div></div>`;
+  }
+  if(currentGapInsight.error){
+    return `<div class="judge-card" style="margin-top:12px"><div class="panel-title">AI Gap Scout</div><div class="judge-notes"><div class="judge-note">${esc(currentGapInsight.error)}</div></div></div>`;
+  }
+  const ideas = currentGapInsight.ideas || [];
+  return `<div class="judge-card" style="margin-top:12px">
+    <div class="section-head" style="margin:0 0 10px"><div><div class="panel-title">AI Gap Scout</div><div class="section-sub">${esc(currentGapInsight.summary || "Web-backed wardrobe suggestions")}</div></div><button class="ghost" data-action="findGaps">${icon("refresh-cw")}Refresh</button></div>
+    <div class="gap-list">${ideas.map(idea=>`
+      <div class="gap-item">
+        <strong style="color:var(--paper);display:block;margin-bottom:4px">${esc(idea.item || "Suggestion")}</strong>
+        ${esc(idea.why || "")}
+        ${idea.search ? `<div style="margin-top:6px;color:var(--gold)">Search: ${esc(idea.search)}</div>` : ""}
+        ${idea.sourceUrl ? `<a href="${esc(idea.sourceUrl)}" target="_blank" rel="noreferrer" style="display:inline-block;margin-top:6px;color:var(--copper)">${esc(idea.sourceTitle || "Source")}</a>` : ""}
+      </div>`).join("")}</div>
+  </div>`;
 }
 function closetGaps(){
   const counts = Object.fromEntries(["Tops","Bottoms","Outerwear","Shoes","Socks","Watches","Accessories","Hats"].map(c=>[c,pickPool(c).length]));
@@ -1686,6 +1708,68 @@ function closetGaps(){
   if(counts.Bottoms < counts.Tops/3) gaps.push("You still have more tops than bottoms. More clean bottoms unlock more combinations than another statement top.");
   if(pickPool("Tops").filter(x=>/cream|white|coconut|ivory/i.test(x.color)).length < 8) gaps.push("Light neutral tops are the easiest bridge between olive, brown, black, denim, and the Porsche palette.");
   return gaps;
+}
+async function findRealClosetGaps(){
+  currentGapInsight = {loading:true};
+  activeTab = "analytics";
+  render();
+  try{
+    currentGapInsight = await aiFindRealClosetGaps();
+  }catch(e){
+    currentGapInsight = {error:(e.message || "AI gap scout is unavailable") + ". Use the local Closet Gaps until the AI/web search call is available."};
+  }
+  render();
+}
+async function aiFindRealClosetGaps(){
+  const closet = state.items
+    .filter(x=>x.type==="wardrobe")
+    .map(x=>({brand:x.brand,name:x.name,color:x.color,size:x.size,category:x.category,price:x.price,wears:x.wears,notes:x.notes}))
+    .slice(0,220);
+  const wishlist = state.items
+    .filter(x=>x.type==="wishlist")
+    .map(x=>({brand:x.brand,name:x.name,color:x.color,size:x.size,category:x.category,price:x.price,notes:x.notes}))
+    .slice(0,30);
+  const data = await openAiResponse({
+    model:currentAiModel(),
+    tools:[{type:"web_search_preview"}],
+    instructions:"You are a web-aware menswear wardrobe strategist. Search the web for real items, retailer pages, editorial examples, and resale references that fit the user's style. The user's taste: ALD/Porsche palette, olive, espresso brown, cream, black, elevated casual, loafers/derbies, hats, watches, texture, and wearable statement pieces. Do not recommend generic basics unless they solve a real gap. Explain why each suggestion makes the closet stronger and how it elevates existing pieces. Return only valid JSON.",
+    text:{
+      format:{
+        type:"json_schema",
+        name:"closet_gap_scout",
+        strict:true,
+        schema:{
+          type:"object",
+          additionalProperties:false,
+          properties:{
+            summary:{type:"string"},
+            ideas:{
+              type:"array",
+              minItems:3,
+              maxItems:6,
+              items:{
+                type:"object",
+                additionalProperties:false,
+                properties:{
+                  item:{type:"string"},
+                  category:{type:"string"},
+                  why:{type:"string"},
+                  search:{type:"string"},
+                  sourceTitle:{type:"string"},
+                  sourceUrl:{type:"string"}
+                },
+                required:["item","category","why","search","sourceTitle","sourceUrl"]
+              }
+            }
+          },
+          required:["summary","ideas"]
+        }
+      }
+    },
+    input:[{role:"user",content:[{type:"input_text",text:"Find real wardrobe gap suggestions based on this closet and wishlist. Include why each one would upgrade the archive. If a wishlist item is already a strong answer, say why it matters, like Le Loafer Supple in Eel Scotch Brown elevating dress-shoe outfits. Data:\n"+JSON.stringify({localGaps:closetGaps(),wishlist,closet}, null, 2)}]}]
+  });
+  const text = data.output_text || data.output?.flatMap(o=>o.content||[]).map(c=>c.text||"").join("") || "";
+  return JSON.parse(text.replace(/^```json|```$/g,"").trim());
 }
 function openItem(id=null,presetType=activeTab){
   editingId = id;
@@ -2742,6 +2826,7 @@ document.addEventListener("click", e => {
   if(action === "clearSearch"){ clearSearch(); render(); }
   if(action === "random") randomFit();
   if(action === "judgeFit") judgeFit();
+  if(action === "findGaps") findRealClosetGaps();
   if(action === "wearFit") wearCurrentFit();
   if(action === "logLayer") logLayer();
   if(action === "aiSettings") openAiSettings();
