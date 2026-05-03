@@ -378,6 +378,14 @@ h1{font-family:var(--serif);font-weight:400;font-size:30px;line-height:1;margin:
 .suggestion-card p{margin:0;color:var(--muted);font-size:11px;line-height:1.5}
 .suggestion-card.with-item{display:grid;grid-template-columns:62px 1fr;gap:10px;align-items:start}
 .suggestion-card img{width:62px;height:62px;object-fit:cover;border-radius:8px;background:#f4f1ec;border:1px solid rgba(127,160,109,.45)}
+.weather-grid{display:grid;grid-template-columns:minmax(170px,1fr) 2fr;gap:12px;align-items:center}
+.weather-temp{font-family:var(--serif);font-size:38px;color:var(--leather);line-height:1}
+.range{width:100%;accent-color:var(--leather);background:transparent}
+.weather-chips{display:flex;gap:7px;flex-wrap:wrap;margin-top:10px}
+.weather-result{display:grid;grid-template-columns:74px 1fr;gap:12px;align-items:start;margin-top:12px}
+.weather-result .row-thumb{width:74px;height:74px}
+.weather-result strong{display:block;font-family:var(--serif);font-size:22px;font-weight:400;color:var(--text);margin-bottom:4px}
+.weather-result p{margin:7px 0 0;color:var(--muted);font-size:11px;line-height:1.5}
 .dash-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:18px}
 .dash-card{
   border:1px solid rgba(111,150,88,.58);
@@ -477,6 +485,7 @@ label{display:grid;gap:5px;color:var(--muted);font-size:8px;text-transform:upper
   .card-body{padding:10px}
   .name{font-size:14px;min-height:34px}
   .dash-grid{grid-template-columns:1fr 1fr}
+  .weather-grid{grid-template-columns:1fr}
   .builder{grid-template-columns:minmax(0,1fr);width:100%;gap:10px}
   .panel{width:100%;padding:12px}
   .slot-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
@@ -723,7 +732,7 @@ const tabs = [
 ];
 const releaseNotes = [
   "Deep green, cognac, cream, navy, and espresso interface palette.",
-  "Full v30 wardrobe seed with 152 clothing pieces and 21 fragrances.",
+  "Full v31 wardrobe seed with 152 clothing pieces and 21 fragrances.",
   "Photo-first add flow with phone camera upload and saved item photos.",
   "AI Identify can fill item fields from a photo when an API key is saved.",
   "Item detail pages with CPW, wear count, notes, and best pairings.",
@@ -1207,6 +1216,8 @@ let pendingBuildAroundId = null;
 let currentGapInsight = null;
 let currentWishlistInsight = null;
 let currentLayerIdeas = null;
+let weatherScentPrefs = {temp:58,condition:"dry",occasion:"everyday"};
+let currentWeatherScent = null;
 let wardrobeSortMode = "recent";
 
 function item(type,brand,name,color,size,price,date,category,extra={}){
@@ -1437,7 +1448,7 @@ function renderCollection(type){
     ? `<div class="toolbar"><button class="ghost" data-action="rateWishlist">${icon("sparkles")}AI Rate Wishlist</button><button class="primary" data-action="add">${icon("plus")}Add</button></div>`
     : `<button class="primary" data-action="add">${icon("plus")}Add</button>`;
   document.getElementById("view").innerHTML =
-    header(names[type], `${items.length} items · ${money.format(value)} archive value · v30`, add) +
+    header(names[type], `${items.length} items · ${money.format(value)} archive value · v31`, add) +
     renderPills(type) +
     renderSortControls(type) +
     (type==="wishlist" ? wishlistActions() : "") +
@@ -1476,6 +1487,8 @@ function renderFragrance(){
     header("Fragrance", `${items.length} scents · ${money.format(value)} archive value`, `<div class="toolbar"><button class="ghost" data-action="aiLayerIdeas">${icon("sparkles")}AI Layer Ideas</button><button class="primary" data-action="logLayer">${icon("blend")}Log Layer</button></div>`) +
     renderPills("fragrance") +
     `<div class="wishlist-actions"><button class="ghost" data-action="aiLayerIdeas">${icon("sparkles")}AI Layer Ideas</button><button class="primary" data-action="logLayer">${icon("blend")}Log Layer</button></div>` +
+    weatherScentPanel() +
+    weatherScentCard() +
     layerIdeasCard() +
     `<div class="section-head"><div><h2 class="section-title">Layering Recipes</h2><div class="section-sub">Built from your scent style</div></div></div>
     <div class="list">${fragranceLayerRecipes.map(layerCard).join("")}</div>
@@ -1485,6 +1498,54 @@ function renderFragrance(){
     <div style="height:18px"></div>
     ${items.length ? `<div class="grid">${items.map(card).join("")}</div>` : emptyMessage("fragrance")}`;
   hydrateIcons();
+}
+function weatherScentPanel(){
+  const p = weatherScentPrefs;
+  const conditions = ["dry","humid","rainy","cold","night","office"];
+  const occasions = ["everyday","elevated","date","travel"];
+  return `<div class="judge-card" style="margin-bottom:12px">
+    <div class="section-head" style="margin:0 0 10px"><div><div class="panel-title">Weather Scent</div><div class="section-sub">Pick a scent from your bottles for the temperature</div></div></div>
+    <div class="weather-grid">
+      <div>
+        <div class="weather-temp">${esc(p.temp)}°F</div>
+        <input class="range" type="range" min="30" max="100" step="1" value="${esc(p.temp)}" data-weather-temp aria-label="Temperature">
+      </div>
+      <div>
+        <div class="weather-chips">${conditions.map(c=>`<button class="pill ${p.condition===c?"on":""}" data-weather-condition="${c}">${c}</button>`).join("")}</div>
+        <div class="weather-chips">${occasions.map(o=>`<button class="pill ${p.occasion===o?"on":""}" data-weather-occasion="${o}">${o}</button>`).join("")}</div>
+      </div>
+    </div>
+    <button class="primary" style="width:100%;margin-top:12px" data-action="weatherScent">${icon("thermometer-sun")}Suggest Weather Scent</button>
+  </div>`;
+}
+function weatherScentCard(){
+  if(!currentWeatherScent) return "";
+  if(currentWeatherScent.loading){
+    return `<div class="judge-card" style="margin-bottom:12px"><div class="panel-title">Weather Scent</div><div class="judge-notes"><div class="judge-note">Reading the weather and your fragrance shelf...</div></div></div>`;
+  }
+  if(currentWeatherScent.error){
+    return `<div class="judge-card" style="margin-bottom:12px"><div class="panel-title">Weather Scent</div><div class="judge-notes"><div class="judge-note">${esc(currentWeatherScent.error)}</div></div></div>`;
+  }
+  const scent = findOwnedFragrance(currentWeatherScent.scent) || findOwnedFragrance(currentWeatherScent.primary) || null;
+  const photo = scent ? displayPhoto(scent) : "";
+  const media = scent
+    ? (photo ? `<img src="${esc(photo)}" alt="">` : fragranceArt(scent))
+    : icon("spray-can");
+  const layer = currentWeatherScent.layer ? `<p><strong style="font-size:16px">Layer:</strong> ${esc(currentWeatherScent.layer)}</p>` : "";
+  return `<div class="judge-card" style="margin-bottom:12px">
+    <div class="section-head" style="margin:0 0 10px"><div><div class="panel-title">Weather Scent</div><div class="section-sub">${esc(currentWeatherScent.summary || `${weatherScentPrefs.temp}°F · ${weatherScentPrefs.condition}`)}</div></div><button class="ghost" data-action="weatherScent">${icon("refresh-cw")}Refresh</button></div>
+    <div class="weather-result">
+      <div class="row-thumb frag-thumb">${media}</div>
+      <div>
+        <strong>${esc(currentWeatherScent.scent || currentWeatherScent.primary || "Scent pick")}</strong>
+        <div class="row-sub">${esc(currentWeatherScent.sprays || "2-3 sprays")}</div>
+        <p>${esc(currentWeatherScent.why || "")}</p>
+        ${layer}
+        ${currentWeatherScent.outfit ? `<p><strong style="font-size:16px">Outfit lane:</strong> ${esc(currentWeatherScent.outfit)}</p>` : ""}
+        ${currentWeatherScent.caution ? `<p>${esc(currentWeatherScent.caution)}</p>` : ""}
+      </div>
+    </div>
+  </div>`;
 }
 function layerIdeasCard(){
   if(!currentLayerIdeas) return "";
@@ -2139,6 +2200,139 @@ async function aiSuggestFragranceLayers(season){
   const text = data.output_text || data.output?.flatMap(o=>o.content||[]).map(c=>c.text||"").join("") || "";
   const parsed = JSON.parse(text.replace(/^```json|```$/g,"").trim());
   return {...parsed,ideas:(parsed.ideas || []).slice(0,5)};
+}
+function ownedFragrances(){
+  return state.items.filter(x=>x.type==="fragrance" || inferredCategory(x)==="Fragrances");
+}
+function findOwnedFragrance(name){
+  const target = String(name || "").toLowerCase().replace(/[^a-z0-9]+/g," ").trim();
+  if(!target) return null;
+  return ownedFragrances().find(x=>{
+    const full = `${x.brand} ${x.name}`.toLowerCase().replace(/[^a-z0-9]+/g," ").trim();
+    const short = String(x.name || "").toLowerCase().replace(/[^a-z0-9]+/g," ").trim();
+    return target.includes(full) || full.includes(target) || target.includes(short) || short.includes(target);
+  }) || null;
+}
+function scentWeatherMood(x){
+  const text = layerText(x);
+  const lanes = fragranceLanes(text);
+  const season = String(x.color || "").toLowerCase();
+  let score = 50;
+  if(lanes.includes("fresh-fruity") || lanes.includes("fresh-green")) score += 7;
+  if(lanes.includes("amber-sweet") || lanes.includes("woody-oud") || lanes.includes("leather-smoke")) score -= 2;
+  if(season === "spring") score += 8;
+  if(season === "fall") score -= 4;
+  if(season === "all") score += 4;
+  return {text,lanes,season,score};
+}
+function localWeatherScentSuggestion(summary="Local weather pick from your owned fragrances"){
+  const temp = Number(weatherScentPrefs.temp || 58);
+  const condition = weatherScentPrefs.condition || "dry";
+  const occasion = weatherScentPrefs.occasion || "everyday";
+  const scents = ownedFragrances();
+  if(!scents.length){
+    return {summary:"No owned fragrances found",scent:"Add a fragrance first",sprays:"",layer:"",why:"Once a fragrance is in the archive, this will pick from it.",outfit:"",caution:""};
+  }
+  const scored = scents.map(x=>{
+    const m = scentWeatherMood(x);
+    let score = m.score;
+    if(temp >= 76){
+      if(m.lanes.includes("fresh-fruity") || m.lanes.includes("fresh-green")) score += 32;
+      if(m.lanes.includes("amber-sweet") || m.lanes.includes("woody-oud") || m.lanes.includes("leather-smoke")) score -= 18;
+      if(m.season === "spring") score += 8;
+      if(m.season === "fall") score -= 10;
+    }else if(temp <= 50){
+      if(m.lanes.includes("amber-sweet") || m.lanes.includes("woody-oud") || m.lanes.includes("leather-smoke")) score += 30;
+      if(m.lanes.includes("fresh-fruity")) score -= 12;
+      if(m.season === "fall") score += 12;
+    }else{
+      if(m.lanes.includes("woody-oud") || m.lanes.includes("amber-sweet") || /gris|tea|fig|havana|tobacco|naxos|oud|plum|cognac/.test(m.text)) score += 18;
+      if(m.lanes.includes("fresh-green")) score += 9;
+    }
+    if(condition === "humid"){
+      if(m.lanes.includes("fresh-fruity") || m.lanes.includes("fresh-green")) score += 14;
+      if(m.lanes.includes("amber-sweet") || m.lanes.includes("woody-oud")) score -= 12;
+    }
+    if(condition === "rainy" && /fig|tea|wood|oud|incense|green|vetiver|gris/.test(m.text)) score += 13;
+    if(condition === "night" && /extrait|oud|amber|tobacco|vanilla|leather|gris|naxos|bodacious|havana|cognac/.test(m.text)) score += 14;
+    if(condition === "office" && /fresh|tea|fig|green|vibrato|torino|aquatica|salt|pepper|gris/.test(m.text)) score += 10;
+    if(occasion === "elevated" && /gris|havana|oud|naxos|tobacco|leather|extrait|royal|halfeti|memo|bdk|roja|xerjoff/.test(m.text)) score += 13;
+    if(occasion === "date" && /amber|vanilla|honey|tobacco|gris|plum|cognac|rose|leather|havana/.test(m.text)) score += 12;
+    if(occasion === "travel" && /fresh|citrus|tea|fig|torino|vibrato|aquatica|salt|pepper/.test(m.text)) score += 11;
+    return {x,score,m};
+  }).sort((a,b)=>b.score-a.score);
+  const pick = scored[0].x;
+  const mood = scored[0].m;
+  const sprays = temp >= 76 ? "2-3 sprays" : temp <= 50 ? "3-4 sprays" : "2-3 sprays";
+  const layer = temp >= 76
+    ? "Keep it solo unless you want one quiet citrus/fresh accent."
+    : temp <= 50
+      ? "Optional: one warm amber, tobacco, leather, or woody accent spray if you want more trail."
+      : "Optional: one soft woody, tea, or fig accent if the outfit has texture.";
+  const vibe = temp >= 76 ? "hot-weather polish" : temp <= 50 ? "cold-weather depth" : "temperate elevated casual";
+  const why = `${itemLabel(pick)} fits ${temp}°F ${condition} because it reads ${mood.lanes.join(", ")} without fighting the clothes. It should support the ALD/Buck Mason/Drake's lane instead of making the fit feel like a separate perfume moment.`;
+  const caution = temp >= 76 && (mood.lanes.includes("amber-sweet") || mood.lanes.includes("woody-oud"))
+    ? "Go light here. Heat makes sweet/woody scents expand fast."
+    : temp <= 50 && (mood.lanes.includes("fresh-fruity") || mood.lanes.includes("fresh-green"))
+      ? "This is a fresher contrast pick; if the outfit is wool-heavy, a warmer scent may hit harder."
+      : "Spray count can come down if the bottle projects hard.";
+  return {summary:`${temp}°F ${condition} · ${occasion}`,scentId:pick.id,scent:itemLabel(pick),sprays,layer,why,outfit:vibe,caution};
+}
+async function suggestWeatherScent(){
+  currentWeatherScent = {loading:true};
+  activeTab = "fragrance";
+  render();
+  try{
+    currentWeatherScent = await aiSuggestWeatherScent();
+  }catch(e){
+    currentWeatherScent = localWeatherScentSuggestion("Local weather pick until AI is available");
+    currentWeatherScent.caution = `${currentWeatherScent.caution || ""} ${e.message ? "AI note: "+e.message : ""}`.trim();
+  }
+  render();
+}
+async function aiSuggestWeatherScent(){
+  const scents = ownedFragrances().map(x=>({
+    id:x.id,brand:x.brand,name:x.name,season:x.color,type:x.size,notes:x.notes,projection:x.projection,rating:x.rating
+  })).slice(0,90);
+  const data = await openAiResponse({
+    model:currentAiModel(),
+    instructions:"You are a fragrance advisor for a men's closet app. Use only the user's owned fragrance list. "+AI_STYLE_PROFILE+" Pick one fragrance for the exact temperature, condition, and occasion. Be practical: hot/humid weather favors fresh, green, citrus, aquatic, tea, or airy scents; cold weather favors amber, tobacco, leather, oud, woody, boozy, honey, vanilla, tea, or fig. Around 50-64F dry, warm/woody/amber scents can be excellent because they add contrast and depth to elevated streetwear. Do not recommend a bright summer scent for cool weather unless you explicitly explain it as contrast. Do not invent bottles. If layering, keep the layer optional and realistic. Return only valid JSON.",
+    text:{
+      format:{
+        type:"json_schema",
+        name:"weather_scent_pick",
+        strict:true,
+        schema:{
+          type:"object",
+          additionalProperties:false,
+          properties:{
+            summary:{type:"string"},
+            scent:{type:"string"},
+            sprays:{type:"string"},
+            layer:{type:"string"},
+            why:{type:"string"},
+            outfit:{type:"string"},
+            caution:{type:"string"}
+          },
+          required:["summary","scent","sprays","layer","why","outfit","caution"]
+        }
+      }
+    },
+    input:[{role:"user",content:[{type:"input_text",text:"Pick a weather-appropriate fragrance from owned scents only. Data:\n"+JSON.stringify({
+      weather:weatherScentPrefs,
+      styleProfile:AI_STYLE_PROFILE,
+      ownedScents:scents,
+      knownLayerRecipes:fragranceLayerRecipes
+    }, null, 2)}]}]
+  });
+  const text = data.output_text || data.output?.flatMap(o=>o.content||[]).map(c=>c.text||"").join("") || "";
+  const parsed = JSON.parse(text.replace(/^```json|```$/g,"").trim());
+  const scent = findOwnedFragrance(parsed.scent);
+  if(!scent){
+    const fallback = localWeatherScentSuggestion(parsed.summary || "Local weather pick from your owned fragrances");
+    return {...fallback,caution:`AI named a scent outside the archive, so I used an owned bottle instead. ${fallback.caution}`};
+  }
+  return {...parsed,scentId:scent.id,scent:itemLabel(scent)};
 }
 function openItem(id=null,presetType=activeTab){
   editingId = id;
@@ -3486,6 +3680,10 @@ document.addEventListener("click", e => {
   if(slot){ openSlotPicker(slot.dataset.slot); return; }
   const vibe = e.target.closest("[data-vibe]");
   if(vibe){ currentFit.vibe = vibe.dataset.vibe; currentJudgement = null; render(); return; }
+  const weatherCondition = e.target.closest("[data-weather-condition]");
+  if(weatherCondition){ weatherScentPrefs.condition = weatherCondition.dataset.weatherCondition; currentWeatherScent = null; render(); return; }
+  const weatherOccasion = e.target.closest("[data-weather-occasion]");
+  if(weatherOccasion){ weatherScentPrefs.occasion = weatherOccasion.dataset.weatherOccasion; currentWeatherScent = null; render(); return; }
   const action = e.target.closest("[data-action]")?.dataset.action;
   if(action === "add") openItem();
   if(action === "clearSearch"){ clearSearch(); render(); }
@@ -3494,11 +3692,20 @@ document.addEventListener("click", e => {
   if(action === "findGaps") findRealClosetGaps();
   if(action === "rateWishlist") rateWishlistValue();
   if(action === "aiLayerIdeas") suggestFragranceLayers();
+  if(action === "weatherScent") suggestWeatherScent();
   if(action === "wearFit") wearCurrentFit();
   if(action === "logLayer") logLayer();
   if(action === "aiSettings") openAiSettings();
   if(action === "saveFit") saveFit();
   if(action === "export" || action === "import" || action === "menu") openArchive();
+});
+document.addEventListener("input", e => {
+  const weatherTemp = e.target.closest("[data-weather-temp]");
+  if(weatherTemp){
+    weatherScentPrefs.temp = Number(weatherTemp.value) || 58;
+    currentWeatherScent = null;
+    render();
+  }
 });
 document.getElementById("search").addEventListener("input", render);
 document.getElementById("slotSearch").addEventListener("input", renderSlotPicker);
