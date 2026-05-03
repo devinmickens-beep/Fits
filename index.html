@@ -732,7 +732,7 @@ const tabs = [
 ];
 const releaseNotes = [
   "Deep green, cognac, cream, navy, and espresso interface palette.",
-  "Full v31 wardrobe seed with 152 clothing pieces and 21 fragrances.",
+  "Full v32 wardrobe seed with 152 clothing pieces and 21 fragrances.",
   "Photo-first add flow with phone camera upload and saved item photos.",
   "AI Identify can fill item fields from a photo when an API key is saved.",
   "Item detail pages with CPW, wear count, notes, and best pairings.",
@@ -1448,7 +1448,7 @@ function renderCollection(type){
     ? `<div class="toolbar"><button class="ghost" data-action="rateWishlist">${icon("sparkles")}AI Rate Wishlist</button><button class="primary" data-action="add">${icon("plus")}Add</button></div>`
     : `<button class="primary" data-action="add">${icon("plus")}Add</button>`;
   document.getElementById("view").innerHTML =
-    header(names[type], `${items.length} items · ${money.format(value)} archive value · v31`, add) +
+    header(names[type], `${items.length} items · ${money.format(value)} archive value · v32`, add) +
     renderPills(type) +
     renderSortControls(type) +
     (type==="wishlist" ? wishlistActions() : "") +
@@ -1507,7 +1507,7 @@ function weatherScentPanel(){
     <div class="section-head" style="margin:0 0 10px"><div><div class="panel-title">Weather Scent</div><div class="section-sub">Pick a scent from your bottles for the temperature</div></div></div>
     <div class="weather-grid">
       <div>
-        <div class="weather-temp">${esc(p.temp)}°F</div>
+        <div class="weather-temp" data-weather-temp-label>${esc(p.temp)}°F</div>
         <input class="range" type="range" min="30" max="100" step="1" value="${esc(p.temp)}" data-weather-temp aria-label="Temperature">
       </div>
       <div>
@@ -3700,6 +3700,14 @@ document.addEventListener("click", e => {
   if(action === "export" || action === "import" || action === "menu") openArchive();
 });
 document.addEventListener("input", e => {
+  const weatherTemp = e.target.closest("[data-weather-temp]");
+  if(weatherTemp){
+    weatherScentPrefs.temp = Number(weatherTemp.value) || 58;
+    const label = weatherTemp.closest(".judge-card")?.querySelector("[data-weather-temp-label]");
+    if(label) label.textContent = `${weatherScentPrefs.temp}°F`;
+  }
+});
+document.addEventListener("change", e => {
   const weatherTemp = e.target.closest("[data-weather-temp]");
   if(weatherTemp){
     weatherScentPrefs.temp = Number(weatherTemp.value) || 58;
