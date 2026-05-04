@@ -752,7 +752,7 @@ const tabs = [
 ];
 const releaseNotes = [
   "Deep green, cognac, cream, navy, and espresso interface palette.",
-  "Full v34 wardrobe seed with 152 clothing pieces and 21 fragrances.",
+  "Full v35 wardrobe seed with 152 clothing pieces and 21 fragrances.",
   "Photo-first add flow with phone camera upload and saved item photos.",
   "AI Identify can fill item fields from a photo when an API key is saved.",
   "Item detail pages with CPW, wear count, notes, and best pairings.",
@@ -1280,6 +1280,28 @@ function sameCatalogItem(a,b){
   return String(a.brand || "").toLowerCase() === String(b.brand || "").toLowerCase()
     && String(a.name || "").toLowerCase() === String(b.name || "").toLowerCase();
 }
+function catalogNameKey(x){
+  const clean = value => String(value || "")
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g," ")
+    .trim();
+  return `${clean(x.brand)}::${clean(x.name)}`;
+}
+function isSeedWishlistItem(x){
+  return x?.type === "wishlist" && seed.items.some(seedItem => seedItem.type === "wishlist" && catalogNameKey(seedItem) === catalogNameKey(x));
+}
+function dismissedSeedWishKeys(existing){
+  existing.dismissedSeedWishKeys ||= [];
+  return new Set(existing.dismissedSeedWishKeys);
+}
+function dismissSeedWish(existing, x){
+  if(!isSeedWishlistItem(x)) return false;
+  const keys = dismissedSeedWishKeys(existing);
+  const key = catalogNameKey(x);
+  if(keys.has(key)) return false;
+  existing.dismissedSeedWishKeys.push(key);
+  return true;
+}
 function acquiredSeedWishExists(existing, seedItem){
   if(seedItem.type !== "wishlist") return false;
   return existing.items.some(x => x.type !== "wishlist" && sameCatalogItem(x, seedItem));
@@ -1296,6 +1318,7 @@ function upgradeState(existing){
   existing.outfits ||= [];
   existing.wearLog ||= [];
   existing.fragLayers ||= [];
+  existing.dismissedSeedWishKeys ||= [];
   if(existing.items.length === 0){
     existing.items = structuredClone(seed.items);
     existing.outfits = existing.outfits || [];
@@ -1355,15 +1378,16 @@ function upgradeState(existing){
     }
   });
   const seen = new Set(existing.items.map(itemKey));
+  const dismissed = dismissedSeedWishKeys(existing);
   seed.items.forEach(seedItem => {
-    if(!seen.has(itemKey(seedItem)) && !acquiredSeedWishExists(existing, seedItem)){
+    if(!seen.has(itemKey(seedItem)) && !dismissed.has(catalogNameKey(seedItem)) && !acquiredSeedWishExists(existing, seedItem)){
       existing.items.push(structuredClone(seedItem));
       changed = true;
     }
   });
   const bodaciousWish = item("wishlist","Boadicea The Victorious","Bodacious","Full Bottle","100 ml",0,"2026-04","Fragrances",{notes:"Upgrade from 10 ml. Wishlist full bottle.",photo:"assets/photos/photo-078-bodacious.jpg"});
   const bodaciousKey = itemKey(bodaciousWish);
-  if(!seen.has(bodaciousKey) && !acquiredSeedWishExists(existing, bodaciousWish)){
+  if(!seen.has(bodaciousKey) && !dismissed.has(catalogNameKey(bodaciousWish)) && !acquiredSeedWishExists(existing, bodaciousWish)){
     existing.items.push(bodaciousWish);
     changed = true;
   }
@@ -1504,7 +1528,7 @@ function renderCollection(type){
     ? `<div class="toolbar"><button class="ghost" data-action="rateWishlist">${icon("sparkles")}AI Rate Wishlist</button><button class="ghost" data-action="addWishLink">${icon("link")}Add Link</button><button class="primary" data-action="add">${icon("plus")}Add</button></div>`
     : `<button class="primary" data-action="add">${icon("plus")}Add</button>`;
   document.getElementById("view").innerHTML =
-    header(names[type], `${items.length} items · ${money.format(value)} archive value · v34`, add) +
+    header(names[type], `${items.length} items · ${money.format(value)} archive value · v35`, add) +
     renderPills(type) +
     renderSortControls(type) +
     (type==="wishlist" ? wishlistActions() : "") +
@@ -2441,6 +2465,8 @@ function submitItem(e){
 }
 function deleteCurrent(){
   if(!editingId) return;
+  const item = state.items.find(x=>x.id===editingId);
+  if(item) dismissSeedWish(state, item);
   state.items = state.items.filter(x=>x.id!==editingId);
   save();
   closeModal("itemModal");
@@ -2642,6 +2668,7 @@ function changeWear(id,delta){
 function acquire(id){
   const x = state.items.find(i=>i.id===id);
   if(!x) return;
+  dismissSeedWish(state, x);
   x.type = x.category === "Fragrances" ? "fragrance" : "wardrobe";
   x.date = new Date().toISOString().slice(0,7);
   save();
