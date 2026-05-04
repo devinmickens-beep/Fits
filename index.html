@@ -752,7 +752,7 @@ const tabs = [
 ];
 const releaseNotes = [
   "Deep green, cognac, cream, navy, and espresso interface palette.",
-  "Full v36 wardrobe seed with 152 clothing pieces, 21 fragrances, and expanded wardrobe photos.",
+  "Full v37 wardrobe seed with 152 clothing pieces, 21 fragrances, expanded photos, and duplicate cleanup.",
   "Photo-first add flow with phone camera upload and saved item photos.",
   "AI Identify can fill item fields from a photo when an API key is saved.",
   "Item detail pages with CPW, wear count, notes, and best pairings.",
@@ -1351,12 +1351,17 @@ function sameCatalogItem(a,b){
   return String(a.brand || "").toLowerCase() === String(b.brand || "").toLowerCase()
     && String(a.name || "").toLowerCase() === String(b.name || "").toLowerCase();
 }
-function catalogNameKey(x){
-  const clean = value => String(value || "")
+function cleanKeyValue(value){
+  return String(value || "")
     .toLowerCase()
     .replace(/[^a-z0-9]+/g," ")
     .trim();
-  return `${clean(x.brand)}::${clean(x.name)}`;
+}
+function catalogNameKey(x){
+  return `${cleanKeyValue(x.brand)}::${cleanKeyValue(x.name)}`;
+}
+function duplicateItemKey(x){
+  return [x.type,x.brand,x.name,x.color,x.size].map(cleanKeyValue).join("::");
 }
 function isSeedWishlistItem(x){
   return x?.type === "wishlist" && seed.items.some(seedItem => seedItem.type === "wishlist" && catalogNameKey(seedItem) === catalogNameKey(x));
@@ -1376,6 +1381,68 @@ function dismissSeedWish(existing, x){
 function acquiredSeedWishExists(existing, seedItem){
   if(seedItem.type !== "wishlist") return false;
   return existing.items.some(x => x.type !== "wishlist" && sameCatalogItem(x, seedItem));
+}
+function photoStrength(photo){
+  const value = normalizePhotoPath(photo);
+  if(!value) return 0;
+  if(/^data:image|^blob:|^file:/i.test(value)) return 4;
+  if(value.startsWith("assets/photos/")) return 3;
+  if(/^https?:/i.test(value)) return 2;
+  return 1;
+}
+function mergeDuplicateItem(target, source){
+  target.wears = (Number(target.wears) || 0) + (Number(source.wears) || 0);
+  if(!target.price && source.price) target.price = source.price;
+  if(source.rating && !target.rating) target.rating = source.rating;
+  if(source.projection && !target.projection) target.projection = source.projection;
+  if(source.category && !target.category) target.category = source.category;
+  if(source.date && (!target.date || source.date > target.date)) target.date = source.date;
+  if(source.sourceUrl && !target.sourceUrl) target.sourceUrl = source.sourceUrl;
+  if(String(source.notes || "").length > String(target.notes || "").length) target.notes = source.notes;
+  if(photoStrength(source.photo) > photoStrength(target.photo)) target.photo = source.photo;
+}
+function dedupeItems(items){
+  const byKey = new Map();
+  const next = [];
+  const remap = {};
+  let changed = false;
+  items.forEach(x => {
+    const key = duplicateItemKey(x);
+    const first = byKey.get(key);
+    if(!first){
+      byKey.set(key, x);
+      next.push(x);
+      return;
+    }
+    if(x.id && first.id && x.id !== first.id) remap[x.id] = first.id;
+    mergeDuplicateItem(first, x);
+    changed = true;
+  });
+  return {items:next,remap,changed};
+}
+function remapSavedReferences(existing, remap){
+  const ids = Object.keys(remap);
+  if(!ids.length) return false;
+  const byId = new Map(existing.items.map(x => [x.id, x]));
+  let changed = false;
+  (existing.wearLog || []).forEach(log => {
+    if(!Array.isArray(log.pieces)) return;
+    const next = log.pieces.map(id => remap[id] || id);
+    if(next.some((id,i) => id !== log.pieces[i])){
+      log.pieces = next;
+      changed = true;
+    }
+  });
+  (existing.outfits || []).forEach(outfit => {
+    Object.entries(outfit.pieces || {}).forEach(([slot,piece]) => {
+      const id = piece && remap[piece.id];
+      if(id && byId.has(id)){
+        outfit.pieces[slot] = byId.get(id);
+        changed = true;
+      }
+    });
+  });
+  return changed;
 }
 function load(){
   try{
@@ -1448,18 +1515,27 @@ function upgradeState(existing){
       changed = true;
     }
   });
-  const seen = new Set(existing.items.map(itemKey));
+  const deduped = dedupeItems(existing.items);
+  if(deduped.changed){
+    existing.items = deduped.items;
+    remapSavedReferences(existing, deduped.remap);
+    changed = true;
+  }
+  const seen = new Set(existing.items.map(duplicateItemKey));
   const dismissed = dismissedSeedWishKeys(existing);
   seed.items.forEach(seedItem => {
-    if(!seen.has(itemKey(seedItem)) && !dismissed.has(catalogNameKey(seedItem)) && !acquiredSeedWishExists(existing, seedItem)){
+    const seedKey = duplicateItemKey(seedItem);
+    if(!seen.has(seedKey) && !dismissed.has(catalogNameKey(seedItem)) && !acquiredSeedWishExists(existing, seedItem)){
       existing.items.push(structuredClone(seedItem));
+      seen.add(seedKey);
       changed = true;
     }
   });
   const bodaciousWish = item("wishlist","Boadicea The Victorious","Bodacious","Full Bottle","100 ml",0,"2026-04","Fragrances",{notes:"Upgrade from 10 ml. Wishlist full bottle.",photo:"assets/photos/photo-078-bodacious.jpg"});
-  const bodaciousKey = itemKey(bodaciousWish);
+  const bodaciousKey = duplicateItemKey(bodaciousWish);
   if(!seen.has(bodaciousKey) && !dismissed.has(catalogNameKey(bodaciousWish)) && !acquiredSeedWishExists(existing, bodaciousWish)){
     existing.items.push(bodaciousWish);
+    seen.add(bodaciousKey);
     changed = true;
   }
   existing.items.forEach(x => {
@@ -1599,7 +1675,7 @@ function renderCollection(type){
     ? `<div class="toolbar"><button class="ghost" data-action="rateWishlist">${icon("sparkles")}AI Rate Wishlist</button><button class="ghost" data-action="addWishLink">${icon("link")}Add Link</button><button class="primary" data-action="add">${icon("plus")}Add</button></div>`
     : `<button class="primary" data-action="add">${icon("plus")}Add</button>`;
   document.getElementById("view").innerHTML =
-    header(names[type], `${items.length} items · ${money.format(value)} archive value · v36`, add) +
+    header(names[type], `${items.length} items · ${money.format(value)} archive value · v37`, add) +
     renderPills(type) +
     renderSortControls(type) +
     (type==="wishlist" ? wishlistActions() : "") +
