@@ -248,6 +248,39 @@ h1{font-family:var(--serif);font-weight:400;font-size:30px;line-height:1;margin:
 .mini-actions{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px;margin-top:10px}
 .mini-actions .build-action{grid-column:1/-1}
 .mini-actions .ghost,.mini-actions .primary{height:34px;font-size:9px;flex:1}
+.fragrance-controls{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:8px;
+  margin:6px 0 8px;
+  min-width:0;
+}
+.star-rating{display:flex;align-items:center;gap:2px;min-width:0}
+.star-btn{
+  width:25px;height:25px;border:0;background:transparent;color:var(--faint);
+  display:grid;place-items:center;padding:0;border-radius:999px;
+}
+.star-btn svg{width:16px;height:16px;stroke-width:1.8}
+.star-btn.on{color:var(--gold)}
+.star-btn.on svg{fill:var(--gold);stroke:var(--gold)}
+.star-btn:hover{background:rgba(209,163,94,.13);color:var(--gold)}
+.rating-label{font-size:8px;color:var(--muted);letter-spacing:.12em;text-transform:uppercase;white-space:nowrap}
+.top-ten-toggle{
+  height:28px;border-radius:999px;border:1px solid var(--line);
+  background:var(--panel);color:var(--muted);display:inline-flex;align-items:center;
+  gap:5px;padding:0 9px;font-size:8px;text-transform:uppercase;letter-spacing:.12em;
+}
+.top-ten-toggle svg{width:13px;height:13px}
+.top-ten-toggle.on{border-color:var(--leather);background:rgba(164,98,50,.18);color:var(--gold)}
+.top-ten-toggle.on svg{fill:var(--gold);stroke:var(--gold)}
+.fragrance-detail-controls{
+  border:1px solid var(--line);
+  background:var(--panel);
+  border-radius:8px;
+  padding:10px;
+  margin:0 0 12px;
+}
 .photo-picker{
   grid-column:1/-1;
   border:1px solid var(--line);
@@ -758,7 +791,7 @@ const tabs = [
 ];
 const releaseNotes = [
   "Deep green, cognac, cream, navy, and espresso interface palette.",
-  "Full v38 wardrobe seed with 152 clothing pieces, 21 fragrances, explicit layering, and duplicate cleanup.",
+  "Full v39 wardrobe seed with personal scent stars, manual Top 10 picks, two LV bags, explicit layering, and duplicate cleanup.",
   "Photo-first add flow with phone camera upload and saved item photos.",
   "AI Identify can fill item fields from a photo when an API key is saved.",
   "Item detail pages with CPW, wear count, notes, and best pairings.",
@@ -941,6 +974,8 @@ Buck Mason x Eddie Bauer|Quilted Down Pant|Olive|36|195|2026-04|Bottoms
 Buck Mason x Eddie Bauer|Quilted Suspenders|Olive|One Size|60|2026-04|Accessories
 Louis Vuitton|LV Crush Damier Argyle Beanie|Beige|One Size|1245|2026-04|Hats
 Louis Vuitton|LV Crush Damoflage Beanie|Black|One Size|575|2026-04|Hats
+Louis Vuitton|Keepall Bandouliere|Monogram / Mustard|One Size|0|2026-05|Bags
+Louis Vuitton x Tyler the Creator|Monogram Craggy Backpack|Green Monogram|One Size|0|2026-05|Bags
 Zara|Multicharm Keychain|Sandy Brown|One Size|30|2026-01|Accessories
 Todd Snyder|Relaxed Fit 5-Pocket Linen Pant|Espresso Bean|34/32|198|2026-04|Bottoms
 Sea|Sea Pants|Olive Wash|32|180|2026-04|Bottoms
@@ -1330,7 +1365,7 @@ function rowsToItems(rows,type){
 function rowsToFrags(rows){
   return rows.split("\n").filter(Boolean).map(row => {
     const [brand,name,season,type,price,projection,rating] = row.split("|");
-    return item("fragrance",brand,name,season,type,price,"2026-04","Fragrances",{projection,rating:Number(rating)||0,photo:starterPhotos[`fragrance::${brand}::${name}`] || ""});
+    return item("fragrance",brand,name,season,type,price,"2026-04","Fragrances",{projection,rating:Number(rating)||0,personalRating:0,topTen:false,photo:starterPhotos[`fragrance::${brand}::${name}`] || ""});
   });
 }
 function photoSourceKey(x){ return `${x.type}::${x.brand}::${x.name}`; }
@@ -1477,6 +1512,16 @@ function upgradeState(existing){
       x.name = "Haute Luxe";
       changed = true;
     }
+    if(x.type === "fragrance"){
+      if(typeof x.personalRating === "undefined"){
+        x.personalRating = 0;
+        changed = true;
+      }
+      if(typeof x.topTen === "undefined"){
+        x.topTen = false;
+        changed = true;
+      }
+    }
     if(x.type === "wardrobe" && x.brand === "Generic" && x.name === "White Henley"){
       x.brand = "Buck Mason";
       x.name = "Heavy White Henley";
@@ -1610,17 +1655,14 @@ function toast(msg){
 }
 function filtered(type=activeTab){
   const q = document.getElementById("search").value.trim().toLowerCase();
-  const topFragranceIds = type === "fragrance" && activeCategory === "top10"
-    ? new Set(state.items.filter(x=>x.type==="fragrance").sort((a,b)=>fragranceArchiveScore(b)-fragranceArchiveScore(a)).slice(0,10).map(x=>x.id))
-    : null;
   const results = state.items
     .filter(x => x.type === type)
-    .filter(x => matchesCollectionFilter(x,type,activeCategory,topFragranceIds))
+    .filter(x => matchesCollectionFilter(x,type,activeCategory))
     .filter(x => !q || [x.brand,x.name,x.color,x.size,x.category,x.notes].join(" ").toLowerCase().includes(q))
     .sort((a,b)=>{
       if(type === "fragrance"){
-        if(activeCategory === "top10") return fragranceArchiveScore(b)-fragranceArchiveScore(a) || `${a.brand} ${a.name}`.localeCompare(`${b.brand} ${b.name}`);
-        return `${a.brand} ${a.name}`.localeCompare(`${b.brand} ${b.name}`);
+        if(activeCategory === "top10") return topFragranceCompare(a,b);
+        return fragranceSortCompare(a,b);
       }
       if(type === "wardrobe"){
         if(wardrobeSortMode === "abc") return `${a.brand} ${a.name}`.localeCompare(`${b.brand} ${b.name}`);
@@ -1631,10 +1673,10 @@ function filtered(type=activeTab){
   });
   return results;
 }
-function matchesCollectionFilter(x,type,category,topFragranceIds=null){
+function matchesCollectionFilter(x,type,category){
   if(category === "All") return true;
   if(type === "fragrance"){
-    if(category === "top10") return topFragranceIds?.has(x.id);
+    if(category === "top10") return Boolean(x.topTen);
     if(category === "beast") return /beast|high/i.test(x.projection || "");
     if(category === "sample") return /sample|decant|attar|oil|dupe/i.test(x.size || "");
     return x.color === category || x.size === category || x.category === category;
@@ -1777,8 +1819,42 @@ function projectionPoints(value){
   if(text.includes("low")) return 2;
   return 4;
 }
+function fragrancePersonalRating(x){
+  const n = Number(x?.personalRating || 0);
+  return Number.isFinite(n) ? Math.max(0, Math.min(5, Math.round(n))) : 0;
+}
+function fragranceScoreRating(x){
+  return fragrancePersonalRating(x) || Number(x.rating || 0);
+}
+function fragranceSortCompare(a,b){
+  return `${a.brand} ${a.name}`.localeCompare(`${b.brand} ${b.name}`);
+}
+function topFragranceCompare(a,b){
+  return fragrancePersonalRating(b)-fragrancePersonalRating(a)
+    || fragranceArchiveScore(b)-fragranceArchiveScore(a)
+    || (a.topTenDate || "").localeCompare(b.topTenDate || "")
+    || fragranceSortCompare(a,b);
+}
+function topFragrancePicks(){
+  return state.items.filter(x=>x.type==="fragrance" && x.topTen).sort(topFragranceCompare).slice(0,10);
+}
+function fragranceRatingControls(x){
+  const personal = fragrancePersonalRating(x);
+  const label = personal ? `Your ${personal}/5` : "Tap stars";
+  const stars = [1,2,3,4,5].map(n=>`<button type="button" class="star-btn ${personal>=n?"on":""}" data-frag-rating="${esc(x.id)}" data-rating="${n}" aria-label="Rate ${esc(itemLabel(x))} ${n} of 5">${icon("star")}</button>`).join("");
+  return `<div class="fragrance-controls">
+    <div><div class="star-rating">${stars}</div><div class="rating-label">${esc(label)}</div></div>
+    <button type="button" class="top-ten-toggle ${x.topTen?"on":""}" data-top-ten="${esc(x.id)}" aria-label="${x.topTen?"Remove from":"Add to"} Top 10">${icon("star")}Top 10</button>
+  </div>`;
+}
+function fragranceDetailControls(x){
+  return `<div class="fragrance-detail-controls">
+    <div class="panel-title">Personal Scent Rank</div>
+    ${fragranceRatingControls(x)}
+  </div>`;
+}
 function fragranceArchiveScore(x){
-  const rating = Number(x.rating || 0);
+  const rating = fragranceScoreRating(x);
   const ratingScore = rating ? Math.round((rating / 5) * 82) : 56;
   const projection = projectionPoints(x.projection);
   const bottle = /full bottle/i.test(x.size || "") ? 5 : /sample|decant/i.test(x.size || "") ? -3 : 0;
@@ -1794,14 +1870,15 @@ function fragranceTier(x){
   return "Test More";
 }
 function fragranceTopTenCard(){
-  const scents = state.items
-    .filter(x=>x.type==="fragrance")
-    .sort((a,b)=>fragranceArchiveScore(b)-fragranceArchiveScore(a) || `${a.brand} ${a.name}`.localeCompare(`${b.brand} ${b.name}`))
-    .slice(0,10);
   if(activeCategory !== "top10") return "";
+  const scents = topFragrancePicks();
+  const empty = !scents.length
+    ? `<div class="gap-item">No Top 10 scents picked yet. Tap <strong style="color:var(--gold)">Top 10</strong> on any fragrance card to build your personal shelf.</div>`
+    : "";
   return `<div class="judge-card" style="margin-bottom:12px">
-    <div class="panel-title">Top Fragrance Shelf</div>
-    <div class="gap-list">${scents.map((x,i)=>`<div class="gap-item"><strong style="color:var(--paper)">${i+1}. ${esc(itemLabel(x))}</strong><div style="margin-top:5px">${fragranceArchiveScore(x)}/100 · ${esc(fragranceTier(x))} · Rating ${Number(x.rating || 0).toFixed(1)} · ${esc(x.projection || "Projection TBD")}</div></div>`).join("")}</div>
+    <div class="panel-title">Your Top 10 Scent Shelf</div>
+    <div class="section-sub">${scents.length}/10 personally chosen</div>
+    <div class="gap-list">${empty}${scents.map((x,i)=>`<div class="gap-item"><strong style="color:var(--paper)">${i+1}. ${esc(itemLabel(x))}</strong><div style="margin-top:5px">Your ${fragrancePersonalRating(x) || "—"}/5 · ${fragranceArchiveScore(x)}/100 · ${esc(fragranceTier(x))} · ${esc(x.projection || "Projection TBD")}</div></div>`).join("")}</div>
   </div>`;
 }
 function weatherScentPanel(){
@@ -1886,14 +1963,16 @@ function card(x){
   const media = photo ? `<img src="${esc(photo)}" alt="">` : x.type==="fragrance" || x.category==="Fragrances" ? fragranceArt(x) : icon("image-plus");
   const source = sourceLinkButton(x);
   const meta = x.type === "fragrance"
-    ? `${esc(x.color || "—")} · ${esc(x.size || "—")}<br>${fragranceArchiveScore(x)}/100 · ${esc(fragranceTier(x))} · Rating ${Number(x.rating || 0).toFixed(1)}`
+    ? `${esc(x.color || "—")} · ${esc(x.size || "—")}<br>${fragranceArchiveScore(x)}/100 · ${esc(fragranceTier(x))} · Your ${fragrancePersonalRating(x) || "—"}/5`
     : `${esc(x.color || "—")}${x.size ? "<br>"+esc(x.size) : ""}${itemLayerLabel(x) ? "<br>"+esc(itemLayerLabel(x)) : ""}`;
+  const scentControls = x.type === "fragrance" ? fragranceRatingControls(x) : "";
   return `<article class="card ${cardClass}" data-id="${x.id}">
     <button class="card-media" data-photo-target="${x.id}" aria-label="Add or change photo for ${esc(x.name)}">${media}</button>
     <div class="card-body">
       <div class="eyebrow">${esc(x.brand)}</div>
       <div class="name">${esc(x.name)}</div>
       <div class="meta">${meta}</div>
+      ${scentControls}
       <div class="price-row"><div class="price">${x.price ? money.format(x.price) : "<small>TBD</small>"}</div><div class="eyebrow">${fmtMonth(x.date)}</div></div>
       ${x.type==="wishlist" ? wishActions(x) : wearActions(x,cpw)}
       <div class="mini-actions">${buildAroundButton(x)}${source}<button class="ghost" data-detail="${x.id}">${icon("eye")}Detail</button><button class="ghost" data-edit="${x.id}">${icon("pencil")}Edit</button></div>
@@ -1948,6 +2027,7 @@ function openDetail(id){
       <div class="detail-chip"><span>Worn</span><strong>${worn}x</strong></div>
       <div class="detail-chip"><span>Added</span><strong>${fmtMonth(x.date)}</strong></div>
     </div>
+    ${x.type==="fragrance" ? fragranceDetailControls(x) : ""}
     ${x.sourceUrl ? `<a class="primary" href="${esc(x.sourceUrl)}" target="_blank" rel="noreferrer" style="width:100%;margin-bottom:12px">${icon("external-link")}Open ${esc(sourceHost(x.sourceUrl))}</a>` : ""}
     ${x.notes ? `<div class="gap-item">${esc(x.notes)}</div>` : ""}
     <div class="panel-title" style="margin-top:14px">Best Pairings</div>
@@ -2060,7 +2140,7 @@ function mainPieces(){
     socks: pickPool("Socks"),
     hat: pickPool("Hats"),
     watch: pickPool("Watches"),
-    accessory: pickPool("Accessories"),
+    accessory: accessoryPool(),
     fragrance: state.items.filter(x=>x.type==="fragrance")
   };
 }
@@ -2089,7 +2169,7 @@ function slotLabel(slot){
 function slotPool(slot){
   if(slot==="fragrance") return state.items.filter(x=>x.type==="fragrance");
   if(slot==="hat") return pickPool("Hats");
-  if(slot==="accessory") return pickPool("Accessories");
+  if(slot==="accessory") return accessoryPool();
   if(slot==="baseLayer" || slot==="midLayer") return topPool(slot);
   if(slot==="outerwear") return state.items.filter(x=>x.type==="wardrobe" && allowedSlotsForItem(x).includes("outerwear"));
   const map={top:"Tops",outerwear:"Outerwear",bottoms:"Bottoms",shoes:"Shoes",socks:"Socks",watch:"Watches"};
@@ -2220,7 +2300,7 @@ function gapInsightCard(){
   </div>`;
 }
 function closetGaps(){
-  const counts = Object.fromEntries(["Tops","Bottoms","Outerwear","Shoes","Socks","Watches","Accessories","Hats"].map(c=>[c,pickPool(c).length]));
+  const counts = Object.fromEntries(["Tops","Bottoms","Outerwear","Shoes","Socks","Watches","Accessories","Bags","Hats"].map(c=>[c,pickPool(c).length]));
   const gaps = [];
   const summerTops = pickPool("Tops").filter(x=>/mesh|tank|tee|linen|poplin|slub|knit t-shirt/i.test(x.name)).length;
   const summerBottoms = pickPool("Bottoms").filter(x=>/short|linen|light|cream|white|tan|pull-on/i.test(`${x.name} ${x.color}`)).length;
@@ -2482,7 +2562,7 @@ async function suggestFragranceLayers(){
 async function aiSuggestFragranceLayers(season){
   const scents = state.items
     .filter(x=>x.type==="fragrance")
-    .map(x=>({brand:x.brand,name:x.name,season:x.color,type:x.size,notes:x.notes,projection:x.projection,rating:x.rating}))
+    .map(x=>({brand:x.brand,name:x.name,season:x.color,type:x.size,notes:x.notes,projection:x.projection,rating:x.rating,personalRating:x.personalRating||0,topTen:Boolean(x.topTen)}))
     .slice(0,90);
   const data = await openAiResponse({
     model:currentAiModel(),
@@ -2613,7 +2693,7 @@ async function suggestWeatherScent(){
 }
 async function aiSuggestWeatherScent(){
   const scents = ownedFragrances().map(x=>({
-    id:x.id,brand:x.brand,name:x.name,season:x.color,type:x.size,notes:x.notes,projection:x.projection,rating:x.rating
+    id:x.id,brand:x.brand,name:x.name,season:x.color,type:x.size,notes:x.notes,projection:x.projection,rating:x.rating,personalRating:x.personalRating||0,topTen:Boolean(x.topTen)
   })).slice(0,90);
   const data = await openAiResponse({
     model:currentAiModel(),
@@ -2901,6 +2981,29 @@ function changeWear(id,delta){
   save();
   render();
 }
+function setFragranceRating(id,rating){
+  const x = state.items.find(i=>i.id===id && i.type==="fragrance");
+  if(!x) return;
+  x.personalRating = Math.max(1, Math.min(5, Number(rating) || 1));
+  save();
+  render();
+  if(document.getElementById("detailModal").classList.contains("open")) openDetail(id);
+  toast(`Rated ${x.personalRating}/5`);
+}
+function toggleTopTen(id){
+  const x = state.items.find(i=>i.id===id && i.type==="fragrance");
+  if(!x) return;
+  if(!x.topTen && state.items.filter(i=>i.type==="fragrance" && i.topTen).length >= 10){
+    toast("Top 10 full");
+    return;
+  }
+  x.topTen = !x.topTen;
+  x.topTenDate = x.topTen ? new Date().toISOString() : "";
+  save();
+  render();
+  if(document.getElementById("detailModal").classList.contains("open")) openDetail(id);
+  toast(x.topTen ? "Added to Top 10" : "Removed from Top 10");
+}
 function acquire(id){
   const x = state.items.find(i=>i.id===id);
   if(!x) return;
@@ -3049,6 +3152,7 @@ function inferredCategory(x){
   if(/fragrance|parfum|perfume|edt|edp|extrait|cologne|attar|oil|scent split|roja|xerjoff|bdk|memo paris|tom ford|vibrato|aquatica|halfeti|naxos|spicebomb|gris charnel|obsidian|amber aoud|plum in cognac|palais imperial/.test(text)) return "Fragrances";
   if(/loafer|derby|slipper|clog|sneaker|boot|chelsea|shoe|footwear|lug sole|mule|sandal/.test(text)) return "Shoes";
   if(/sock/.test(text)) return "Socks";
+  if(/bag|backpack|keepall|duffle|duffel|tote/.test(text)) return "Bags";
   if(/hat|cap|beanie|bucket|earflap|summit hat|craggy/.test(text)) return "Hats";
   if(/watch|timex|pascal|moon phase|dial|strap/.test(text)) return "Watches";
   if(/belt|scarf|keychain|glove|wallet|tie\b/.test(text)) return "Accessories";
@@ -3123,6 +3227,7 @@ function allowedSlotsForItem(x){
   if(category==="Socks") return ["socks"];
   if(category==="Hats") return ["hat"];
   if(category==="Watches") return ["watch"];
+  if(category==="Bags") return ["accessory"];
   if(category==="Accessories") return ["accessory"];
   return [];
 }
@@ -3202,7 +3307,7 @@ function completeRequiredFitSlots(fit){
     fit.watch = smartWatchFor(fit) || smartPickFor(avoid(pickPool("Watches")), fit.shoes || fit.bottoms);
   }
   if(!fit.accessory){
-    fit.accessory = smartAccessoryFor(fit) || smartPickFor(avoid(pickPool("Accessories")), fit.shoes || fit.bottoms);
+    fit.accessory = smartAccessoryFor(fit) || smartPickFor(avoid(accessoryPool()), fit.shoes || fit.bottoms);
   }
   if(!fit.fragrance){
     fit.fragrance = smartFragrance() || randomFrom(state.items.filter(x=>x.type==="fragrance"));
@@ -3302,6 +3407,7 @@ function buildCandidateFit(){
   return completeRequiredFitSlots(fit);
 }
 function pickPool(category){ return state.items.filter(x=>x.type==="wardrobe" && inferredCategory(x)===category); }
+function accessoryPool(){ return state.items.filter(x=>x.type==="wardrobe" && ["Accessories","Bags"].includes(inferredCategory(x))); }
 function outerwearPool(){ return state.items.filter(x=>x.type==="wardrobe" && allowedSlotsForItem(x).includes("outerwear")); }
 function randomFrom(xs){ return xs.length ? xs[Math.floor(Math.random()*xs.length)] : null; }
 function smartPick(xs){
@@ -3356,7 +3462,7 @@ function smartWatchFor(fit){
   return randomFrom(pool.length ? pool : watches);
 }
 function smartAccessoryFor(fit){
-  const accs = pickPool("Accessories");
+  const accs = accessoryPool();
   if(!accs.length) return null;
   const anchor = fit.shoes || fit.bottoms || fit.hat || layerAnchor(fit);
   let pool = anchor ? accs.map(x=>({x,score:pairScore(anchor,x)})).sort((a,b)=>b.score-a.score).slice(0,10).map(v=>v.x) : accs;
@@ -3425,7 +3531,7 @@ async function aiBuildFitAround(anchor, weather, anchorSlot, feedback=""){
   const slots = ["baseLayer","midLayer","outerwear","bottoms","shoes","socks","hat","watch","accessory","fragrance"];
   const data = await openAiResponse({
     model:currentAiModel(),
-    instructions:"You build practical but stylish men's outfits from the user's own closet. "+AI_STYLE_PROFILE+" Your target is an 85/100 or better outfit, not merely a complete outfit. Choose item ids only from closetOptions and only place an item in one of its allowedSlots. Mandatory outfit slots: choose at least one real shirt/top in baseLayer or midLayer, and always choose bottoms, shoes, socks, hat, watch, accessory, and fragrance. Never leave pants/bottoms empty. Outerwear is optional and should only appear when it improves the weather/layering logic. Accessory should strongly prefer a belt when a belt works with the shoes. Hard slot rules: fragrance items can only go in fragrance; Bottoms can only go in bottoms; Shoes only in shoes; Socks only in socks; Hats only in hat; Watches only in watch; Accessories only in accessory; Outerwear only in outerwear; Tops marked baseLayer only touch the body; Tops marked midLayer are sweaters/hoodies/knits/quarter zips over base. Respect layer order: baseLayer touches body, midLayer is a sweater/hoodie/knit/quarter zip over base, outerwear is a jacket/coat over both. Do not put a jacket-like mid layer under another jacket unless it is cold enough and the proportions make sense. Weather matters: 55-65F usually wants two visible layers, not base + sweater + jacket, unless rain/wind/snow demands protection. Do not pair summer mesh/tank/camp/linen base layers under wool/cable/mohair/sherpa layers. Warm temps need breathable base layers and lighter scents; at 64F or below, avoid bright summer fragrances like Vibrato unless the user asks for fresh and prefer woody/amber/tea/tobacco/leather warmth. Choose fragrance with weather and palette in mind: a warm amber, boozy, tobacco, leather, tea, or woody scent can be fire on a 50-60F dry day because it adds warmth and contrast against olive, black, cream, grey, or brown clothes; bright aquatic/citrus scents are mostly warm-weather choices unless intentionally used for contrast. Hats and watches are separate slots; the user commonly wears both. Fragrance should fit the temperature. Make one confident, high-cohesion choice per required slot.",
+    instructions:"You build practical but stylish men's outfits from the user's own closet. "+AI_STYLE_PROFILE+" Your target is an 85/100 or better outfit, not merely a complete outfit. Choose item ids only from closetOptions and only place an item in one of its allowedSlots. Mandatory outfit slots: choose at least one real shirt/top in baseLayer or midLayer, and always choose bottoms, shoes, socks, hat, watch, accessory, and fragrance. Never leave pants/bottoms empty. Outerwear is optional and should only appear when it improves the weather/layering logic. Accessory should strongly prefer a belt when a belt works with the shoes, but bags can also live in the accessory slot. Hard slot rules: fragrance items can only go in fragrance; Bottoms can only go in bottoms; Shoes only in shoes; Socks only in socks; Hats only in hat; Watches only in watch; Accessories and Bags only in accessory; Outerwear only in outerwear; Tops marked baseLayer only touch the body; Tops marked midLayer are sweaters/hoodies/knits/quarter zips over base. Respect layer order: baseLayer touches body, midLayer is a sweater/hoodie/knit/quarter zip over base, outerwear is a jacket/coat over both. Do not put a jacket-like mid layer under another jacket unless it is cold enough and the proportions make sense. Weather matters: 55-65F usually wants two visible layers, not base + sweater + jacket, unless rain/wind/snow demands protection. Do not pair summer mesh/tank/camp/linen base layers under wool/cable/mohair/sherpa layers. Warm temps need breathable base layers and lighter scents; at 64F or below, avoid bright summer fragrances like Vibrato unless the user asks for fresh and prefer woody/amber/tea/tobacco/leather warmth. Choose fragrance with weather and palette in mind: a warm amber, boozy, tobacco, leather, tea, or woody scent can be fire on a 50-60F dry day because it adds warmth and contrast against olive, black, cream, grey, or brown clothes; bright aquatic/citrus scents are mostly warm-weather choices unless intentionally used for contrast. Hats and watches are separate slots; the user commonly wears both. Fragrance should fit the temperature. Make one confident, high-cohesion choice per required slot.",
     text:{
       format:{
         type:"json_schema",
@@ -3933,7 +4039,7 @@ function poolForSlot(slot){
   if(slot==="socks") return pickPool("Socks");
   if(slot==="hat") return pickPool("Hats");
   if(slot==="watch") return pickPool("Watches");
-  if(slot==="accessory") return pickPool("Accessories");
+  if(slot==="accessory") return accessoryPool();
   if(slot==="fragrance") return state.items.filter(x=>x.type==="fragrance");
   return [];
 }
@@ -4056,7 +4162,7 @@ function normalizeLegacyFrag(x){
     id:uid(), type:"fragrance", brand:x.house || "", name:x.name || "", color:x.season || "all",
     size:x.type || "", price:Number(x.price)||0, date:new Date().toISOString().slice(0,7),
     category:"Fragrances", wears:0, photo:"", notes:x.est ? "Retail estimate" : "",
-    projection:x.projection || "", rating:x.rating || 0
+    projection:x.projection || "", rating:x.rating || 0, personalRating:0, topTen:false
   };
 }
 function normalizeLegacyWish(x){
@@ -4083,6 +4189,10 @@ document.addEventListener("click", e => {
   if(sort){ wardrobeSortMode = sort.dataset.sort; render(); return; }
   const close = e.target.closest("[data-close]");
   if(close){ closeModal(close.dataset.close); return; }
+  const fragRating = e.target.closest("[data-frag-rating]");
+  if(fragRating){ setFragranceRating(fragRating.dataset.fragRating, fragRating.dataset.rating); return; }
+  const topTen = e.target.closest("[data-top-ten]");
+  if(topTen){ toggleTopTen(topTen.dataset.topTen); return; }
   const photoTarget = e.target.closest("[data-photo-target]");
   if(photoTarget){ choosePhotoForItem(photoTarget.dataset.photoTarget); return; }
   const edit = e.target.closest("[data-edit]");
