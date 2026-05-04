@@ -1,7 +1,40 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
-  <rect width="512" height="512" rx="112" fill="#07100c"/>
-  <rect x="58" y="58" width="396" height="396" rx="88" fill="#143629" stroke="#c07a3d" stroke-width="14"/>
-  <path d="M170 338c28-64 44-118 49-162h74c5 44 21 98 49 162" fill="none" stroke="#f6ecd8" stroke-width="24" stroke-linecap="round" stroke-linejoin="round"/>
-  <path d="M196 176c0-34 26-59 60-59s60 25 60 59" fill="none" stroke="#c07a3d" stroke-width="22" stroke-linecap="round"/>
-  <path d="M166 338h180" stroke="#c07a3d" stroke-width="22" stroke-linecap="round"/>
+  <defs>
+    <linearGradient id="bg" x1="76" y1="34" x2="436" y2="478" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#183c2e"/>
+      <stop offset="0.54" stop-color="#0d241a"/>
+      <stop offset="1" stop-color="#070f0b"/>
+    </linearGradient>
+    <linearGradient id="cognac" x1="130" y1="106" x2="388" y2="420" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#e1b16e"/>
+      <stop offset="0.44" stop-color="#b76f36"/>
+      <stop offset="1" stop-color="#6f3e22"/>
+    </linearGradient>
+    <linearGradient id="paper" x1="178" y1="126" x2="330" y2="380" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#fff6e5"/>
+      <stop offset="1" stop-color="#d7c39e"/>
+    </linearGradient>
+    <filter id="shadow" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="18" stdDeviation="18" flood-color="#000000" flood-opacity="0.36"/>
+    </filter>
+  </defs>
+
+  <rect width="512" height="512" rx="116" fill="#07100c"/>
+  <rect x="42" y="42" width="428" height="428" rx="96" fill="url(#bg)" stroke="#c07a3d" stroke-width="12"/>
+  <rect x="70" y="70" width="372" height="372" rx="72" fill="none" stroke="#54784d" stroke-width="3" opacity="0.5"/>
+
+  <g filter="url(#shadow)">
+    <path d="M256 126c-35 0-63 25-63 57" fill="none" stroke="url(#cognac)" stroke-width="20" stroke-linecap="round"/>
+    <path d="M256 126c35 0 63 25 63 57" fill="none" stroke="url(#cognac)" stroke-width="20" stroke-linecap="round"/>
+    <path d="M256 116v43" stroke="#f6ecd8" stroke-width="18" stroke-linecap="round"/>
+    <path d="M178 375c29-61 47-124 53-188h50c6 64 24 127 53 188" fill="none" stroke="url(#paper)" stroke-width="28" stroke-linecap="round" stroke-linejoin="round"/>
+    <path d="M196 375h120" stroke="url(#cognac)" stroke-width="24" stroke-linecap="round"/>
+    <path d="M231 187l25 45 25-45" fill="none" stroke="#c07a3d" stroke-width="16" stroke-linecap="round" stroke-linejoin="round"/>
+    <path d="M256 235v104" stroke="#f6ecd8" stroke-width="12" stroke-linecap="round" opacity="0.92"/>
+  </g>
+
+  <g>
+    <path d="M356 138l9 25 25 9-25 9-9 25-9-25-25-9 25-9z" fill="#d1a35e"/>
+    <path d="M158 148l6 16 16 6-16 6-6 16-6-16-16-6 16-6z" fill="#f6ecd8" opacity="0.9"/>
+  </g>
 </svg>

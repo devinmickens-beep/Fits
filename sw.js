@@ -3,7 +3,8 @@ const APP_SHELL = [
   "/",
   "/index.html",
   "/manifest.webmanifest",
-  "/icon.svg"
+  "/icon.svg",
+  "/apple-touch-icon.png"
 ];
 
 self.addEventListener("install", event => {
