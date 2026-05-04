@@ -145,6 +145,7 @@ h1{font-family:var(--serif);font-weight:400;font-size:30px;line-height:1;margin:
   gap:8px;
   padding:0 13px;
   white-space:nowrap;
+  text-decoration:none;
 }
 .primary{background:linear-gradient(180deg,#a46232,#643820);border-color:#b87842;color:#170b05;font-weight:500;box-shadow:inset 0 1px 0 rgba(255,222,170,.2)}
 .ghost{color:var(--muted)}
@@ -597,7 +598,8 @@ label{display:grid;gap:5px;color:var(--muted);font-size:8px;text-transform:upper
         </div>
         <input id="photoFile" type="file" accept="image/*" style="display:none">
         <input id="fPhoto" type="hidden">
-        <label class="full">Notes<textarea class="area" id="fNotes" placeholder="Fit notes, styling ideas, condition, link, etc."></textarea></label>
+        <label class="full">Product Link<input class="field" id="fUrl" type="url" inputmode="url" placeholder="https://..."></label>
+        <label class="full">Notes<textarea class="area" id="fNotes" placeholder="Fit notes, styling ideas, condition, etc."></textarea></label>
       </div>
       <div class="modal-actions">
         <button type="button" class="ghost" id="deleteItem"><i data-lucide="trash-2"></i>Delete</button>
@@ -606,6 +608,24 @@ label{display:grid;gap:5px;color:var(--muted);font-size:8px;text-transform:upper
       </div>
     </div>
   </form>
+</div>
+
+<div class="modal-wrap" id="linkModal" role="dialog" aria-modal="true">
+  <div class="modal">
+    <div class="modal-head">
+      <div class="modal-title">Add Wish From Link</div>
+      <button type="button" class="icon-btn" data-close="linkModal" aria-label="Close"><i data-lucide="x"></i></button>
+    </div>
+    <div class="modal-body">
+      <label>Product Link<input class="field" id="wishLink" type="url" inputmode="url" placeholder="https://..."></label>
+      <small style="display:block;margin-top:10px;color:var(--muted);line-height:1.6">Paste a product page. AI will try to fill brand, item, price, category, notes, and a photo. The link stays saved on the wishlist card.</small>
+      <div class="modal-actions">
+        <button type="button" class="ghost" data-close="linkModal">Cancel</button>
+        <button type="button" class="ghost" id="saveWishLinkOnly"><i data-lucide="link"></i>Save Link Only</button>
+        <button type="button" class="primary" id="analyzeWishLink"><i data-lucide="sparkles"></i>AI Add Wish</button>
+      </div>
+    </div>
+  </div>
 </div>
 
 <div class="modal-wrap" id="detailModal" role="dialog" aria-modal="true">
@@ -732,7 +752,7 @@ const tabs = [
 ];
 const releaseNotes = [
   "Deep green, cognac, cream, navy, and espresso interface palette.",
-  "Full v32 wardrobe seed with 152 clothing pieces and 21 fragrances.",
+  "Full v34 wardrobe seed with 152 clothing pieces and 21 fragrances.",
   "Photo-first add flow with phone camera upload and saved item photos.",
   "AI Identify can fill item fields from a photo when an API key is saved.",
   "Item detail pages with CPW, wear count, notes, and best pairings.",
@@ -1221,7 +1241,7 @@ let currentWeatherScent = null;
 let wardrobeSortMode = "recent";
 
 function item(type,brand,name,color,size,price,date,category,extra={}){
-  return {id:uid(),type,brand,name,color,size,price:Number(price)||0,date,category,wears:0,photo:"",notes:"",...extra};
+  return {id:uid(),type,brand,name,color,size,price:Number(price)||0,date,category,wears:0,photo:"",notes:"",sourceUrl:"",...extra};
 }
 function uid(){
   if(window.crypto && typeof crypto.randomUUID === "function") return crypto.randomUUID();
@@ -1255,6 +1275,14 @@ function shouldRefreshStarterPhoto(item, photo){
 }
 function displayPhoto(x){
   return normalizePhotoPath(x.photo || starterPhotoFor(x));
+}
+function sameCatalogItem(a,b){
+  return String(a.brand || "").toLowerCase() === String(b.brand || "").toLowerCase()
+    && String(a.name || "").toLowerCase() === String(b.name || "").toLowerCase();
+}
+function acquiredSeedWishExists(existing, seedItem){
+  if(seedItem.type !== "wishlist") return false;
+  return existing.items.some(x => x.type !== "wishlist" && sameCatalogItem(x, seedItem));
 }
 function load(){
   try{
@@ -1304,6 +1332,11 @@ function upgradeState(existing){
       x.photo = normalizedPhoto;
       changed = true;
     }
+    const normalizedUrl = normalizeUrl(x.sourceUrl);
+    if(normalizedUrl !== (x.sourceUrl || "")){
+      x.sourceUrl = normalizedUrl;
+      changed = true;
+    }
     if(x.type === "wardrobe" && x.category === "Accessories" && /sock/i.test(`${x.name} ${x.brand}`)){
       x.category = "Socks";
       changed = true;
@@ -1323,14 +1356,15 @@ function upgradeState(existing){
   });
   const seen = new Set(existing.items.map(itemKey));
   seed.items.forEach(seedItem => {
-    if(!seen.has(itemKey(seedItem))){
+    if(!seen.has(itemKey(seedItem)) && !acquiredSeedWishExists(existing, seedItem)){
       existing.items.push(structuredClone(seedItem));
       changed = true;
     }
   });
-  const bodaciousKey = itemKey({type:"wishlist",brand:"Boadicea The Victorious",name:"Bodacious",color:"Full Bottle",size:"100 ml",category:"Fragrances"});
-  if(!seen.has(bodaciousKey)){
-    existing.items.push(item("wishlist","Boadicea The Victorious","Bodacious","Full Bottle","100 ml",0,"2026-04","Fragrances",{notes:"Upgrade from 10 ml. Wishlist full bottle.",photo:"assets/photos/photo-078-bodacious.jpg"}));
+  const bodaciousWish = item("wishlist","Boadicea The Victorious","Bodacious","Full Bottle","100 ml",0,"2026-04","Fragrances",{notes:"Upgrade from 10 ml. Wishlist full bottle.",photo:"assets/photos/photo-078-bodacious.jpg"});
+  const bodaciousKey = itemKey(bodaciousWish);
+  if(!seen.has(bodaciousKey) && !acquiredSeedWishExists(existing, bodaciousWish)){
+    existing.items.push(bodaciousWish);
     changed = true;
   }
   existing.items.forEach(x => {
@@ -1350,6 +1384,28 @@ function upgradeState(existing){
 }
 function itemKey(x){
   return [x.type,x.brand,x.name,x.color,x.size,x.category].map(v=>String(v||"").toLowerCase()).join("::");
+}
+function normalizeUrl(url){
+  const raw = String(url || "").trim();
+  if(!raw) return "";
+  try{
+    const withProtocol = /^https?:\/\//i.test(raw) ? raw : "https://" + raw;
+    const parsed = new URL(withProtocol);
+    if(!/^https?:$/i.test(parsed.protocol)) return "";
+    return parsed.href;
+  }catch(e){
+    return raw;
+  }
+}
+function sourceHost(url){
+  try{
+    return new URL(url).hostname.replace(/^www\./,"");
+  }catch(e){
+    return "Product link";
+  }
+}
+function firstUrlFromText(text){
+  return String(text || "").match(/https?:\/\/[^\s"'<>]+/i)?.[0] || "";
 }
 function save(){
   try{
@@ -1445,10 +1501,10 @@ function renderCollection(type){
   const items = filtered(type);
   const value = items.reduce((s,x)=>s+(x.price||0),0);
   const add = type === "wishlist"
-    ? `<div class="toolbar"><button class="ghost" data-action="rateWishlist">${icon("sparkles")}AI Rate Wishlist</button><button class="primary" data-action="add">${icon("plus")}Add</button></div>`
+    ? `<div class="toolbar"><button class="ghost" data-action="rateWishlist">${icon("sparkles")}AI Rate Wishlist</button><button class="ghost" data-action="addWishLink">${icon("link")}Add Link</button><button class="primary" data-action="add">${icon("plus")}Add</button></div>`
     : `<button class="primary" data-action="add">${icon("plus")}Add</button>`;
   document.getElementById("view").innerHTML =
-    header(names[type], `${items.length} items · ${money.format(value)} archive value · v32`, add) +
+    header(names[type], `${items.length} items · ${money.format(value)} archive value · v34`, add) +
     renderPills(type) +
     renderSortControls(type) +
     (type==="wishlist" ? wishlistActions() : "") +
@@ -1458,7 +1514,7 @@ function renderCollection(type){
 }
 function wishlistActions(){
   const label = currentWishlistInsight ? "Rate Again" : "AI Rate Wishlist";
-  return `<div class="wishlist-actions"><button class="ghost" data-action="rateWishlist">${icon("sparkles")}${label}</button><button class="primary" data-action="add">${icon("plus")}Add Wish</button></div>`;
+  return `<div class="wishlist-actions"><button class="ghost" data-action="rateWishlist">${icon("sparkles")}${label}</button><button class="ghost" data-action="addWishLink">${icon("link")}Add Link</button><button class="primary" data-action="add">${icon("plus")}Add Wish</button></div>`;
 }
 function wishlistInsightCard(){
   if(!currentWishlistInsight) return "";
@@ -1579,6 +1635,7 @@ function card(x){
   const cardClass = x.type==="fragrance" ? "fragrance-card" : x.type==="wishlist" && x.category==="Fragrances" ? "wishlist-fragrance-card" : "";
   const photo = displayPhoto(x);
   const media = photo ? `<img src="${esc(photo)}" alt="">` : x.type==="fragrance" || x.category==="Fragrances" ? fragranceArt(x) : icon("image-plus");
+  const source = sourceLinkButton(x);
   return `<article class="card ${cardClass}" data-id="${x.id}">
     <button class="card-media" data-photo-target="${x.id}" aria-label="Add or change photo for ${esc(x.name)}">${media}</button>
     <div class="card-body">
@@ -1587,9 +1644,12 @@ function card(x){
       <div class="meta">${esc(x.color || "—")}${x.size ? "<br>"+esc(x.size) : ""}</div>
       <div class="price-row"><div class="price">${x.price ? money.format(x.price) : "<small>TBD</small>"}</div><div class="eyebrow">${fmtMonth(x.date)}</div></div>
       ${x.type==="wishlist" ? wishActions(x) : wearActions(x,cpw)}
-      <div class="mini-actions">${buildAroundButton(x)}<button class="ghost" data-detail="${x.id}">${icon("eye")}Detail</button><button class="ghost" data-edit="${x.id}">${icon("pencil")}Edit</button></div>
+      <div class="mini-actions">${buildAroundButton(x)}${source}<button class="ghost" data-detail="${x.id}">${icon("eye")}Detail</button><button class="ghost" data-edit="${x.id}">${icon("pencil")}Edit</button></div>
     </div>
   </article>`;
+}
+function sourceLinkButton(x){
+  return x.sourceUrl ? `<a class="ghost" href="${esc(x.sourceUrl)}" target="_blank" rel="noreferrer">${icon("external-link")}${x.type==="wishlist" ? "Buy" : "Link"}</a>` : "";
 }
 function wearActions(x,cpw){
   return `<div class="wear">
@@ -1630,6 +1690,7 @@ function openDetail(id){
       <div class="detail-chip"><span>Worn</span><strong>${worn}x</strong></div>
       <div class="detail-chip"><span>Added</span><strong>${fmtMonth(x.date)}</strong></div>
     </div>
+    ${x.sourceUrl ? `<a class="primary" href="${esc(x.sourceUrl)}" target="_blank" rel="noreferrer" style="width:100%;margin-bottom:12px">${icon("external-link")}Open ${esc(sourceHost(x.sourceUrl))}</a>` : ""}
     ${x.notes ? `<div class="gap-item">${esc(x.notes)}</div>` : ""}
     <div class="panel-title" style="margin-top:14px">Best Pairings</div>
     <div class="gap-list">${pairs.map(p=>`<div class="gap-item">${esc(p.brand)} — ${esc(p.name)} <span style="color:var(--faint)">(${esc(p.color)})</span></div>`).join("") || `<div class="gap-item">Add more pieces to generate pairing ideas.</div>`}</div>
@@ -2349,6 +2410,7 @@ function openItem(id=null,presetType=activeTab){
   pendingPhoto = x.photo || "";
   document.getElementById("fPhoto").value = pendingPhoto;
   renderPhotoPreview();
+  document.getElementById("fUrl").value = x.sourceUrl || "";
   document.getElementById("fNotes").value = x.notes || "";
   document.getElementById("deleteItem").style.display = id ? "inline-flex" : "none";
   document.getElementById("itemModal").classList.add("open");
@@ -2361,7 +2423,7 @@ function submitItem(e){
   const data = {
     type:fType.value, category:fCategory.value, brand:fBrand.value.trim(), name:fName.value.trim(),
     color:fColor.value.trim(), size:fSize.value.trim(), price:Number(fPrice.value)||0,
-    date:fDate.value || new Date().toISOString().slice(0,7), photo:pendingPhoto || "", notes:fNotes.value.trim()
+    date:fDate.value || new Date().toISOString().slice(0,7), photo:pendingPhoto || "", sourceUrl:normalizeUrl(fUrl.value), notes:fNotes.value.trim()
   };
   if(!data.brand || !data.name) return;
   if(editingId){
@@ -2457,6 +2519,92 @@ async function identifyPhoto(){
   }catch(e){
     toast(e.message || "AI needs internet/key");
   }
+}
+function openWishLink(prefill=""){
+  document.getElementById("wishLink").value = normalizeUrl(prefill);
+  document.getElementById("linkModal").classList.add("open");
+  setTimeout(()=>document.getElementById("wishLink").focus(),40);
+  hydrateIcons();
+}
+function saveWishFromLinkOnly(){
+  const url = normalizeUrl(document.getElementById("wishLink").value);
+  if(!url){ toast("Paste a link"); return; }
+  const host = sourceHost(url);
+  const wish = item("wishlist", host, "Wish item from link", "", "", 0, new Date().toISOString().slice(0,7), "Wishlist", {
+    sourceUrl:url,
+    notes:"Added from product link. Edit after reviewing."
+  });
+  state.items.unshift(wish);
+  if(!save()) return;
+  closeModal("linkModal");
+  activeTab = "wishlist";
+  activeCategory = "All";
+  render();
+  toast("Link saved");
+}
+async function analyzeWishLink(){
+  const url = normalizeUrl(document.getElementById("wishLink").value);
+  if(!url){ toast("Paste a link"); return; }
+  toast("Reading link...");
+  try{
+    const data = await aiWishFromUrl(url);
+    const wish = item("wishlist",
+      data.brand || sourceHost(url),
+      data.name || "Wish item from link",
+      data.color || "",
+      data.size || "",
+      Number(data.price) || 0,
+      new Date().toISOString().slice(0,7),
+      data.category || "Wishlist",
+      {
+        sourceUrl:url,
+        photo:normalizeUrl(data.photoUrl) || "",
+        notes:data.notes || `Added from ${sourceHost(url)}.`
+      }
+    );
+    state.items.unshift(wish);
+    if(!save()) return;
+    closeModal("linkModal");
+    activeTab = "wishlist";
+    activeCategory = "All";
+    render();
+    toast("Wish added");
+  }catch(e){
+    saveWishFromLinkOnly();
+    toast("Saved link only");
+  }
+}
+async function aiWishFromUrl(url){
+  const data = await openAiResponse({
+    model:currentAiModel(),
+    tools:[{type:"web_search_preview"}],
+    instructions:"You identify fashion, fragrance, bag, shoe, accessory, and menswear wishlist items from a product URL. Use web search if needed. Return only valid JSON. If the page is unavailable, infer only from the URL and keep uncertain fields broad. Category must be one of Tops, Bottoms, Outerwear, Shoes, Hats, Socks, Accessories, Bags, Watches, Fragrances, or Wishlist. photoUrl should be a direct product image URL only when reasonably available; otherwise empty string.",
+    text:{
+      format:{
+        type:"json_schema",
+        name:"wishlist_item_from_url",
+        strict:true,
+        schema:{
+          type:"object",
+          additionalProperties:false,
+          properties:{
+            brand:{type:"string"},
+            name:{type:"string"},
+            color:{type:"string"},
+            size:{type:"string"},
+            category:{type:"string"},
+            price:{type:"number"},
+            photoUrl:{type:"string"},
+            notes:{type:"string"}
+          },
+          required:["brand","name","color","size","category","price","photoUrl","notes"]
+        }
+      }
+    },
+    input:[{role:"user",content:[{type:"input_text",text:"Create one wishlist item from this product URL for a closet archive app. URL: "+url}]}]
+  });
+  const text = data.output_text || data.output?.flatMap(o=>o.content||[]).map(c=>c.text||"").join("") || "";
+  return JSON.parse(text.replace(/^```json|```$/g,"").trim());
 }
 function removePhoto(){
   pendingPhoto = "";
@@ -3686,6 +3834,7 @@ document.addEventListener("click", e => {
   if(weatherOccasion){ weatherScentPrefs.occasion = weatherOccasion.dataset.weatherOccasion; currentWeatherScent = null; render(); return; }
   const action = e.target.closest("[data-action]")?.dataset.action;
   if(action === "add") openItem();
+  if(action === "addWishLink") openWishLink();
   if(action === "clearSearch"){ clearSearch(); render(); }
   if(action === "random") randomFit();
   if(action === "judgeFit") judgeFit();
@@ -3723,6 +3872,8 @@ document.getElementById("uploadPhoto").addEventListener("click", choosePhoto);
 document.getElementById("photoPreview").addEventListener("click", choosePhoto);
 document.getElementById("identifyPhoto").addEventListener("click", identifyPhoto);
 document.getElementById("removePhoto").addEventListener("click", removePhoto);
+document.getElementById("analyzeWishLink").addEventListener("click", analyzeWishLink);
+document.getElementById("saveWishLinkOnly").addEventListener("click", saveWishFromLinkOnly);
 document.getElementById("weatherTemp").addEventListener("input", updateWeatherLabel);
 document.getElementById("weatherCondition").addEventListener("change", updateWeatherLabel);
 document.getElementById("localWeatherBuild").addEventListener("click", ()=>buildAroundWithWeather(false));
@@ -3735,12 +3886,23 @@ document.getElementById("copyArchive").addEventListener("click", async()=>{
   await navigator.clipboard.writeText(archiveText.value);
   toast("Copied");
 });
+function handleSharedLinkLaunch(){
+  const params = new URLSearchParams(location.search);
+  const sharedUrl = normalizeUrl(params.get("url") || firstUrlFromText(params.get("text")) || "");
+  if(!sharedUrl) return;
+  activeTab = "wishlist";
+  activeCategory = "All";
+  render();
+  openWishLink(sharedUrl);
+  history.replaceState(null, "", location.pathname + location.hash);
+}
 if("serviceWorker" in navigator && location.protocol.indexOf("http") === 0){
   window.addEventListener("load", () => {
     navigator.serviceWorker.register("/sw.js").then(reg => reg.update()).catch(() => {});
   });
 }
 render();
+handleSharedLinkLaunch();
 </script>
 </body>
 </html>

@@ -8,6 +8,16 @@
   "background_color": "#07100c",
   "theme_color": "#07100c",
   "orientation": "portrait",
+  "share_target": {
+    "action": "/index.html",
+    "method": "GET",
+    "enctype": "application/x-www-form-urlencoded",
+    "params": {
+      "title": "title",
+      "text": "text",
+      "url": "url"
+    }
+  },
   "icons": [
     {
       "src": "/icon.svg",
