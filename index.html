@@ -407,6 +407,7 @@ h1{font-family:var(--serif);font-weight:400;font-size:30px;line-height:1;margin:
 .panel-title{font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.18em;margin-bottom:10px}
 .slot-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:8px}
 .slot{
+  position:relative;
   min-height:86px;
   border:1px dashed var(--line-2);
   border-radius:8px;
@@ -416,6 +417,11 @@ h1{font-family:var(--serif);font-weight:400;font-size:30px;line-height:1;margin:
   color:var(--muted);
 }
 .slot.filled{border-style:solid;background:linear-gradient(180deg,#1b3825,#14291c);color:var(--text)}
+.slot-clear{
+  position:absolute;right:8px;top:8px;width:30px;height:30px;border:1px solid var(--line);
+  border-radius:999px;display:grid;place-items:center;background:rgba(7,17,11,.72);
+  color:var(--paper);font-size:18px;line-height:1;
+}
 .slot-photo{
   width:46px;height:46px;border:1px solid var(--line-2);border-radius:7px;
   background:#0c0b09;display:grid;place-items:center;color:var(--faint);
@@ -752,7 +758,7 @@ const tabs = [
 ];
 const releaseNotes = [
   "Deep green, cognac, cream, navy, and espresso interface palette.",
-  "Full v37 wardrobe seed with 152 clothing pieces, 21 fragrances, expanded photos, and duplicate cleanup.",
+  "Full v38 wardrobe seed with 152 clothing pieces, 21 fragrances, explicit layering, and duplicate cleanup.",
   "Photo-first add flow with phone camera upload and saved item photos.",
   "AI Identify can fill item fields from a photo when an API key is saved.",
   "Item detail pages with CPW, wear count, notes, and best pairings.",
@@ -1287,7 +1293,6 @@ const seed = {
     ...rowsToItems(wardrobeRows,"wardrobe"),
     ...rowsToFrags(fragranceRows),
     item("wishlist","Saint Laurent","Le Loafer Supple in Eel","Scotch Brown","EU 43 / US 10",1350,"2026-04","Shoes",{notes:"Eel leather, gold monogram buckle."}),
-    item("wishlist","Adello","Adello EDP","all","Full Bottle",0,"2026-04","Fragrances",{notes:"Been on rotation as a sample."}),
     item("wishlist","Boadicea The Victorious","Bodacious","Full Bottle","100 ml",0,"2026-04","Fragrances",{notes:"Upgrade from 10 ml. Wishlist full bottle.",photo:"assets/photos/photo-078-bodacious.jpg"})
   ],
   outfits:[]
@@ -1381,6 +1386,9 @@ function dismissSeedWish(existing, x){
 function acquiredSeedWishExists(existing, seedItem){
   if(seedItem.type !== "wishlist") return false;
   return existing.items.some(x => x.type !== "wishlist" && sameCatalogItem(x, seedItem));
+}
+function isRemovedWishlistItem(x){
+  return x?.type === "wishlist" && catalogNameKey(x) === "adello::adello edp";
 }
 function photoStrength(photo){
   const value = normalizePhotoPath(photo);
@@ -1515,6 +1523,11 @@ function upgradeState(existing){
       changed = true;
     }
   });
+  const withoutRemoved = existing.items.filter(x => !isRemovedWishlistItem(x));
+  if(withoutRemoved.length !== existing.items.length){
+    existing.items = withoutRemoved;
+    changed = true;
+  }
   const deduped = dedupeItems(existing.items);
   if(deduped.changed){
     existing.items = deduped.items;
@@ -1597,20 +1610,41 @@ function toast(msg){
 }
 function filtered(type=activeTab){
   const q = document.getElementById("search").value.trim().toLowerCase();
+  const topFragranceIds = type === "fragrance" && activeCategory === "top10"
+    ? new Set(state.items.filter(x=>x.type==="fragrance").sort((a,b)=>fragranceArchiveScore(b)-fragranceArchiveScore(a)).slice(0,10).map(x=>x.id))
+    : null;
   const results = state.items
     .filter(x => x.type === type)
-    .filter(x => activeCategory === "All" || x.category === activeCategory || x.color === activeCategory || x.size === activeCategory)
+    .filter(x => matchesCollectionFilter(x,type,activeCategory,topFragranceIds))
     .filter(x => !q || [x.brand,x.name,x.color,x.size,x.category,x.notes].join(" ").toLowerCase().includes(q))
     .sort((a,b)=>{
-      if(type === "fragrance") return `${a.brand} ${a.name}`.localeCompare(`${b.brand} ${b.name}`);
+      if(type === "fragrance"){
+        if(activeCategory === "top10") return fragranceArchiveScore(b)-fragranceArchiveScore(a) || `${a.brand} ${a.name}`.localeCompare(`${b.brand} ${b.name}`);
+        return `${a.brand} ${a.name}`.localeCompare(`${b.brand} ${b.name}`);
+      }
       if(type === "wardrobe"){
         if(wardrobeSortMode === "abc") return `${a.brand} ${a.name}`.localeCompare(`${b.brand} ${b.name}`);
         if(wardrobeSortMode === "type") return `${inferredCategory(a)} ${a.brand} ${a.name}`.localeCompare(`${inferredCategory(b)} ${b.brand} ${b.name}`);
         if(wardrobeSortMode === "price") return (b.price||0)-(a.price||0) || `${a.brand} ${a.name}`.localeCompare(`${b.brand} ${b.name}`);
       }
       return (b.date||"").localeCompare(a.date||"") || b.price-a.price;
-    });
+  });
   return results;
+}
+function matchesCollectionFilter(x,type,category,topFragranceIds=null){
+  if(category === "All") return true;
+  if(type === "fragrance"){
+    if(category === "top10") return topFragranceIds?.has(x.id);
+    if(category === "beast") return /beast|high/i.test(x.projection || "");
+    if(category === "sample") return /sample|decant|attar|oil|dupe/i.test(x.size || "");
+    return x.color === category || x.size === category || x.category === category;
+  }
+  if(type === "wardrobe"){
+    if(category === "Base Layer") return allowedSlotsForItem(x).includes("baseLayer");
+    if(category === "Mid Layer") return allowedSlotsForItem(x).includes("midLayer");
+    if(category === "Outer Layer") return allowedSlotsForItem(x).includes("outerwear");
+  }
+  return x.category === category || x.color === category || x.size === category;
 }
 function clearSearch(){
   const search = document.getElementById("search");
@@ -1647,6 +1681,11 @@ function header(title,sub,actions=""){
 }
 function categoriesFor(type){
   const labels = new Set(["All"]);
+  if(type === "wardrobe"){
+    labels.add("Base Layer");
+    labels.add("Mid Layer");
+    labels.add("Outer Layer");
+  }
   state.items.filter(x=>x.type===type).forEach(x=>labels.add(type==="fragrance" ? x.color : x.category));
   return [...labels];
 }
@@ -1654,9 +1693,12 @@ function renderPills(type){
   if(type==="fragrance"){
     const seasons = [
       ["All","All Scents"],
+      ["top10","Top 10"],
       ["fall","Fall/Winter"],
       ["spring","Spring/Summer"],
-      ["all","All Season"]
+      ["all","All Season"],
+      ["beast","Strong"],
+      ["sample","Samples/Oils"]
     ];
     return `<div class="filters">${seasons.map(([value,label])=>`<button class="pill ${activeCategory===value?"on":""}" data-cat="${value}">${label}</button>`).join("")}</div>`;
   }
@@ -1675,7 +1717,7 @@ function renderCollection(type){
     ? `<div class="toolbar"><button class="ghost" data-action="rateWishlist">${icon("sparkles")}AI Rate Wishlist</button><button class="ghost" data-action="addWishLink">${icon("link")}Add Link</button><button class="primary" data-action="add">${icon("plus")}Add</button></div>`
     : `<button class="primary" data-action="add">${icon("plus")}Add</button>`;
   document.getElementById("view").innerHTML =
-    header(names[type], `${items.length} items · ${money.format(value)} archive value · v37`, add) +
+    header(names[type], `${items.length} items · ${money.format(value)} archive value · v38`, add) +
     renderPills(type) +
     renderSortControls(type) +
     (type==="wishlist" ? wishlistActions() : "") +
@@ -1716,6 +1758,7 @@ function renderFragrance(){
     `<div class="wishlist-actions"><button class="ghost" data-action="aiLayerIdeas">${icon("sparkles")}AI Layer Ideas</button><button class="primary" data-action="logLayer">${icon("blend")}Log Layer</button></div>` +
     weatherScentPanel() +
     weatherScentCard() +
+    fragranceTopTenCard() +
     layerIdeasCard() +
     `<div class="section-head"><div><h2 class="section-title">Layering Recipes</h2><div class="section-sub">Built from your scent style</div></div></div>
     <div class="list">${fragranceLayerRecipes.map(layerCard).join("")}</div>
@@ -1725,6 +1768,41 @@ function renderFragrance(){
     <div style="height:18px"></div>
     ${items.length ? `<div class="grid">${items.map(card).join("")}</div>` : emptyMessage("fragrance")}`;
   hydrateIcons();
+}
+function projectionPoints(value){
+  const text = String(value || "").toLowerCase();
+  if(text.includes("beast")) return 10;
+  if(text.includes("high")) return 8;
+  if(text.includes("medium")) return 5;
+  if(text.includes("low")) return 2;
+  return 4;
+}
+function fragranceArchiveScore(x){
+  const rating = Number(x.rating || 0);
+  const ratingScore = rating ? Math.round((rating / 5) * 82) : 56;
+  const projection = projectionPoints(x.projection);
+  const bottle = /full bottle/i.test(x.size || "") ? 5 : /sample|decant/i.test(x.size || "") ? -3 : 0;
+  const seasonFlex = x.color === "all" ? 3 : 0;
+  return Math.max(1, Math.min(100, ratingScore + projection + bottle + seasonFlex));
+}
+function fragranceTier(x){
+  const score = fragranceArchiveScore(x);
+  if(score >= 92) return "Signature";
+  if(score >= 86) return "Top Shelf";
+  if(score >= 78) return "Strong Rotation";
+  if(score >= 68) return "Situational";
+  return "Test More";
+}
+function fragranceTopTenCard(){
+  const scents = state.items
+    .filter(x=>x.type==="fragrance")
+    .sort((a,b)=>fragranceArchiveScore(b)-fragranceArchiveScore(a) || `${a.brand} ${a.name}`.localeCompare(`${b.brand} ${b.name}`))
+    .slice(0,10);
+  if(activeCategory !== "top10") return "";
+  return `<div class="judge-card" style="margin-bottom:12px">
+    <div class="panel-title">Top Fragrance Shelf</div>
+    <div class="gap-list">${scents.map((x,i)=>`<div class="gap-item"><strong style="color:var(--paper)">${i+1}. ${esc(itemLabel(x))}</strong><div style="margin-top:5px">${fragranceArchiveScore(x)}/100 · ${esc(fragranceTier(x))} · Rating ${Number(x.rating || 0).toFixed(1)} · ${esc(x.projection || "Projection TBD")}</div></div>`).join("")}</div>
+  </div>`;
 }
 function weatherScentPanel(){
   const p = weatherScentPrefs;
@@ -1807,17 +1885,26 @@ function card(x){
   const photo = displayPhoto(x);
   const media = photo ? `<img src="${esc(photo)}" alt="">` : x.type==="fragrance" || x.category==="Fragrances" ? fragranceArt(x) : icon("image-plus");
   const source = sourceLinkButton(x);
+  const meta = x.type === "fragrance"
+    ? `${esc(x.color || "—")} · ${esc(x.size || "—")}<br>${fragranceArchiveScore(x)}/100 · ${esc(fragranceTier(x))} · Rating ${Number(x.rating || 0).toFixed(1)}`
+    : `${esc(x.color || "—")}${x.size ? "<br>"+esc(x.size) : ""}${itemLayerLabel(x) ? "<br>"+esc(itemLayerLabel(x)) : ""}`;
   return `<article class="card ${cardClass}" data-id="${x.id}">
     <button class="card-media" data-photo-target="${x.id}" aria-label="Add or change photo for ${esc(x.name)}">${media}</button>
     <div class="card-body">
       <div class="eyebrow">${esc(x.brand)}</div>
       <div class="name">${esc(x.name)}</div>
-      <div class="meta">${esc(x.color || "—")}${x.size ? "<br>"+esc(x.size) : ""}</div>
+      <div class="meta">${meta}</div>
       <div class="price-row"><div class="price">${x.price ? money.format(x.price) : "<small>TBD</small>"}</div><div class="eyebrow">${fmtMonth(x.date)}</div></div>
       ${x.type==="wishlist" ? wishActions(x) : wearActions(x,cpw)}
       <div class="mini-actions">${buildAroundButton(x)}${source}<button class="ghost" data-detail="${x.id}">${icon("eye")}Detail</button><button class="ghost" data-edit="${x.id}">${icon("pencil")}Edit</button></div>
     </div>
   </article>`;
+}
+function itemLayerLabel(x){
+  if(x.type !== "wardrobe") return "";
+  const slots = allowedSlotsForItem(x).filter(slot=>["baseLayer","midLayer","outerwear"].includes(slot));
+  const labels = slots.map(slot=>({baseLayer:"Base layer",midLayer:"Mid layer",outerwear:"Outer layer"})[slot]);
+  return labels.length ? labels.join(" / ") : "";
 }
 function sourceLinkButton(x){
   return x.sourceUrl ? `<a class="ghost" href="${esc(x.sourceUrl)}" target="_blank" rel="noreferrer">${icon("external-link")}${x.type==="wishlist" ? "Buy" : "Link"}</a>` : "";
@@ -1967,7 +2054,7 @@ function mainPieces(){
   return {
     baseLayer: topPool("baseLayer"),
     midLayer: topPool("midLayer"),
-    outerwear: pickPool("Outerwear"),
+    outerwear: slotPool("outerwear"),
     bottoms: pickPool("Bottoms"),
     shoes: pickPool("Shoes"),
     socks: pickPool("Socks"),
@@ -1981,6 +2068,7 @@ function slotButton(slot){
   const x = currentFit[slot];
   const thumb = x ? itemThumb(x,"slot-photo") : "";
   return `<button class="slot ${x?"filled":""}" data-slot="${slot}">
+    ${x ? `<span class="slot-clear" data-clear-slot="${slot}" aria-label="Remove ${esc(slotLabel(slot))}">×</span>` : ""}
     ${thumb}
     <span class="eyebrow">${slot}</span>
     ${x ? `<b>${esc(x.name)}</b><small>${esc(x.brand)} · ${esc(x.color)}</small>` : `<b>Tap to pick</b><small>${poolLabel(slot)}</small>`}
@@ -2003,6 +2091,7 @@ function slotPool(slot){
   if(slot==="hat") return pickPool("Hats");
   if(slot==="accessory") return pickPool("Accessories");
   if(slot==="baseLayer" || slot==="midLayer") return topPool(slot);
+  if(slot==="outerwear") return state.items.filter(x=>x.type==="wardrobe" && allowedSlotsForItem(x).includes("outerwear"));
   const map={top:"Tops",outerwear:"Outerwear",bottoms:"Bottoms",shoes:"Shoes",socks:"Socks",watch:"Watches"};
   return pickPool(map[slot] || "Tops");
 }
@@ -2984,16 +3073,31 @@ function layerText(x){
   return `${x?.brand || ""} ${x?.name || ""} ${x?.color || ""} ${x?.category || ""}`.toLowerCase();
 }
 function isMidLayer(x){
-  const text = layerText(x);
-  if(/thermal|tee|t-shirt|tank|henley|button|oxford|poplin|rugby|jersey|camp|shirt$/.test(text)) return false;
-  return /sweater|hoodie|cardigan|quarter.?zip|half.?zip|full zip|mohair|knit|sherpa|fleece|heavy hood|split/.test(text);
+  return layerSlotsForTop(x).includes("midLayer");
 }
 function topLayerSlot(x){
   return isMidLayer(x) ? "midLayer" : "baseLayer";
 }
 function topPool(role){
   const tops = pickPool("Tops");
-  return tops.filter(x=>role==="midLayer" ? isMidLayer(x) : !isMidLayer(x));
+  return tops.filter(x=>layerSlotsForTop(x).includes(role));
+}
+function layerSlotsForTop(x){
+  const text = layerText(x);
+  if(/tank|tee shirt|t-shirt|heavy tee|crop core tee|henley|thermal|button-down|button down|oxford|poplin/.test(text)){
+    return ["baseLayer"];
+  }
+  if(/jersey|rugby|hockey|baseball|soccer|football|cycling shirt|cycling jersey|mesh v-neck|mesh moto|knit shirt|sweater tee|polo/.test(text)){
+    return ["midLayer"];
+  }
+  if(/quarter.?zip|half.?zip/.test(text)){
+    return ["midLayer","outerwear"];
+  }
+  if(/hoodie|heavy hood|cardigan|full zip|zip|pullover|sweater|crewneck|crew|mohair|knit|sherpa|fleece|turtleneck|split/.test(text)){
+    return /full zip|hoodie|heavy hood|sherpa|fleece/.test(text) ? ["midLayer","outerwear"] : ["midLayer"];
+  }
+  if(/shirt/.test(text)) return ["baseLayer"];
+  return ["baseLayer"];
 }
 function normalizeFitLayers(fit){
   if(fit.top && !fit.baseLayer && !fit.midLayer){
@@ -3012,7 +3116,7 @@ function allowedSlotsForItem(x){
   const category = inferredCategory(x);
   if(x.type==="fragrance" || category==="Fragrances") return ["fragrance"];
   if(x.type!=="wardrobe") return [];
-  if(category==="Tops") return isMidLayer(x) ? ["midLayer"] : ["baseLayer"];
+  if(category==="Tops") return layerSlotsForTop(x);
   if(category==="Outerwear") return ["outerwear"];
   if(category==="Bottoms") return ["bottoms"];
   if(category==="Shoes") return ["shoes"];
@@ -3145,7 +3249,7 @@ function weatherBasePool(xs){
 }
 function midLayerAllowsOuter(x){
   if(!x) return true;
-  return !/hoodie|sherpa|fleece|full zip|jacket|overshirt|shirt jacket|coat|puffer|cape/.test(layerText(x));
+  return !/jacket|overshirt|shirt jacket|coat|puffer|cape/.test(layerText(x));
 }
 function layerAnchor(fit, fallback){
   return fit.midLayer || fit.baseLayer || fit.top || fallback;
@@ -3166,7 +3270,7 @@ function buildCandidateFitAround(anchor, slot){
     fit.midLayer = smartPickFor(avoid(topPool("midLayer")), fit.baseLayer || fit.bottoms || anchor);
   }
   if(!fit.outerwear && wantsOuterLayer() && midLayerAllowsOuter(fit.midLayer)){
-    fit.outerwear = smartPickFor(avoid(weatherOuterPool(pickPool("Outerwear"))), layerAnchor(fit, fit.bottoms || anchor));
+    fit.outerwear = smartPickFor(avoid(weatherOuterPool(outerwearPool())), layerAnchor(fit, fit.bottoms || anchor));
   }
   fit.shoes ||= smartPickFor(avoid(pickPool("Shoes")), fit.bottoms || layerAnchor(fit, anchor));
   fit.socks ||= smartSocksFor(fit);
@@ -3187,7 +3291,7 @@ function buildCandidateFit(){
     fit.midLayer = smartPickFor(topPool("midLayer"), fit.baseLayer || bottoms);
   }
   if(wantsOuterLayer() && midLayerAllowsOuter(fit.midLayer)){
-    fit.outerwear = smartPickFor(weatherOuterPool(pickPool("Outerwear")), layerAnchor(fit, bottoms));
+    fit.outerwear = smartPickFor(weatherOuterPool(outerwearPool()), layerAnchor(fit, bottoms));
   }
   fit.shoes = smartPickFor(pickPool("Shoes"), bottoms || layerAnchor(fit));
   fit.socks = smartSocksFor(fit);
@@ -3198,6 +3302,7 @@ function buildCandidateFit(){
   return completeRequiredFitSlots(fit);
 }
 function pickPool(category){ return state.items.filter(x=>x.type==="wardrobe" && inferredCategory(x)===category); }
+function outerwearPool(){ return state.items.filter(x=>x.type==="wardrobe" && allowedSlotsForItem(x).includes("outerwear")); }
 function randomFrom(xs){ return xs.length ? xs[Math.floor(Math.random()*xs.length)] : null; }
 function smartPick(xs){
   if(!xs.length) return null;
@@ -3822,7 +3927,7 @@ function slotLabel(slot){
 function poolForSlot(slot){
   if(slot==="baseLayer") return topPool("baseLayer");
   if(slot==="midLayer") return topPool("midLayer");
-  if(slot==="outerwear") return pickPool("Outerwear");
+  if(slot==="outerwear") return outerwearPool();
   if(slot==="bottoms") return pickPool("Bottoms");
   if(slot==="shoes") return pickPool("Shoes");
   if(slot==="socks") return pickPool("Socks");
@@ -3998,6 +4103,13 @@ document.addEventListener("click", e => {
   if(layer){ logLayer(layer.dataset.layerName, layer.dataset.layerMix); return; }
   const pick = e.target.closest("[data-pick-slot]");
   if(pick){ pickSlotItem(pick.dataset.pickSlot, pick.dataset.pickId); return; }
+  const clearSlot = e.target.closest("[data-clear-slot]");
+  if(clearSlot){
+    delete currentFit[clearSlot.dataset.clearSlot];
+    currentJudgement = null;
+    render();
+    return;
+  }
   const slot = e.target.closest("[data-slot]");
   if(slot){ openSlotPicker(slot.dataset.slot); return; }
   const vibe = e.target.closest("[data-vibe]");
