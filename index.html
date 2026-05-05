@@ -252,6 +252,7 @@ h1{font-family:var(--serif);font-weight:400;font-size:30px;line-height:1;margin:
   display:flex;
   align-items:center;
   justify-content:space-between;
+  flex-wrap:wrap;
   gap:8px;
   margin:6px 0 8px;
   min-width:0;
@@ -270,6 +271,7 @@ h1{font-family:var(--serif);font-weight:400;font-size:30px;line-height:1;margin:
   height:28px;border-radius:999px;border:1px solid var(--line);
   background:var(--panel);color:var(--muted);display:inline-flex;align-items:center;
   gap:5px;padding:0 9px;font-size:8px;text-transform:uppercase;letter-spacing:.12em;
+  flex-shrink:0;
 }
 .top-ten-toggle svg{width:13px;height:13px}
 .top-ten-toggle.on{border-color:var(--leather);background:rgba(164,98,50,.18);color:var(--gold)}
@@ -281,6 +283,12 @@ h1{font-family:var(--serif);font-weight:400;font-size:30px;line-height:1;margin:
   padding:10px;
   margin:0 0 12px;
 }
+.scent-context-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin-top:8px}
+.scent-context-chip{border:1px solid var(--line);border-radius:8px;padding:9px;background:#0c0b09}
+.scent-context-chip span{display:block;color:var(--muted);font-size:8px;text-transform:uppercase;letter-spacing:.14em}
+.scent-context-chip strong{display:block;margin-top:5px;color:var(--text);font-family:var(--serif);font-size:16px;font-weight:400}
+.scent-notes{margin-top:9px;border-left:2px solid var(--seat);background:#0c0b09;border-radius:5px;padding:10px;color:var(--muted);font-size:11px;line-height:1.55}
+.scent-notes strong{display:block;color:var(--paper);font-family:var(--serif);font-size:16px;font-weight:400;margin-bottom:5px}
 .photo-picker{
   grid-column:1/-1;
   border:1px solid var(--line);
@@ -638,7 +646,7 @@ label{display:grid;gap:5px;color:var(--muted);font-size:8px;text-transform:upper
         <input id="photoFile" type="file" accept="image/*" style="display:none">
         <input id="fPhoto" type="hidden">
         <label class="full">Product Link<input class="field" id="fUrl" type="url" inputmode="url" placeholder="https://..."></label>
-        <label class="full">Notes<textarea class="area" id="fNotes" placeholder="Fit notes, styling ideas, condition, etc."></textarea></label>
+        <label class="full">Notes<textarea class="area" id="fNotes" placeholder="Fit notes, styling ideas, scent notes, seasons, layering ideas, condition, etc."></textarea></label>
       </div>
       <div class="modal-actions">
         <button type="button" class="ghost" id="deleteItem"><i data-lucide="trash-2"></i>Delete</button>
@@ -791,7 +799,7 @@ const tabs = [
 ];
 const releaseNotes = [
   "Deep green, cognac, cream, navy, and espresso interface palette.",
-  "Full v39 wardrobe seed with personal scent stars, manual Top 10 picks, two LV bags, explicit layering, and duplicate cleanup.",
+  "Full v41 wardrobe seed with real weather layer plans, clearer My Top 10 scent labels, scent notes context, two LV bags, explicit layering, and duplicate cleanup.",
   "Photo-first add flow with phone camera upload and saved item photos.",
   "AI Identify can fill item fields from a photo when an API key is saved.",
   "Item detail pages with CPW, wear count, notes, and best pairings.",
@@ -799,7 +807,7 @@ const releaseNotes = [
   "Local Fit Judge now scores color, silhouette, texture, formality, season, footwear, accessories, and cohesion.",
   "Wear calendar logs outfits with Wore Today.",
   "Closet Gaps and CPW analytics.",
-  "Fragrance layering engine and layer log."
+  "Fragrance layering engine, scent notes context, and layer log."
 ];
 const styleOverrides = [
   {match:"JM Work Jacket",fit:"cropped",silhouette:["boxy","waist-length"],texture:["distressed","vintage","workwear"],undertone:"faded blue-green",tags:["cropped jacket","vintage workwear","distressed"],bestWith:["high waist pants","wide pants","brown shoes","black hat"],avoidWith:["long outerwear","extra brown hat"]},
@@ -869,7 +877,7 @@ Aime Leon Dore|Striped Crest Sock Grey|Grey|One Size|30|2025-05|Socks
 Aime Leon Dore|Striped Crest Sock Pristine|Pristine|One Size|25|2024-03|Socks
 Aime Leon Dore|Fox Fur Hood|Jet Black|One Size|150|2023-11|Accessories
 Aime Leon Dore|Jake Gloves|Loden|9|160|2023-11|Accessories
-Aime Leon Dore|Packable Logo Tote|Navy|One Size|30|2024-02|Accessories
+Aime Leon Dore|Packable Logo Tote|Navy|One Size|30|2024-02|Bags
 Louis Vuitton x Tyler the Creator|Monogram Craggy Reversible Bucket Hat|Brown|M|1187|2026-04|Hats
 Louis Vuitton|LV Shark Clogs|Brown||765|2026-04|Shoes
 Buck Mason|Japanese Denim Ford Standard Jean|Dark Indigo|34|228|2025-10|Bottoms
@@ -1227,7 +1235,7 @@ const starterPhotos = {
   "wardrobe::Urban Outfitters::Rugby Shirt":"assets/photos/photo-147-uo-rugby-shirt.webp",
   "wardrobe::Bottega Veneta::Lugged Chelsea Boots":"assets/photos/photo-148-bottega-lugged-chelsea.webp",
   "wardrobe::Stoc and Weber::Black Lugged Loafers":"assets/photos/photo-149-stoc-weber-lugged-loafer.webp",
-  "wardrobe::Buck Mason::Field-Spec Cotton Heavy Tee Black":"assets/photos/photo-150-buckmason-black-heavy-tee.webp",
+  "wardrobe::John Elliott::Solid Hemi Oversized Shirt":"assets/photos/photo-150-buckmason-black-heavy-tee.webp",
   "wardrobe::Zara::Puffer Cape":"assets/photos/photo-151-zara-puffer-cape.jpeg",
   "wardrobe::Carhartt::Loose Fit Firm Duck Utility Work Pant":"assets/photos/photo-152-carhartt-black-utility-pant.jpeg",
   "wardrobe::Zara::Utility Pocket Jeans":"assets/photos/photo-153-zara-utility-pocket-jeans.jpeg",
@@ -1541,6 +1549,21 @@ function upgradeState(existing){
       x.notes = x.notes || "Minimal black Lemaire pipe loafer/slipper. Fits the elevated ALD/Drake's/Ralph tailoring-with-cap lane.";
       changed = true;
     }
+    if(x.type === "wardrobe" && x.brand === "Aime Leon Dore" && x.name === "Packable Logo Tote"){
+      x.category = "Bags";
+      x.notes ||= "ALD tote. Treat as a bag/accessory finisher in outfit builds.";
+      changed = true;
+    }
+    if(x.type === "wardrobe" && x.brand === "Buck Mason" && x.name === "Field-Spec Cotton Heavy Tee Black" && normalizePhotoPath(x.photo) === "assets/photos/photo-150-buckmason-black-heavy-tee.webp"){
+      x.photo = "";
+      changed = true;
+    }
+    if(x.type === "wardrobe" && x.brand === "John Elliott" && x.name === "Solid Hemi Oversized Shirt"){
+      x.category = "Tops";
+      x.photo = "assets/photos/photo-150-buckmason-black-heavy-tee.webp";
+      x.notes ||= "Black John Elliott oversized shirt. Base layer shirt/tee option; cropped/boxy enough to work under mid layers or with wide trousers.";
+      changed = true;
+    }
     const normalizedPhoto = normalizePhotoPath(x.photo);
     if(normalizedPhoto !== (x.photo || "")){
       x.photo = normalizedPhoto;
@@ -1842,15 +1865,61 @@ function fragranceRatingControls(x){
   const personal = fragrancePersonalRating(x);
   const label = personal ? `Your ${personal}/5` : "Tap stars";
   const stars = [1,2,3,4,5].map(n=>`<button type="button" class="star-btn ${personal>=n?"on":""}" data-frag-rating="${esc(x.id)}" data-rating="${n}" aria-label="Rate ${esc(itemLabel(x))} ${n} of 5">${icon("star")}</button>`).join("");
+  const topTenLabel = x.topTen ? "In My Top 10" : "My Top 10";
   return `<div class="fragrance-controls">
     <div><div class="star-rating">${stars}</div><div class="rating-label">${esc(label)}</div></div>
-    <button type="button" class="top-ten-toggle ${x.topTen?"on":""}" data-top-ten="${esc(x.id)}" aria-label="${x.topTen?"Remove from":"Add to"} Top 10">${icon("star")}Top 10</button>
+    <button type="button" class="top-ten-toggle ${x.topTen?"on":""}" data-top-ten="${esc(x.id)}" aria-label="${x.topTen?"Remove from":"Add to"} My Top 10">${icon("star")}${esc(topTenLabel)}</button>
   </div>`;
 }
 function fragranceDetailControls(x){
   return `<div class="fragrance-detail-controls">
     <div class="panel-title">Personal Scent Rank</div>
     ${fragranceRatingControls(x)}
+  </div>`;
+}
+function fragranceSeasonLabel(x){
+  const season = String(x.color || "").toLowerCase();
+  if(season === "spring") return "Spring / warm weather";
+  if(season === "fall") return "Fall / cool weather";
+  if(season === "winter") return "Winter / cold weather";
+  if(season === "summer") return "Summer / heat";
+  if(season === "all") return "All-season";
+  return x.color || "Season TBD";
+}
+function fragranceLayeringContext(x){
+  const name = String(x.name || "").toLowerCase();
+  const match = fragranceLayerRecipes.find(r => name.includes(String(r.base).toLowerCase()) || name.includes(String(r.accent).toLowerCase()));
+  if(match) return `${match.name}: ${match.effect}`;
+  const mood = fragranceMood(x);
+  if(mood === "warm") return "Use as the warm base in cool weather. Pairs best with lighter fresh/woody accents at low spray counts.";
+  if(mood === "woody") return "Good bridge scent for tailoring, leather shoes, knits, and fall layers. Can anchor a fresher accent.";
+  if(mood === "bright") return "Best as the lift or warm-weather lead. Layer carefully over darker scents so it does not fight the base.";
+  return "Balanced enough to test as either the main scent or one-spray accent depending on weather.";
+}
+function fragranceKnowledgeText(x){
+  const parts = [
+    `Season lane: ${fragranceSeasonLabel(x)}`,
+    `Projection: ${x.projection || "Projection TBD"}`,
+    `Archive score: ${fragranceArchiveScore(x)}/100`,
+    `Personal rating: ${fragrancePersonalRating(x) || "unrated"}/5`,
+    x.topTen ? "Marked as My Top 10" : "",
+    `Layering context: ${fragranceLayeringContext(x)}`,
+    x.notes ? `User notes: ${x.notes}` : ""
+  ].filter(Boolean);
+  return parts.join(". ");
+}
+function fragranceKnowledgeCard(x){
+  const userNotes = String(x.notes || "").trim();
+  return `<div class="fragrance-detail-controls">
+    <div class="section-head" style="margin:0 0 6px"><div><div class="panel-title">Scent Notes & Layering Context</div><div class="section-sub">${esc(x.topTen ? "Marked as My Top 10" : "Personal scent knowledge")}</div></div><button class="ghost" data-edit="${esc(x.id)}">${icon("pencil")}Edit Notes</button></div>
+    <div class="scent-context-grid">
+      <div class="scent-context-chip"><span>Season</span><strong>${esc(fragranceSeasonLabel(x))}</strong></div>
+      <div class="scent-context-chip"><span>Projection</span><strong>${esc(x.projection || "TBD")}</strong></div>
+      <div class="scent-context-chip"><span>Mood</span><strong>${esc(fragranceMood(x))}</strong></div>
+      <div class="scent-context-chip"><span>Rank</span><strong>${esc(x.topTen ? "My Top 10" : "Unranked")}</strong></div>
+    </div>
+    <div class="scent-notes"><strong>Notes</strong>${esc(userNotes || "No personal notes yet. Tap Edit Notes to add season, occasion, compliments, layering ideas, or anything you want AI to remember.")}</div>
+    <div class="scent-notes"><strong>Layering Context</strong>${esc(fragranceLayeringContext(x))}</div>
   </div>`;
 }
 function fragranceArchiveScore(x){
@@ -2027,9 +2096,9 @@ function openDetail(id){
       <div class="detail-chip"><span>Worn</span><strong>${worn}x</strong></div>
       <div class="detail-chip"><span>Added</span><strong>${fmtMonth(x.date)}</strong></div>
     </div>
-    ${x.type==="fragrance" ? fragranceDetailControls(x) : ""}
+    ${x.type==="fragrance" ? fragranceDetailControls(x) + fragranceKnowledgeCard(x) : ""}
     ${x.sourceUrl ? `<a class="primary" href="${esc(x.sourceUrl)}" target="_blank" rel="noreferrer" style="width:100%;margin-bottom:12px">${icon("external-link")}Open ${esc(sourceHost(x.sourceUrl))}</a>` : ""}
-    ${x.notes ? `<div class="gap-item">${esc(x.notes)}</div>` : ""}
+    ${x.type!=="fragrance" && x.notes ? `<div class="gap-item">${esc(x.notes)}</div>` : ""}
     <div class="panel-title" style="margin-top:14px">Best Pairings</div>
     <div class="gap-list">${pairs.map(p=>`<div class="gap-item">${esc(p.brand)} — ${esc(p.name)} <span style="color:var(--faint)">(${esc(p.color)})</span></div>`).join("") || `<div class="gap-item">Add more pieces to generate pairing ideas.</div>`}</div>
     <div class="modal-actions">
@@ -2154,7 +2223,7 @@ function slotButton(slot){
     ${x ? `<b>${esc(x.name)}</b><small>${esc(x.brand)} · ${esc(x.color)}</small>` : `<b>Tap to pick</b><small>${poolLabel(slot)}</small>`}
   </button>`;
 }
-function poolLabel(slot){ return ({baseLayer:"Tee / shirt / thermal",midLayer:"Sweater / hoodie / knit",fragrance:"Scent",outerwear:"Jacket",socks:"Socks",hat:"Hat",watch:"Watch",accessory:"Belt / scarf / extra"})[slot] || slot; }
+function poolLabel(slot){ return ({baseLayer:"Tank / tee / shirt / thermal",midLayer:"Jersey / rugby / sweater / hoodie",fragrance:"Scent",outerwear:"Jacket",socks:"Socks",hat:"Hat",watch:"Watch",accessory:"Belt / bag / scarf"})[slot] || slot; }
 function openSlotPicker(slot){
   activeSlot = slot;
   document.getElementById("slotTitle").textContent = "Pick "+slotLabel(slot);
@@ -2562,7 +2631,7 @@ async function suggestFragranceLayers(){
 async function aiSuggestFragranceLayers(season){
   const scents = state.items
     .filter(x=>x.type==="fragrance")
-    .map(x=>({brand:x.brand,name:x.name,season:x.color,type:x.size,notes:x.notes,projection:x.projection,rating:x.rating,personalRating:x.personalRating||0,topTen:Boolean(x.topTen)}))
+    .map(x=>({brand:x.brand,name:x.name,season:x.color,type:x.size,notes:x.notes,projection:x.projection,rating:x.rating,personalRating:x.personalRating||0,topTen:Boolean(x.topTen),context:fragranceKnowledgeText(x)}))
     .slice(0,90);
   const data = await openAiResponse({
     model:currentAiModel(),
@@ -2693,7 +2762,7 @@ async function suggestWeatherScent(){
 }
 async function aiSuggestWeatherScent(){
   const scents = ownedFragrances().map(x=>({
-    id:x.id,brand:x.brand,name:x.name,season:x.color,type:x.size,notes:x.notes,projection:x.projection,rating:x.rating,personalRating:x.personalRating||0,topTen:Boolean(x.topTen)
+    id:x.id,brand:x.brand,name:x.name,season:x.color,type:x.size,notes:x.notes,projection:x.projection,rating:x.rating,personalRating:x.personalRating||0,topTen:Boolean(x.topTen),context:fragranceKnowledgeText(x)
   })).slice(0,90);
   const data = await openAiResponse({
     model:currentAiModel(),
@@ -3048,7 +3117,8 @@ function updateWeatherLabel(){
   const temp = Number(document.getElementById("weatherTemp").value || 58);
   const condition = document.getElementById("weatherCondition").value || "dry";
   const season = weatherSeason(temp);
-  document.getElementById("weatherTempLabel").textContent = `${weatherSummary(temp,condition)} · ${season} logic · ${weatherFragranceLabel(temp,condition)}`;
+  const plan = weatherLayerPlan(temp, condition, document.getElementById("weatherIntent").value || "auto");
+  document.getElementById("weatherTempLabel").textContent = `${weatherSummary(temp,condition)} · ${season} logic · ${layerPlanLabel(plan)} · ${weatherFragranceLabel(temp,condition)}`;
 }
 function readBuildWeather(){
   const temp = Number(document.getElementById("weatherTemp").value || 58);
@@ -3060,6 +3130,102 @@ function weatherFragranceLabel(temp, condition){
   if(condition === "humid" || temp >= 72) return "fresh fragrance";
   if(temp <= 50) return "warm fragrance";
   return "balanced fragrance";
+}
+function isProtectiveWeather(condition){
+  return ["rain","wind","snow"].includes(condition || "");
+}
+function weatherLayerPlan(temp=currentFit.weatherTemp, condition=currentFit.weatherCondition, intent=currentFit.vibe, anchorSlot=""){
+  const t = Number(temp || 58);
+  const c = condition || "dry";
+  const season = weatherSeason(t);
+  const protective = isProtectiveWeather(c);
+  const occasion = intent && intent !== "auto" ? intent : season;
+  const plan = {
+    temp:t,
+    condition:c,
+    season,
+    intent:occasion,
+    requiresBase:true,
+    wantsMid:false,
+    wantsOuter:false,
+    allowsMid:true,
+    allowsOuter:true,
+    maxTopLayers:2,
+    reason:""
+  };
+  if(t >= 74 && !protective){
+    plan.allowsMid = false;
+    plan.allowsOuter = false;
+    plan.maxTopLayers = 1;
+    plan.reason = "hot weather: breathable base layer only";
+  }else if(t >= 68){
+    plan.wantsOuter = protective;
+    plan.allowsMid = false;
+    plan.allowsOuter = protective;
+    plan.maxTopLayers = protective ? 2 : 1;
+    plan.reason = protective ? "warm protective weather: base plus light outerwear" : "warm weather: keep the top half light";
+  }else if(t >= 56){
+    plan.wantsMid = t <= 64 || ["dinner","elevated","statement"].includes(occasion);
+    plan.wantsOuter = protective;
+    plan.maxTopLayers = plan.wantsMid && plan.wantsOuter ? 3 : 2;
+    plan.reason = protective ? "cool protective weather: base plus a weather layer" : "mild cool weather: base plus one visible layer";
+  }else if(t >= 46){
+    plan.wantsMid = !protective || t <= 50;
+    plan.wantsOuter = protective || t <= 52;
+    plan.maxTopLayers = protective && t <= 50 ? 3 : 2;
+    plan.reason = protective || t <= 52 ? "fall weather: base plus outerwear, mid layer only if cold enough" : "fall weather: base plus mid layer";
+  }else{
+    plan.wantsMid = true;
+    plan.wantsOuter = true;
+    plan.maxTopLayers = 3;
+    plan.reason = "winter weather: base, mid layer, and outerwear";
+  }
+  if(anchorSlot === "midLayer"){
+    plan.wantsMid = true;
+    plan.allowsMid = true;
+    plan.maxTopLayers = Math.max(plan.maxTopLayers, 2);
+    if(t >= 68 && !protective) plan.reason += "; anchor kept as the mid layer";
+  }
+  if(anchorSlot === "outerwear"){
+    plan.wantsOuter = true;
+    plan.allowsOuter = true;
+    plan.maxTopLayers = Math.max(plan.maxTopLayers, 2);
+    if(t >= 68 && !protective) plan.reason += "; anchor kept as the outer layer";
+  }
+  return plan;
+}
+function layerPlanSlots(plan){
+  const slots = ["base layer"];
+  if(plan.wantsMid) slots.push("mid layer");
+  if(plan.wantsOuter) slots.push("outerwear");
+  if(!plan.wantsMid && !plan.wantsOuter) return "base layer only";
+  if(plan.maxTopLayers <= 2 && plan.wantsMid && plan.wantsOuter) return "base + mid or outerwear";
+  return slots.join(" + ");
+}
+function layerPlanLabel(plan){
+  return layerPlanSlots(plan);
+}
+function preferredVariableLayer(plan, lockedSlot="", fit={}){
+  if(plan.maxTopLayers >= 3) return "";
+  if(plan.wantsMid && !plan.wantsOuter) return "midLayer";
+  if(plan.wantsOuter && !plan.wantsMid) return "outerwear";
+  if(!(plan.wantsMid && plan.wantsOuter)) return "";
+  if(lockedSlot === "midLayer" || fit.midLayer) return "midLayer";
+  if(lockedSlot === "outerwear" || fit.outerwear) return "outerwear";
+  if(isProtectiveWeather(plan.condition) || plan.temp <= 52) return "outerwear";
+  return "midLayer";
+}
+function shouldFillMidLayer(plan, fit, lockedSlot=""){
+  if(lockedSlot === "midLayer") return true;
+  if(!plan.wantsMid || !plan.allowsMid) return false;
+  if(plan.maxTopLayers >= 3) return true;
+  return preferredVariableLayer(plan, lockedSlot, fit) === "midLayer";
+}
+function shouldFillOuterLayer(plan, fit, lockedSlot=""){
+  if(lockedSlot === "outerwear") return true;
+  if(!plan.wantsOuter || !plan.allowsOuter) return false;
+  if(plan.maxTopLayers >= 3) return true;
+  return preferredVariableLayer(plan, lockedSlot, fit) === "outerwear";
 }
 async function buildAroundWithWeather(useAi){
   if(!pendingBuildAroundId) return;
@@ -3074,6 +3240,8 @@ async function buildAroundWithWeather(useAi){
 }
 function randomFit(){
   currentFit.vibe ||= "fall";
+  currentFit.weatherTemp ||= currentFit.vibe === "summer" ? 78 : currentFit.vibe === "winter" ? 38 : 58;
+  currentFit.weatherCondition ||= "dry";
   let bestFit = null;
   let bestScore = -1;
   for(let i=0;i<250;i++){
@@ -3118,7 +3286,7 @@ async function buildAroundItem(id, opts={}){
         currentJudgement = bestAiJudge;
         currentJudgement.source = "OpenAI Builder + Local Score";
         if(currentFit.buildReason) currentJudgement.notes.unshift(currentFit.buildReason);
-        currentJudgement.notes.unshift(`AI aimed for 85+ and built this for ${weatherSummary(weather.temp,weather.condition)}.`);
+        currentJudgement.notes.unshift(`AI aimed for 85+ and used ${layerPlanLabel(weatherLayerPlan(weather.temp,weather.condition,weather.intent,slot))} for ${weatherSummary(weather.temp,weather.condition)}.`);
         activeTab = "outfits";
         closeModal("detailModal");
         render();
@@ -3139,7 +3307,7 @@ async function buildAroundItem(id, opts={}){
   }
   currentFit = {...bestFit,vibe:currentFit.vibe,fireTarget:bestScore,anchorId:anchor.id,weatherTemp:weather.temp,weatherCondition:weather.condition,builderSource:"Weather Rules"};
   currentJudgement = localJudgeFit(bestFit);
-  currentJudgement.notes.unshift(`Built for ${weatherSummary(weather.temp,weather.condition)} with ${weatherFragranceLabel(weather.temp,weather.condition)} logic.`);
+  currentJudgement.notes.unshift(`Built for ${weatherSummary(weather.temp,weather.condition)} using ${layerPlanLabel(weatherLayerPlan(weather.temp,weather.condition,weather.intent,slot))} and ${weatherFragranceLabel(weather.temp,weather.condition)} logic.`);
   activeTab = "outfits";
   closeModal("detailModal");
   render();
@@ -3246,6 +3414,72 @@ function isSummerFragrance(x){
 function isCoolWeatherFragrance(x){
   return /gris charnel|tobacco|vanille|halfeti|oud|amber|aoud|naxos|plum|cognac|spicebomb|obsidian|woody|leather|tea|tonka/.test(layerText(x));
 }
+function itemWeatherText(x){
+  return `${layerText(x)} ${x?.notes || ""}`.toLowerCase();
+}
+function itemFabricProfile(x){
+  const text = itemWeatherText(x);
+  const fabrics = [];
+  ["cotton","linen","wool","mohair","alpaca","cashmere","denim","leather","suede","nylon","waxed","fleece","sherpa","down","corduroy","mesh","thermal","poplin","oxford"].forEach(f=>{
+    if(text.includes(f)) fabrics.push(f);
+  });
+  let weight = "medium";
+  if(/down|puffer|coat|heavy|sherpa|fleece|wool|mohair|alpaca|thermal|tweed|corduroy/.test(text)) weight = "warm";
+  if(/tank|mesh|linen|slub|poplin|camp|short sleeve|cropped tee|lightweight/.test(text)) weight = "light";
+  const protection = /wax|nylon|shell|rain|parka|down|puffer|coat|jacket/.test(text) ? "protective" : "none";
+  const breathability = /linen|mesh|tank|slub|poplin|cotton|tee|t-shirt/.test(text) ? "high" : weight === "warm" ? "low" : "medium";
+  return {fabrics:fabrics.length ? fabrics : ["unknown"], weight, protection, breathability};
+}
+function weatherSuitabilityScore(x, slot, plan=weatherLayerPlan()){
+  const text = itemWeatherText(x);
+  const fabric = itemFabricProfile(x);
+  let score = 50;
+  if(slot === "baseLayer"){
+    if(plan.temp >= 72){
+      if(/tank|tee|t-shirt|slub|linen|mesh|poplin|camp|cotton|knit t-shirt/.test(text)) score += 24;
+      if(/thermal|wool|mohair|sherpa|fleece|heavy|flannel/.test(text)) score -= 24;
+    }else if(plan.temp <= 50){
+      if(/thermal|henley|oxford|button|shirt|heavy tee|cotton/.test(text)) score += 20;
+      if(/mesh|tank|cycling jersey|sleeveless|linen/.test(text)) score -= 18;
+    }else{
+      if(/tee|t-shirt|shirt|henley|thermal|oxford|poplin|tank/.test(text)) score += 12;
+      if(/mesh|cycling/.test(text) && plan.temp < 60) score -= 12;
+    }
+  }
+  if(slot === "midLayer"){
+    if(plan.temp >= 68 && !plan.wantsMid) score -= 28;
+    if(plan.temp <= 50 && /sweater|crew|hoodie|cardigan|quarter|half|zip|knit|mohair|wool|fleece|sherpa|jersey|rugby|hockey/.test(text)) score += 24;
+    else if(plan.temp < 68 && /jersey|rugby|hockey|baseball|soccer|quarter|half|zip|cardigan|knit shirt|sweater tee|polo|crew|sweater/.test(text)) score += 18;
+    if(plan.temp >= 56 && /down|puffer|heavy hood|sherpa/.test(text)) score -= 12;
+  }
+  if(slot === "outerwear"){
+    if(plan.temp >= 68 && !plan.wantsOuter) score -= 30;
+    if(isProtectiveWeather(plan.condition) && /wax|nylon|shell|parka|jacket|coat|down|puffer|cpo|work/.test(text)) score += 24;
+    else if(plan.temp <= 45 && /coat|wool|puffer|down|sherpa|fleece|cpo|jacket|parka/.test(text)) score += 24;
+    else if(plan.temp < 68 && /overshirt|chore|station|work jacket|denim|cotton|light|blouson|jacket/.test(text)) score += 18;
+    if(plan.temp >= 60 && /heavy|down|puffer|wool coat|sherpa/.test(text) && !isProtectiveWeather(plan.condition)) score -= 14;
+  }
+  if(slot === "fragrance"){
+    if(plan.temp >= 72 && isSummerFragrance(x)) score += 18;
+    if(plan.temp <= 64 && isCoolWeatherFragrance(x)) score += 18;
+    if(plan.temp >= 72 && isCoolWeatherFragrance(x)) score -= 8;
+    if(plan.temp <= 50 && isSummerFragrance(x)) score -= 12;
+  }
+  if(fabric.protection === "protective" && isProtectiveWeather(plan.condition)) score += 6;
+  if(fabric.weight === "light" && plan.temp >= 70) score += 6;
+  if(fabric.weight === "warm" && plan.temp <= 55) score += 6;
+  return score;
+}
+function weatherRankedPool(xs, slot, limit=18){
+  const plan = weatherLayerPlan();
+  const ranked = xs
+    .map(x=>({x,score:weatherSuitabilityScore(x,slot,plan)}))
+    .sort((a,b)=>b.score-a.score)
+    .filter(v=>v.score >= 34)
+    .slice(0,limit)
+    .map(v=>v.x);
+  return ranked.length ? ranked : xs;
+}
 function betterBaseForWeather(fit,temp){
   const candidates = topPool("baseLayer").filter(x=>x.id !== fit.baseLayer?.id && !isWarmWeatherBase(x));
   const grounded = candidates.filter(x=>/heavy|henley|thermal|tee|t-shirt|oxford|button|white|cream|black|grey|navy/.test(layerText(x)));
@@ -3259,15 +3493,19 @@ function betterFragranceForWeather(temp,fit){
 function polishFitLogic(fit){
   const temp = Number(fit.weatherTemp || currentFit.weatherTemp || 58);
   const condition = fit.weatherCondition || currentFit.weatherCondition || "dry";
+  const plan = weatherLayerPlan(temp, condition, fit.vibe || currentFit.vibe, fit.lockedSlot);
   if(fit.baseLayer && isWarmWeatherBase(fit.baseLayer) && temp <= 68 && (isHeavyWarmLayer(fit.midLayer) || fit.outerwear)){
     const better = betterBaseForWeather(fit,temp);
     if(better) fit.baseLayer = better;
   }
-  if(fit.midLayer && fit.outerwear && temp >= 55 && temp <= 66 && !["rain","wind","snow"].includes(condition)){
-    if(fit.lockedSlot === "midLayer") delete fit.outerwear;
-    else delete fit.midLayer;
+  if(fit.midLayer && !plan.allowsMid && fit.lockedSlot !== "midLayer") delete fit.midLayer;
+  if(fit.outerwear && !plan.allowsOuter && fit.lockedSlot !== "outerwear") delete fit.outerwear;
+  if(fit.midLayer && fit.outerwear && plan.maxTopLayers <= 2){
+    const keep = preferredVariableLayer(plan, fit.lockedSlot, fit);
+    if(keep === "midLayer" && fit.lockedSlot !== "outerwear") delete fit.outerwear;
+    if(keep === "outerwear" && fit.lockedSlot !== "midLayer") delete fit.midLayer;
   }
-  if(fit.midLayer && fit.outerwear && isHeavyWarmLayer(fit.midLayer) && temp >= 50 && !["rain","wind","snow"].includes(condition)){
+  if(fit.midLayer && fit.outerwear && isHeavyWarmLayer(fit.midLayer) && temp >= 50 && !isProtectiveWeather(condition) && plan.maxTopLayers < 3){
     if(fit.lockedSlot === "midLayer") delete fit.outerwear;
     else delete fit.midLayer;
   }
@@ -3285,14 +3523,21 @@ function completeRequiredFitSlots(fit){
   fit = normalizeFitLayers(fit || {});
   const avoidId = fit.lockedSlot && fit[fit.lockedSlot]?.id;
   const avoid = xs => avoidId ? xs.filter(x=>x.id!==avoidId) : xs;
-  if(!fit.baseLayer && !fit.midLayer){
+  const plan = weatherLayerPlan(fit.weatherTemp || currentFit.weatherTemp, fit.weatherCondition || currentFit.weatherCondition, fit.vibe || currentFit.vibe, fit.lockedSlot);
+  if(plan.requiresBase && !fit.baseLayer && fit.lockedSlot !== "baseLayer"){
     fit.baseLayer = smartPickFor(avoid(weatherBasePool(topPool("baseLayer"))), fit.outerwear || fit.bottoms || fit.shoes || fit.hat);
   }
   if(!fit.bottoms){
     fit.bottoms = smartPickFor(avoid(pickPool("Bottoms")), fit.baseLayer || fit.midLayer || fit.outerwear || fit.shoes);
   }
-  if(!fit.baseLayer && !fit.midLayer){
+  if(!fit.baseLayer && !fit.midLayer && !fit.outerwear){
     fit.baseLayer = smartPickFor(avoid(weatherBasePool(topPool("baseLayer"))), fit.bottoms || fit.shoes);
+  }
+  if(shouldFillMidLayer(plan, fit, fit.lockedSlot) && !fit.midLayer){
+    fit.midLayer = smartPickFor(avoid(weatherMidPool(topPool("midLayer"))), fit.baseLayer || fit.bottoms || fit.outerwear || fit.shoes);
+  }
+  if(shouldFillOuterLayer(plan, fit, fit.lockedSlot) && !fit.outerwear && midLayerAllowsOuter(fit.midLayer)){
+    fit.outerwear = smartPickFor(avoid(weatherOuterPool(outerwearPool())), layerAnchor(fit, fit.bottoms || fit.shoes));
   }
   if(!fit.shoes){
     fit.shoes = smartPickFor(avoid(pickPool("Shoes")), fit.bottoms || layerAnchor(fit));
@@ -3315,18 +3560,12 @@ function completeRequiredFitSlots(fit){
   return polishFitLogic(fit);
 }
 function wantsMidLayer(){
-  const temp = Number(currentFit.weatherTemp || 58);
-  if(temp >= 72) return false;
-  if(temp <= 42) return Math.random() > 0.12;
-  if(temp <= 58) return Math.random() > 0.28;
-  return Math.random() > 0.62;
+  const plan = weatherLayerPlan();
+  return shouldFillMidLayer(plan, {}, "");
 }
 function wantsOuterLayer(){
-  const temp = Number(currentFit.weatherTemp || 58);
-  if(temp >= 76) return false;
-  if(temp >= 68) return Math.random() > 0.72;
-  if(temp >= 56) return Math.random() > 0.32;
-  return true;
+  const plan = weatherLayerPlan();
+  return shouldFillOuterLayer(plan, {}, "");
 }
 function weatherOuterPool(xs){
   const temp = Number(currentFit.weatherTemp || 58);
@@ -3334,23 +3573,30 @@ function weatherOuterPool(xs){
   let pool = xs;
   if(temp >= 68) pool = xs.filter(x=>/overshirt|shirt jacket|chore|denim|light|cotton|work jacket/i.test(`${x.name} ${x.notes}`));
   else if(temp <= 45) pool = xs.filter(x=>/coat|wool|puffer|down|sherpa|fleece|cpo|jacket/i.test(`${x.name} ${x.color}`));
-  if(["rain","wind","snow"].includes(condition)){
+  if(isProtectiveWeather(condition)){
     const protective = pool.filter(x=>/jacket|coat|parka|cpo|down|work|wax|nylon|shell/i.test(`${x.name} ${x.notes}`));
     if(protective.length) pool = protective;
   }
-  return pool.length ? pool : xs;
+  return weatherRankedPool(pool.length ? pool : xs, "outerwear");
 }
 function weatherBasePool(xs){
   const temp = Number(currentFit.weatherTemp || 58);
   if(temp >= 72){
     const warm = xs.filter(x=>/tee|t-shirt|tank|linen|slub|poplin|camp|mesh|knit t-shirt/i.test(`${x.name} ${x.color}`));
-    return warm.length ? warm : xs;
+    return weatherRankedPool(warm.length ? warm : xs, "baseLayer");
   }
   if(temp <= 45){
     const cold = xs.filter(x=>/thermal|henley|wool|heavy|flannel|shirt/i.test(`${x.name} ${x.color}`));
-    return cold.length ? cold : xs;
+    return weatherRankedPool(cold.length ? cold : xs, "baseLayer");
   }
-  return xs;
+  return weatherRankedPool(xs, "baseLayer");
+}
+function weatherMidPool(xs){
+  const temp = Number(currentFit.weatherTemp || 58);
+  let pool = xs;
+  if(temp >= 64) pool = xs.filter(x=>/jersey|rugby|polo|knit shirt|sweater tee|quarter|half|cardigan|light/i.test(`${x.name} ${x.color} ${x.notes}`));
+  else if(temp <= 50) pool = xs.filter(x=>/sweater|crew|hoodie|cardigan|quarter|half|zip|knit|mohair|wool|fleece|sherpa|jersey|rugby|hockey/i.test(`${x.name} ${x.color} ${x.notes}`));
+  return weatherRankedPool(pool.length ? pool : xs, "midLayer");
 }
 function midLayerAllowsOuter(x){
   if(!x) return true;
@@ -3361,6 +3607,7 @@ function layerAnchor(fit, fallback){
 }
 function inferVibe(x){
   const text = `${x.brand} ${x.name} ${x.color} ${x.category}`.toLowerCase();
+  if(/puffer|down|wool coat|overcoat|sherpa|fleece|thermal|earflap|beanie|heavy hood|mohair|alpaca/.test(text)) return "winter";
   if(/vuitton|mohair|jersey|leather|craggy|shark|damier|statement/.test(text)) return "statement";
   if(/loafer|derby|suit|trouser|wool|pinstripe|watch/.test(text)) return "elevated";
   if(/linen|mesh|tank|short|slub|cycling/.test(text)) return "summer";
@@ -3368,13 +3615,16 @@ function inferVibe(x){
 }
 function buildCandidateFitAround(anchor, slot){
   const fit = normalizeFitLayers({[slot]:anchor,lockedSlot:slot});
+  const plan = weatherLayerPlan(currentFit.weatherTemp, currentFit.weatherCondition, currentFit.vibe, slot);
   const avoid = xs => xs.filter(x=>x.id!==anchor.id);
   fit.bottoms ||= smartPickFor(avoid(pickPool("Bottoms")), anchor);
-  fit.baseLayer ||= smartPickFor(avoid(weatherBasePool(topPool("baseLayer"))), fit.midLayer || fit.bottoms || anchor);
-  if(!fit.midLayer && wantsMidLayer()){
-    fit.midLayer = smartPickFor(avoid(topPool("midLayer")), fit.baseLayer || fit.bottoms || anchor);
+  if(plan.requiresBase && !fit.baseLayer){
+    fit.baseLayer = smartPickFor(avoid(weatherBasePool(topPool("baseLayer"))), fit.midLayer || fit.outerwear || fit.bottoms || anchor);
   }
-  if(!fit.outerwear && wantsOuterLayer() && midLayerAllowsOuter(fit.midLayer)){
+  if(!fit.midLayer && shouldFillMidLayer(plan, fit, slot)){
+    fit.midLayer = smartPickFor(avoid(weatherMidPool(topPool("midLayer"))), fit.baseLayer || fit.bottoms || anchor);
+  }
+  if(!fit.outerwear && shouldFillOuterLayer(plan, fit, slot) && midLayerAllowsOuter(fit.midLayer)){
     fit.outerwear = smartPickFor(avoid(weatherOuterPool(outerwearPool())), layerAnchor(fit, fit.bottoms || anchor));
   }
   fit.shoes ||= smartPickFor(avoid(pickPool("Shoes")), fit.bottoms || layerAnchor(fit, anchor));
@@ -3389,13 +3639,14 @@ function buildCandidateFitAround(anchor, slot){
   return completeRequiredFitSlots(fit);
 }
 function buildCandidateFit(){
+  const plan = weatherLayerPlan();
   const bottoms = smartPick(pickPool("Bottoms"));
   const fit = {bottoms};
   fit.baseLayer = smartPickFor(weatherBasePool(topPool("baseLayer")), bottoms);
-  if(wantsMidLayer()){
-    fit.midLayer = smartPickFor(topPool("midLayer"), fit.baseLayer || bottoms);
+  if(shouldFillMidLayer(plan, fit)){
+    fit.midLayer = smartPickFor(weatherMidPool(topPool("midLayer")), fit.baseLayer || bottoms);
   }
-  if(wantsOuterLayer() && midLayerAllowsOuter(fit.midLayer)){
+  if(shouldFillOuterLayer(plan, fit) && midLayerAllowsOuter(fit.midLayer)){
     fit.outerwear = smartPickFor(weatherOuterPool(outerwearPool()), layerAnchor(fit, bottoms));
   }
   fit.shoes = smartPickFor(pickPool("Shoes"), bottoms || layerAnchor(fit));
@@ -3521,17 +3772,24 @@ function logLayer(name,mix){
   toast("Layer logged");
 }
 async function aiBuildFitAround(anchor, weather, anchorSlot, feedback=""){
+  const weatherPlan = weatherLayerPlan(weather.temp, weather.condition, weather.intent, anchorSlot);
   const closetOptions = state.items
     .filter(x=>x.type==="wardrobe" || x.type==="fragrance")
-    .map(x=>({
-      id:x.id,type:x.type,brand:x.brand,name:x.name,color:x.color,size:x.size,category:x.category,
-      price:x.price,wears:x.wears,notes:x.notes,allowedSlots:allowedSlotsForItem(x),photo:x.photo ? absolutePhotoUrl(x.photo) : ""
-    }))
+    .map(x=>{
+      const allowedSlots = allowedSlotsForItem(x);
+      return {
+        id:x.id,type:x.type,brand:x.brand,name:x.name,color:x.color,size:x.size,category:x.category,
+        price:x.price,wears:x.wears,notes:x.notes,allowedSlots,
+        fabric:itemFabricProfile(x),
+        weatherScores:Object.fromEntries(allowedSlots.map(slot=>[slot,weatherSuitabilityScore(x,slot,weatherPlan)])),
+        photo:x.photo ? absolutePhotoUrl(x.photo) : ""
+      };
+    })
     .slice(0,260);
   const slots = ["baseLayer","midLayer","outerwear","bottoms","shoes","socks","hat","watch","accessory","fragrance"];
   const data = await openAiResponse({
     model:currentAiModel(),
-    instructions:"You build practical but stylish men's outfits from the user's own closet. "+AI_STYLE_PROFILE+" Your target is an 85/100 or better outfit, not merely a complete outfit. Choose item ids only from closetOptions and only place an item in one of its allowedSlots. Mandatory outfit slots: choose at least one real shirt/top in baseLayer or midLayer, and always choose bottoms, shoes, socks, hat, watch, accessory, and fragrance. Never leave pants/bottoms empty. Outerwear is optional and should only appear when it improves the weather/layering logic. Accessory should strongly prefer a belt when a belt works with the shoes, but bags can also live in the accessory slot. Hard slot rules: fragrance items can only go in fragrance; Bottoms can only go in bottoms; Shoes only in shoes; Socks only in socks; Hats only in hat; Watches only in watch; Accessories and Bags only in accessory; Outerwear only in outerwear; Tops marked baseLayer only touch the body; Tops marked midLayer are sweaters/hoodies/knits/quarter zips over base. Respect layer order: baseLayer touches body, midLayer is a sweater/hoodie/knit/quarter zip over base, outerwear is a jacket/coat over both. Do not put a jacket-like mid layer under another jacket unless it is cold enough and the proportions make sense. Weather matters: 55-65F usually wants two visible layers, not base + sweater + jacket, unless rain/wind/snow demands protection. Do not pair summer mesh/tank/camp/linen base layers under wool/cable/mohair/sherpa layers. Warm temps need breathable base layers and lighter scents; at 64F or below, avoid bright summer fragrances like Vibrato unless the user asks for fresh and prefer woody/amber/tea/tobacco/leather warmth. Choose fragrance with weather and palette in mind: a warm amber, boozy, tobacco, leather, tea, or woody scent can be fire on a 50-60F dry day because it adds warmth and contrast against olive, black, cream, grey, or brown clothes; bright aquatic/citrus scents are mostly warm-weather choices unless intentionally used for contrast. Hats and watches are separate slots; the user commonly wears both. Fragrance should fit the temperature. Make one confident, high-cohesion choice per required slot.",
+    instructions:"You build practical but stylish men's outfits from the user's own closet. "+AI_STYLE_PROFILE+" Your target is an 85/100 or better outfit, not merely a complete outfit. Choose item ids only from closetOptions and only place an item in one of its allowedSlots. Follow the provided weatherPlan exactly for the top half: summer heat means base layer only; fall means base plus either mid layer or outerwear; winter means base layer, mid layer, and outerwear. If a top slot is not called for by weatherPlan, return an empty string for that slot unless it is the anchor slot. Mandatory non-top slots: always choose bottoms, shoes, socks, hat, watch, accessory, and fragrance. Never leave pants/bottoms empty. Use fabric and weatherScores when deciding: linen/mesh/slub/tanks/tees breathe in heat; thermal/henley/oxford/heavy cotton works under cold layers; wool/mohair/cable/sherpa/fleece/down are cool or cold weather; waxed/nylon/shell/down/jackets help rain, wind, and snow. Accessory should strongly prefer a belt when a belt works with the shoes, but bags can also live in the accessory slot. Hard slot rules: fragrance items can only go in fragrance; Bottoms can only go in bottoms; Shoes only in shoes; Socks only in socks; Hats only in hat; Watches only in watch; Accessories and Bags only in accessory; Outerwear only in outerwear; Tops marked baseLayer only touch the body; Tops marked midLayer are jerseys, rugbys, sweaters, hoodies, knits, quarter zips, and similar pieces worn over a tank/tee/shirt. Respect layer order: baseLayer touches body, midLayer goes over base, outerwear goes over both. Do not put a jacket-like mid layer under another jacket unless winter or protective weather demands it. Weather matters: 55-65F usually wants two visible layers, not base + sweater + jacket, unless rain/wind/snow demands protection. Do not pair summer mesh/tank/camp/linen base layers under wool/cable/mohair/sherpa layers. Warm temps need breathable base layers and lighter scents; at 64F or below, avoid bright summer fragrances like Vibrato unless the user asks for fresh and prefer woody/amber/tea/tobacco/leather warmth. Choose fragrance with weather and palette in mind: a warm amber, boozy, tobacco, leather, tea, or woody scent can be fire on a 50-60F dry day because it adds warmth and contrast against olive, black, cream, grey, or brown clothes; bright aquatic/citrus scents are mostly warm-weather choices unless intentionally used for contrast. Hats and watches are separate slots; the user commonly wears both. Make one confident, high-cohesion choice per required slot.",
     text:{
       format:{
         type:"json_schema",
@@ -3556,6 +3814,15 @@ async function aiBuildFitAround(anchor, weather, anchorSlot, feedback=""){
     input:[{role:"user",content:[{type:"input_text",text:"Build an 85/100 or better outfit around the anchor item. Style profile: "+AI_STYLE_PROFILE+" Return empty string for any slot that should intentionally be skipped. Data:\n"+JSON.stringify({
       anchor:{id:anchor.id,slot:anchorSlot,type:anchor.type,brand:anchor.brand,name:anchor.name,color:anchor.color,size:anchor.size,category:anchor.category,price:anchor.price},
       weather:{tempF:weather.temp,condition:weather.condition,intent:weather.intent},
+      weatherPlan:{
+        summary:layerPlanLabel(weatherPlan),
+        season:weatherPlan.season,
+        reason:weatherPlan.reason,
+        requiresBase:weatherPlan.requiresBase,
+        wantsMid:weatherPlan.wantsMid,
+        wantsOuter:weatherPlan.wantsOuter,
+        maxTopLayers:weatherPlan.maxTopLayers
+      },
       styleProfile:AI_STYLE_PROFILE,
       targetScore:85,
       priorFeedback:feedback,
@@ -3595,14 +3862,14 @@ async function judgeFit(){
 async function aiJudgeFit(pieces){
   const model = currentAiModel();
   const cleanPieces = Object.fromEntries(Object.entries(pieces).map(([slot,x])=>[slot,{
-    id:x.id,brand:x.brand,name:x.name,color:x.color,size:x.size,category:inferredCategory(x),notes:x.notes,wears:x.wears,price:x.price,photo:x.photo ? absolutePhotoUrl(x.photo) : ""
+    id:x.id,brand:x.brand,name:x.name,color:x.color,size:x.size,category:inferredCategory(x),notes:x.notes,wears:x.wears,price:x.price,fabric:itemFabricProfile(x),photo:x.photo ? absolutePhotoUrl(x.photo) : ""
   }]));
   const closetOptions = state.items
     .filter(x=>x.type==="wardrobe")
-    .map(x=>({id:x.id,brand:x.brand,name:x.name,color:x.color,size:x.size,category:inferredCategory(x),price:x.price,wears:x.wears,allowedSlots:allowedSlotsForItem(x)}))
+    .map(x=>({id:x.id,brand:x.brand,name:x.name,color:x.color,size:x.size,category:inferredCategory(x),price:x.price,wears:x.wears,allowedSlots:allowedSlotsForItem(x),fabric:itemFabricProfile(x)}))
     .slice(0,220);
   const content = [
-    {type:"input_text",text:"Judge this outfit like a sharp men's stylist, not like a spreadsheet. Use the text data, the layer slots, the closet options, weather context, style profile, and any attached item photos. Outfit data:\n"+JSON.stringify({styleProfile:AI_STYLE_PROFILE, vibe:currentFit.vibe || "fall", weather:currentFit.weatherTemp ? {tempF:currentFit.weatherTemp,condition:currentFit.weatherCondition || "dry"} : null, pieces:cleanPieces, closetOptions}, null, 2)}
+    {type:"input_text",text:"Judge this outfit like a sharp men's stylist, not like a spreadsheet. Use the text data, inferred fabric, the layer slots, the closet options, weather context, style profile, and any attached item photos. Outfit data:\n"+JSON.stringify({styleProfile:AI_STYLE_PROFILE, vibe:currentFit.vibe || "fall", weather:currentFit.weatherTemp ? {tempF:currentFit.weatherTemp,condition:currentFit.weatherCondition || "dry",plan:layerPlanLabel(weatherLayerPlan(currentFit.weatherTemp,currentFit.weatherCondition,currentFit.vibe))} : null, pieces:cleanPieces, closetOptions}, null, 2)}
   ];
   Object.entries(pieces).forEach(([slot,x])=>{
     if(x?.photo && isAiReadableImage(x.photo)){
@@ -3746,9 +4013,10 @@ function localJudgeFit(pieces){
   const metrics = {
     Color: scoreColor(colors),
     Silhouette: scoreSilhouette(pieces),
+    Layering: scoreLayering(pieces),
     Texture: scoreTexture(text),
     Formality: scoreFormality(text),
-    Season: scoreSeason(text,currentFit.vibe || "fall"),
+    Season: scoreSeason(text,currentFit.vibe || "fall",pieces),
     Footwear: scoreFootwear(pieces),
     Accessories: scoreAccessories(pieces),
     Cohesion: scoreCohesion(vals)
@@ -3806,13 +4074,42 @@ function scoreFormality(text){
   if(formal || casual) return 7;
   return 6;
 }
-function scoreSeason(text,vibe){
+function scoreLayering(p){
+  const plan = weatherLayerPlan(currentFit.weatherTemp || (currentFit.vibe === "summer" ? 78 : 58), currentFit.weatherCondition || "dry", currentFit.vibe || "fall", p.lockedSlot);
+  let s = 7;
+  const hasBase = Boolean(p.baseLayer);
+  const hasMid = Boolean(p.midLayer);
+  const hasOuter = Boolean(p.outerwear);
+  if(plan.requiresBase && hasBase) s += 1;
+  if(plan.requiresBase && !hasBase) s -= 2;
+  if(shouldFillMidLayer(plan,p,p.lockedSlot) && hasMid) s += 1;
+  if(shouldFillMidLayer(plan,p,p.lockedSlot) && !hasMid) s -= 2;
+  if(shouldFillOuterLayer(plan,p,p.lockedSlot) && hasOuter) s += 1;
+  if(shouldFillOuterLayer(plan,p,p.lockedSlot) && !hasOuter) s -= 2;
+  if(plan.maxTopLayers === 1 && (hasMid || hasOuter)) s -= 3;
+  if(plan.maxTopLayers <= 2 && hasMid && hasOuter) s -= 2;
+  if(hasMid && hasOuter && !midLayerAllowsOuter(p.midLayer)) s -= 2;
+  if(p.baseLayer && isWarmWeatherBase(p.baseLayer) && currentFit.weatherTemp <= 68 && (hasMid || hasOuter)) s -= 2;
+  if(plan.temp <= 45 && hasBase && hasMid && hasOuter) s += 2;
+  if(plan.temp >= 74 && hasBase && !hasMid && !hasOuter) s += 2;
+  if(plan.temp >= 46 && plan.temp < 60 && hasBase && (hasMid || hasOuter) && !(hasMid && hasOuter)) s += 2;
+  return clamp(s);
+}
+function scoreSeason(text,vibe,pieces={}){
   const warm = /wool|mohair|coat|puffer|fleece|sherpa|beanie|thermal|corduroy/.test(text);
   const light = /linen|mesh|tank|tee|shorts|poplin|slub/.test(text);
-  if(["winter","fall","dinner"].includes(vibe)) return warm ? 9 : light ? 6 : 7;
-  if(vibe==="summer") return light && !warm ? 10 : light ? 8 : warm ? 4 : 7;
-  if(["spring","travel"].includes(vibe)) return light ? 9 : warm ? 6 : 8;
-  return 7;
+  const plan = weatherLayerPlan(currentFit.weatherTemp || (vibe === "summer" ? 78 : vibe === "winter" ? 38 : 58), currentFit.weatherCondition || "dry", vibe, pieces.lockedSlot);
+  let s = 7;
+  if(plan.temp <= 45) s = warm ? 9 : light ? 5 : 7;
+  else if(plan.temp < 60) s = warm ? 8 : light ? 6 : 8;
+  else if(plan.temp < 72) s = light ? 8 : warm ? 6 : 8;
+  else s = light && !warm ? 10 : light ? 8 : warm ? 4 : 7;
+  const worn = Object.entries(pieces || {}).filter(([slot,x])=>!FIT_META_KEYS.includes(slot) && x && x.id);
+  if(worn.length){
+    const avg = worn.reduce((sum,[slot,x])=>sum + weatherSuitabilityScore(x, slot, plan),0) / worn.length;
+    s += avg >= 68 ? 1 : avg < 46 ? -1 : 0;
+  }
+  return clamp(s);
 }
 function scoreFootwear(p){
   if(!p.shoes) return 4;
