@@ -290,6 +290,10 @@ h1{font-family:var(--serif);font-weight:400;font-size:30px;line-height:1;margin:
 .scent-notes{margin-top:9px;border-left:2px solid var(--seat);background:#0c0b09;border-radius:5px;padding:10px;color:var(--muted);font-size:11px;line-height:1.55}
 .scent-notes strong{display:block;color:var(--paper);font-family:var(--serif);font-size:16px;font-weight:400;margin-bottom:5px}
 .scent-notes a{color:var(--gold);text-decoration:none}
+.scent-notes-action{cursor:pointer}
+.scent-notes-action:hover{border-color:var(--leather);background:rgba(164,98,50,.12)}
+.scent-inline-action{display:inline-flex;align-items:center;gap:6px;margin-top:8px;color:var(--gold);font-weight:700;text-transform:uppercase;letter-spacing:.12em;font-size:9px}
+.scent-inline-action svg{width:12px;height:12px}
 .profile-source-link{display:inline-flex;align-items:center;gap:5px;margin-top:7px;color:var(--gold);font-size:9px;text-transform:uppercase;letter-spacing:.12em;text-decoration:none}
 .profile-source-link svg{width:12px;height:12px}
 .photo-picker{
@@ -635,6 +639,7 @@ label{display:grid;gap:5px;color:var(--muted);font-size:8px;text-transform:upper
         <label>Item Name<input class="field" id="fName" required></label>
         <label>Color / Season<input class="field" id="fColor"></label>
         <label>Size / Type<input class="field" id="fSize"></label>
+        <label>Fabric / Material<input class="field" id="fFabric" placeholder="cotton, mesh, nappa leather, wool, etc."></label>
         <label>Price<input class="field" id="fPrice" type="number" min="0" step="1"></label>
         <label>Date Added<input class="field" id="fDate" type="month"></label>
         <div class="photo-picker">
@@ -686,6 +691,70 @@ label{display:grid;gap:5px;color:var(--muted);font-size:8px;text-transform:upper
     </div>
     <div class="modal-body" id="detailBody"></div>
   </div>
+</div>
+
+<div class="modal-wrap" id="scentProfileModal" role="dialog" aria-modal="true">
+  <form class="modal" id="scentProfileForm">
+    <div class="modal-head">
+      <div class="modal-title" id="scentProfileTitle">Edit Scent Profile</div>
+      <button type="button" class="icon-btn" data-close="scentProfileModal" aria-label="Close"><i data-lucide="x"></i></button>
+    </div>
+    <div class="modal-body">
+      <div class="form-grid">
+        <label>Season
+          <select id="sProfileSeason">
+            <option value="">Keep current</option>
+            <option value="all">All-season</option>
+            <option value="spring">Spring</option>
+            <option value="summer">Summer</option>
+            <option value="fall">Fall</option>
+            <option value="winter">Winter</option>
+          </select>
+        </label>
+        <label>Projection
+          <select id="sProfileProjection">
+            <option value="">TBD</option>
+            <option>Low</option>
+            <option>Medium</option>
+            <option>High</option>
+            <option>Beast</option>
+          </select>
+        </label>
+        <label>Mood
+          <select id="sProfileMood">
+            <option value="">Auto</option>
+            <option>warm</option>
+            <option>woody</option>
+            <option>bright</option>
+            <option>fresh</option>
+            <option>smoky</option>
+            <option>sweet</option>
+            <option>leather</option>
+            <option>clean</option>
+            <option>balanced</option>
+          </select>
+        </label>
+        <label>My Rating
+          <select id="sProfileRating">
+            <option value="0">Unrated</option>
+            <option value="1">1 star</option>
+            <option value="2">2 stars</option>
+            <option value="3">3 stars</option>
+            <option value="4">4 stars</option>
+            <option value="5">5 stars</option>
+          </select>
+        </label>
+        <label>Top 10 Rank<input class="field" id="sProfileRank" type="number" min="1" max="10" step="1" placeholder="1-10 or blank"></label>
+        <label>Accords<input class="field" id="sProfileAccords" placeholder="woody, amber, leather"></label>
+        <label class="full">Note Pyramid<textarea class="area" id="sProfilePyramid" placeholder="Top: bergamot, fig | Heart: iris, leather | Base: cedar, vanilla"></textarea></label>
+      </div>
+      <div class="modal-actions">
+        <button type="button" class="ghost" id="clearScentTopTen"><i data-lucide="star-off"></i>Clear Top 10</button>
+        <button type="button" class="ghost" data-close="scentProfileModal">Cancel</button>
+        <button class="primary" type="submit"><i data-lucide="save"></i>Save Profile</button>
+      </div>
+    </div>
+  </form>
 </div>
 
 <div class="modal-wrap" id="importModal" role="dialog" aria-modal="true">
@@ -771,7 +840,7 @@ label{display:grid;gap:5px;color:var(--muted);font-size:8px;text-transform:upper
           </select>
         </label>
       </div>
-      <small style="display:block;margin-top:10px;color:var(--muted);line-height:1.6">AI can build the outfit with weather context when the Vercel key is available. Local weather rules are always available.</small>
+      <small style="display:block;margin-top:10px;color:var(--muted);line-height:1.6">Build 85+ with AI is the default. If AI is unavailable, the app falls back to local weather rules.</small>
       <div class="modal-actions">
         <button type="button" class="ghost" data-close="buildModal">Cancel</button>
         <button type="button" class="ghost" id="localWeatherBuild"><i data-lucide="cloud-sun"></i>Build Locally</button>
@@ -804,7 +873,7 @@ const tabs = [
 ];
 const releaseNotes = [
   "Deep green, cognac, cream, navy, and espresso interface palette.",
-  "Full v43 wardrobe seed with Parfumo scent profiles, note pyramids, rating context, permanent My Top 10 shelf, real weather layer plans, and cleaner AI fit notes.",
+  "Full v45 wardrobe seed with a dedicated fragrance profile editor, personal scent notes editor, wishlist fragrance profile lookup, editable materials, ranked Top 10 scents, AI-first build around, real weather layer plans, and cleaner AI fit notes.",
   "Photo-first add flow with phone camera upload and saved item photos.",
   "AI Identify can fill item fields from a photo when an API key is saved.",
   "Item detail pages with CPW, wear count, notes, and best pairings.",
@@ -1349,6 +1418,7 @@ let state = load();
 let activeTab = "wardrobe";
 let activeCategory = "All";
 let editingId = null;
+let editingScentProfileId = null;
 let currentFit = {};
 let currentJudgement = null;
 let pendingPhoto = "";
@@ -1363,7 +1433,7 @@ let currentWeatherScent = null;
 let wardrobeSortMode = "recent";
 
 function item(type,brand,name,color,size,price,date,category,extra={}){
-  return {id:uid(),type,brand,name,color,size,price:Number(price)||0,date,category,wears:0,photo:"",notes:"",sourceUrl:"",...extra};
+  return {id:uid(),type,brand,name,color,size,price:Number(price)||0,date,category,wears:0,photo:"",notes:"",sourceUrl:"",fabric:"",...extra};
 }
 function uid(){
   if(window.crypto && typeof crypto.randomUUID === "function") return crypto.randomUUID();
@@ -1384,8 +1454,41 @@ function rowsToFrags(rows){
 function fragranceProfileKey(x){
   return `${x?.brand || ""}|${x?.name || ""}`;
 }
+function splitProfileList(value){
+  if(Array.isArray(value)) return value.map(v=>String(v || "").trim()).filter(Boolean);
+  return String(value || "").split(/[,|;]/).map(v=>v.trim()).filter(Boolean);
+}
+function joinProfileList(value){
+  return splitProfileList(value).join(", ");
+}
+function storedFragranceProfile(x){
+  if(!x) return null;
+  const stored = x.fragranceProfile && typeof x.fragranceProfile === "object" ? x.fragranceProfile : {};
+  const storedNotes = stored.notes || {};
+  const notes = {
+    top:splitProfileList(storedNotes.top || x.fragranceTopNotes),
+    heart:splitProfileList(storedNotes.heart || x.fragranceHeartNotes),
+    base:splitProfileList(storedNotes.base || x.fragranceBaseNotes),
+    all:splitProfileList(storedNotes.all || x.fragranceNotes)
+  };
+  const accords = splitProfileList(stored.accords || x.fragranceAccords);
+  const hasProfile = stored.title || stored.source || stored.rating || stored.longevity || stored.sillage || accords.length || notes.top.length || notes.heart.length || notes.base.length || notes.all.length;
+  if(!hasProfile) return null;
+  return {
+    ...stored,
+    source:stored.source || x.fragranceProfileSource || "",
+    title:stored.title || `${x.brand || ""} ${x.name || ""}`.trim(),
+    rating:stored.rating || x.fragranceProfileRating || "",
+    ratingCount:stored.ratingCount || x.fragranceProfileRatingCount || "",
+    longevity:stored.longevity || x.fragranceLongevity || "",
+    sillage:stored.sillage || x.fragranceSillage || "",
+    accords,
+    notes,
+    mappedFrom:stored.mappedFrom || x.fragranceProfileMappedFrom || ""
+  };
+}
 function fragranceProfileFor(x){
-  return fragranceProfiles[fragranceProfileKey(x)] || null;
+  return fragranceProfiles[fragranceProfileKey(x)] || storedFragranceProfile(x) || null;
 }
 function fragranceProfileNotes(profile){
   if(!profile) return {top:[],heart:[],base:[],all:[]};
@@ -1439,6 +1542,7 @@ function fragranceProfileSearchText(x){
     profile.rating,
     profile.longevity,
     profile.sillage,
+    x.scentMood,
     ...(profile.accords || []),
     ...notes.top,
     ...notes.heart,
@@ -1517,6 +1621,10 @@ function mergeDuplicateItem(target, source){
   if(!target.price && source.price) target.price = source.price;
   if(source.rating && !target.rating) target.rating = source.rating;
   if(source.projection && !target.projection) target.projection = source.projection;
+  if(source.fabric && !target.fabric) target.fabric = source.fabric;
+  if(source.scentMood && !target.scentMood) target.scentMood = source.scentMood;
+  if(source.fragranceProfile && !target.fragranceProfile) target.fragranceProfile = source.fragranceProfile;
+  if(source.topTenRank && !target.topTenRank) target.topTenRank = source.topTenRank;
   if(source.category && !target.category) target.category = source.category;
   if(source.date && (!target.date || source.date > target.date)) target.date = source.date;
   if(source.sourceUrl && !target.sourceUrl) target.sourceUrl = source.sourceUrl;
@@ -1566,6 +1674,32 @@ function remapSavedReferences(existing, remap){
   });
   return changed;
 }
+function normalizeTopTenRanksForItems(items){
+  const scents = items.filter(x=>x.type === "fragrance" && x.topTen);
+  const used = new Set();
+  let changed = false;
+  scents
+    .sort((a,b)=>(Number(a.topTenRank)||99)-(Number(b.topTenRank)||99) || (a.topTenDate || "").localeCompare(b.topTenDate || ""))
+    .forEach(x=>{
+      let rank = Number(x.topTenRank) || 0;
+      if(rank < 1 || rank > 10 || used.has(rank)){
+        rank = 0;
+        for(let n=1;n<=10;n++){
+          if(!used.has(n)){ rank = n; break; }
+        }
+        x.topTenRank = rank;
+        changed = true;
+      }
+      if(rank) used.add(rank);
+    });
+  items.forEach(x=>{
+    if((x.type !== "fragrance" || !x.topTen) && x.topTenRank){
+      x.topTenRank = 0;
+      changed = true;
+    }
+  });
+  return changed;
+}
 function load(){
   try{
     const raw = localStorage.getItem(STORAGE_KEY);
@@ -1587,6 +1721,18 @@ function upgradeState(existing){
   }
   let changed = false;
   existing.items.forEach(x => {
+    if(typeof x.fabric === "undefined"){
+      x.fabric = "";
+      changed = true;
+    }
+    if(typeof x.scentMood === "undefined" && (x.type === "fragrance" || inferredCategory(x) === "Fragrances")){
+      x.scentMood = "";
+      changed = true;
+    }
+    if(typeof x.topTenRank === "undefined" && (x.type === "fragrance" || inferredCategory(x) === "Fragrances")){
+      x.topTenRank = 0;
+      changed = true;
+    }
     if(x.type === "fragrance" && x.brand === "Yom and Layl" && x.name === "Imperium (Roja Dove Haute Luxe dupe)"){
       x.name = "Haute Luxe";
       changed = true;
@@ -1622,6 +1768,7 @@ function upgradeState(existing){
     }
     if(x.type === "wardrobe" && x.brand === "Aime Leon Dore" && x.name === "Packable Logo Tote"){
       x.category = "Bags";
+      x.fabric ||= "canvas";
       x.notes ||= "ALD tote. Treat as a bag/accessory finisher in outfit builds.";
       changed = true;
     }
@@ -1632,6 +1779,7 @@ function upgradeState(existing){
     if(x.type === "wardrobe" && x.brand === "John Elliott" && x.name === "Solid Hemi Oversized Shirt"){
       x.category = "Tops";
       x.photo = "assets/photos/photo-150-buckmason-black-heavy-tee.webp";
+      x.fabric ||= "cotton jersey";
       x.notes ||= "Black John Elliott oversized shirt. Base layer shirt/tee option; cropped/boxy enough to work under mid layers or with wide trousers.";
       changed = true;
     }
@@ -1702,6 +1850,7 @@ function upgradeState(existing){
       changed = true;
     }
   });
+  if(normalizeTopTenRanksForItems(existing.items)) changed = true;
   if(changed) localStorage.setItem(STORAGE_KEY, JSON.stringify(existing));
   return existing;
 }
@@ -1752,7 +1901,7 @@ function filtered(type=activeTab){
   const results = state.items
     .filter(x => x.type === type)
     .filter(x => matchesCollectionFilter(x,type,activeCategory))
-    .filter(x => !q || [x.brand,x.name,x.color,x.size,x.category,x.notes,fragranceProfileSearchText(x)].join(" ").toLowerCase().includes(q))
+    .filter(x => !q || [x.brand,x.name,x.color,x.size,x.category,x.fabric,x.notes,fragranceProfileSearchText(x)].join(" ").toLowerCase().includes(q))
     .sort((a,b)=>{
       if(type === "fragrance"){
         if(activeCategory === "top10") return topFragranceCompare(a,b);
@@ -1923,9 +2072,17 @@ function fragranceScoreRating(x){
 function fragranceSortCompare(a,b){
   return `${a.brand} ${a.name}`.localeCompare(`${b.brand} ${b.name}`);
 }
+function topTenRank(x){
+  const n = Number(x?.topTenRank || 0);
+  return n >= 1 && n <= 10 ? Math.round(n) : 0;
+}
 function topFragranceCompare(a,b){
-  return Number(Boolean(b.topTen))-Number(Boolean(a.topTen))
-    || fragrancePersonalRating(b)-fragrancePersonalRating(a)
+  const topDiff = Number(Boolean(b.topTen))-Number(Boolean(a.topTen));
+  if(topDiff) return topDiff;
+  const rankA = topTenRank(a) || 99;
+  const rankB = topTenRank(b) || 99;
+  if(rankA !== rankB) return rankA - rankB;
+  return fragrancePersonalRating(b)-fragrancePersonalRating(a)
     || fragranceArchiveScore(b)-fragranceArchiveScore(a)
     || (b.topTenDate || "").localeCompare(a.topTenDate || "")
     || fragranceSortCompare(a,b);
@@ -1937,7 +2094,7 @@ function fragranceRatingControls(x){
   const personal = fragrancePersonalRating(x);
   const label = personal ? `Your ${personal}/5` : "Tap stars";
   const stars = [1,2,3,4,5].map(n=>`<button type="button" class="star-btn ${personal>=n?"on":""}" data-frag-rating="${esc(x.id)}" data-rating="${n}" aria-label="Rate ${esc(itemLabel(x))} ${n} of 5">${icon("star")}</button>`).join("");
-  const topTenLabel = x.topTen ? "In My Top 10" : "My Top 10";
+  const topTenLabel = x.topTen ? (topTenRank(x) ? `Top 10 #${topTenRank(x)}` : "In My Top 10") : "My Top 10";
   return `<div class="fragrance-controls">
     <div><div class="star-rating">${stars}</div><div class="rating-label">${esc(label)}</div></div>
     <button type="button" class="top-ten-toggle ${x.topTen?"on":""}" data-top-ten="${esc(x.id)}" aria-label="${x.topTen?"Remove from":"Add to"} My Top 10">${icon("star")}${esc(topTenLabel)}</button>
@@ -1986,6 +2143,7 @@ function fragranceKnowledgeText(x){
 function fragranceKnowledgeCard(x){
   const userNotes = String(x.notes || "").trim();
   const profile = fragranceProfileFor(x);
+  const rank = x.topTen ? (topTenRank(x) ? `My Top 10 #${topTenRank(x)}` : "My Top 10") : "Unranked";
   const profileBlock = profile ? `
     <div class="scent-notes"><strong>Parfumo Profile</strong>${esc(fragranceProfileSummary(profile))}${profile.source ? `<a class="profile-source-link" href="${esc(profile.source)}" target="_blank" rel="noopener">${icon("external-link")}Open Parfumo</a>` : ""}</div>
     <div class="scent-notes"><strong>Main Accords</strong>${esc(fragranceProfileAccordsLine(profile))}</div>
@@ -1993,15 +2151,15 @@ function fragranceKnowledgeCard(x){
     <div class="scent-notes"><strong>Profile Source</strong>${esc(fragranceProfileSourceLabel(x, profile))}</div>
   ` : `<div class="scent-notes"><strong>Parfumo Profile</strong>No Parfumo profile is linked for this scent yet. Your personal notes still guide weather picks and layering.</div>`;
   return `<div class="fragrance-detail-controls">
-    <div class="section-head" style="margin:0 0 6px"><div><div class="panel-title">Scent Notes & Layering Context</div><div class="section-sub">${esc(x.topTen ? "Marked as My Top 10" : "Personal scent knowledge")}</div></div><button class="ghost" data-edit="${esc(x.id)}">${icon("pencil")}Edit Notes</button></div>
+    <div class="section-head" style="margin:0 0 6px"><div><div class="panel-title">Scent Notes & Layering Context</div><div class="section-sub">${esc(x.topTen ? "Marked as My Top 10" : "Personal scent knowledge")}</div></div><button class="ghost" data-edit-scent-profile="${esc(x.id)}">${icon("sliders-horizontal")}Edit Profile</button></div>
     <div class="scent-context-grid">
       <div class="scent-context-chip"><span>Season</span><strong>${esc(fragranceSeasonLabel(x))}</strong></div>
       <div class="scent-context-chip"><span>Projection</span><strong>${esc(x.projection || "TBD")}</strong></div>
       <div class="scent-context-chip"><span>Mood</span><strong>${esc(fragranceMood(x))}</strong></div>
-      <div class="scent-context-chip"><span>Rank</span><strong>${esc(x.topTen ? "My Top 10" : "Unranked")}</strong></div>
+      <div class="scent-context-chip"><span>Rank</span><strong>${esc(rank)}</strong></div>
     </div>
     ${profileBlock}
-    <div class="scent-notes"><strong>Personal Notes</strong>${esc(userNotes || "No personal notes yet. Tap Edit Notes to add season, occasion, compliments, layering ideas, or anything you want AI to remember.")}</div>
+    <div class="scent-notes scent-notes-action" data-edit-personal-notes="${esc(x.id)}" role="button"><strong>Personal Notes</strong>${esc(userNotes || "No personal notes yet. Tap here to add season, occasion, compliments, layering ideas, or anything you want AI to remember.")}<span class="scent-inline-action">${icon("pencil")}Edit Personal Notes</span></div>
     <div class="scent-notes"><strong>Layering Context</strong>${esc(fragranceLayeringContext(x))}</div>
   </div>`;
 }
@@ -2139,6 +2297,14 @@ function itemLayerLabel(x){
   const labels = slots.map(slot=>({baseLayer:"Base layer",midLayer:"Mid layer",outerwear:"Outer layer"})[slot]);
   return labels.length ? labels.join(" / ") : "";
 }
+function isFragranceLike(x){
+  return x?.type === "fragrance" || inferredCategory(x) === "Fragrances";
+}
+function itemMaterialLabel(x){
+  if(x?.fabric) return x.fabric;
+  const fabrics = itemFabricProfile(x).fabrics || [];
+  return fabrics.length && fabrics[0] !== "unknown" ? fabrics.join(", ") : "—";
+}
 function sourceLinkButton(x){
   return x.sourceUrl ? `<a class="ghost" href="${esc(x.sourceUrl)}" target="_blank" rel="noreferrer">${icon("external-link")}${x.type==="wishlist" ? "Buy" : "Link"}</a>` : "";
 }
@@ -2154,7 +2320,7 @@ function wearActions(x,cpw){
 }
 function buildAroundButton(x){
   if(x.type==="wishlist") return "";
-  return `<button class="primary build-action" data-build-around="${x.id}">${icon("sparkles")}Build Around This</button>`;
+  return `<button class="primary build-action" data-build-around="${x.id}">${icon("sparkles")}AI Build Around This</button>`;
 }
 function wishActions(x){
   return `<div class="wear">
@@ -2169,8 +2335,9 @@ function openDetail(id){
   const worn = x.wears || 0;
   const cpw = x.price && worn ? "$"+(x.price/worn).toFixed(2) : "—";
   const pairs = suggestPairings(x).slice(0,4);
+  const isScent = isFragranceLike(x);
   document.getElementById("detailBody").innerHTML = `
-    <div class="detail-photo ${x.type==="fragrance"||x.category==="Fragrances"?"fragrance-photo":""}" data-photo-target="${x.id}">${displayPhoto(x) ? `<img src="${esc(displayPhoto(x))}" alt="">` : x.type==="fragrance" || x.category==="Fragrances" ? fragranceArt(x) : icon("image-plus")}</div>
+    <div class="detail-photo ${isScent?"fragrance-photo":""}" data-photo-target="${x.id}">${displayPhoto(x) ? `<img src="${esc(displayPhoto(x))}" alt="">` : isScent ? fragranceArt(x) : icon("image-plus")}</div>
     <div class="eyebrow">${esc(x.brand)} · ${esc(x.category)}</div>
     <div class="section-title" style="margin-top:6px">${esc(x.name)}</div>
     <div class="detail-grid">
@@ -2180,8 +2347,9 @@ function openDetail(id){
       <div class="detail-chip"><span>Price</span><strong>${x.price ? money.format(x.price) : "TBD"}</strong></div>
       <div class="detail-chip"><span>Worn</span><strong>${worn}x</strong></div>
       <div class="detail-chip"><span>Added</span><strong>${fmtMonth(x.date)}</strong></div>
+      ${!isScent ? `<div class="detail-chip"><span>Fabric</span><strong>${esc(itemMaterialLabel(x))}</strong></div>` : ""}
     </div>
-    ${x.type==="fragrance" ? fragranceDetailControls(x) + fragranceKnowledgeCard(x) : ""}
+    ${isScent ? (x.type==="fragrance" ? fragranceDetailControls(x) : "") + fragranceKnowledgeCard(x) : ""}
     ${x.sourceUrl ? `<a class="primary" href="${esc(x.sourceUrl)}" target="_blank" rel="noreferrer" style="width:100%;margin-bottom:12px">${icon("external-link")}Open ${esc(sourceHost(x.sourceUrl))}</a>` : ""}
     ${x.type!=="fragrance" && x.notes ? `<div class="gap-item">${esc(x.notes)}</div>` : ""}
     <div class="panel-title" style="margin-top:14px">Best Pairings</div>
@@ -2202,7 +2370,7 @@ function suggestPairings(x){
     .map(x=>x.i);
 }
 function styleProfile(item){
-  const text = `${item.brand||""} ${item.name||""} ${item.color||""} ${item.category||""}`.toLowerCase();
+  const text = `${item.brand||""} ${item.name||""} ${item.color||""} ${item.category||""} ${item.fabric||""}`.toLowerCase();
   const override = styleOverrides.find(o=>text.includes(o.match.toLowerCase()));
   const tags = new Set(override?.tags || []);
   const texture = new Set(override?.texture || []);
@@ -2226,10 +2394,10 @@ function styleProfile(item){
   };
 }
 function statementLevel(item){
-  const text = `${item.brand} ${item.name} ${item.color}`.toLowerCase();
+  const text = `${item.brand} ${item.name} ${item.color} ${item.fabric || ""}`.toLowerCase();
   let s = 3;
   if(item.price > 250) s += 2;
-  if(/vuitton|bottega|lemaire|issey|mohair|leather|puffer|jersey|craggy|shark|damier/.test(text)) s += 2;
+  if(/vuitton|bottega|lemaire|issey|mohair|leather|crocodile|nappa|eel|suede|wool tweed|puffer|jersey|craggy|shark|damier/.test(text)) s += 2;
   if(/black tee|white tee|tank|thermal|sock|belt/.test(text)) s -= 2;
   return clamp(s);
 }
@@ -2925,7 +3093,7 @@ async function aiSuggestWeatherScent(){
   }
   return {...parsed,scentId:scent.id,scent:itemLabel(scent)};
 }
-function openItem(id=null,presetType=activeTab){
+function openItem(id=null,presetType=activeTab,focusFieldId="fBrand"){
   editingId = id;
   const x = id ? state.items.find(i=>i.id===id) : item(presetType==="fragrance"?"fragrance":presetType==="wishlist"?"wishlist":"wardrobe","","","","",0,new Date().toISOString().slice(0,7),"Tops");
   document.getElementById("itemModalTitle").textContent = id ? "Edit Item" : "Add Item";
@@ -2935,6 +3103,7 @@ function openItem(id=null,presetType=activeTab){
   document.getElementById("fName").value = x.name || "";
   document.getElementById("fColor").value = x.color || "";
   document.getElementById("fSize").value = x.size || "";
+  document.getElementById("fFabric").value = x.fabric || "";
   document.getElementById("fPrice").value = x.price || "";
   document.getElementById("fDate").value = x.date || new Date().toISOString().slice(0,7);
   pendingPhoto = x.photo || "";
@@ -2944,16 +3113,123 @@ function openItem(id=null,presetType=activeTab){
   document.getElementById("fNotes").value = x.notes || "";
   document.getElementById("deleteItem").style.display = id ? "inline-flex" : "none";
   document.getElementById("itemModal").classList.add("open");
-  setTimeout(()=>document.getElementById("fBrand").focus(),40);
+  setTimeout(()=>{
+    const field = document.getElementById(focusFieldId) || document.getElementById("fBrand");
+    field?.focus();
+  },40);
   hydrateIcons();
 }
 function closeModal(id){ document.getElementById(id).classList.remove("open"); }
+function openEditorFromDetail(id,focusFieldId="fBrand"){
+  closeModal("detailModal");
+  openItem(id,activeTab,focusFieldId);
+}
+function profilePyramidText(profile){
+  const notes = fragranceProfileNotes(profile);
+  const parts = [];
+  if(notes.top.length) parts.push(`Top: ${notes.top.join(", ")}`);
+  if(notes.heart.length) parts.push(`Heart: ${notes.heart.join(", ")}`);
+  if(notes.base.length) parts.push(`Base: ${notes.base.join(", ")}`);
+  if(!parts.length && notes.all.length) parts.push(`Notes: ${notes.all.join(", ")}`);
+  return parts.join(" | ");
+}
+function parseProfilePyramid(text){
+  const output = {top:[],heart:[],base:[],all:[]};
+  const value = String(text || "").trim();
+  if(!value) return output;
+  const sections = value.split(/\s*\|\s*/);
+  sections.forEach(section=>{
+    const [rawLabel,...rest] = section.split(":");
+    const label = String(rawLabel || "").toLowerCase().trim();
+    const notes = splitProfileList(rest.join(":") || section);
+    if(label.includes("top")) output.top = notes;
+    else if(label.includes("heart") || label.includes("middle")) output.heart = notes;
+    else if(label.includes("base")) output.base = notes;
+    else if(label.includes("note")) output.all = notes;
+  });
+  if(!output.top.length && !output.heart.length && !output.base.length && !output.all.length){
+    output.all = splitProfileList(value);
+  }
+  return output;
+}
+function openScentProfileEditor(id){
+  const x = state.items.find(i=>i.id===id);
+  if(!x) return;
+  editingScentProfileId = id;
+  const profile = fragranceProfileFor(x);
+  document.getElementById("scentProfileTitle").textContent = `Edit ${x.name}`;
+  document.getElementById("sProfileSeason").value = ["all","spring","summer","fall","winter"].includes(String(x.color || "").toLowerCase()) ? String(x.color).toLowerCase() : "";
+  document.getElementById("sProfileProjection").value = x.projection || "";
+  document.getElementById("sProfileMood").value = x.scentMood || "";
+  document.getElementById("sProfileRating").value = String(fragrancePersonalRating(x) || 0);
+  document.getElementById("sProfileRank").value = topTenRank(x) || "";
+  document.getElementById("sProfileAccords").value = profile ? fragranceProfileAccordsLine(profile).replace(/^No public Parfumo accords found yet\.$/,"") : "";
+  document.getElementById("sProfilePyramid").value = profilePyramidText(profile);
+  document.getElementById("scentProfileModal").classList.add("open");
+  setTimeout(()=>document.getElementById("sProfileSeason").focus(),40);
+  hydrateIcons();
+}
+function clearScentTopTen(){
+  if(!editingScentProfileId) return;
+  const x = state.items.find(i=>i.id===editingScentProfileId);
+  if(!x) return;
+  x.topTen = false;
+  x.topTenRank = 0;
+  x.topTenDate = "";
+  save();
+  document.getElementById("sProfileRank").value = "";
+  toast("Top 10 cleared");
+}
+function submitScentProfile(e){
+  e.preventDefault();
+  const x = state.items.find(i=>i.id===editingScentProfileId);
+  if(!x) return;
+  const season = document.getElementById("sProfileSeason").value;
+  const projection = document.getElementById("sProfileProjection").value;
+  const mood = document.getElementById("sProfileMood").value.trim();
+  const rating = Number(document.getElementById("sProfileRating").value) || 0;
+  const rank = Number(document.getElementById("sProfileRank").value) || 0;
+  const accords = splitProfileList(document.getElementById("sProfileAccords").value);
+  const notes = parseProfilePyramid(document.getElementById("sProfilePyramid").value);
+  if(season) x.color = season;
+  x.projection = projection;
+  x.scentMood = mood;
+  x.personalRating = Math.max(0, Math.min(5, Math.round(rating)));
+  if(rank >= 1 && rank <= 10){
+    state.items.forEach(other=>{
+      if(other.id !== x.id && other.type === "fragrance" && Number(other.topTenRank) === rank){
+        other.topTenRank = 0;
+      }
+    });
+    x.topTen = x.type === "fragrance";
+    x.topTenRank = rank;
+    x.topTenDate ||= new Date().toISOString();
+  }else if(!rank){
+    x.topTenRank = 0;
+  }
+  if(accords.length || notes.top.length || notes.heart.length || notes.base.length || notes.all.length){
+    const existing = storedFragranceProfile(x) || fragranceProfiles[fragranceProfileKey(x)] || {};
+    x.fragranceProfile = {
+      ...existing,
+      title:existing.title || `${x.brand} ${x.name}`.trim(),
+      source:existing.source || x.fragranceProfileSource || "",
+      accords,
+      notes
+    };
+  }
+  normalizeTopTenRanksForItems(state.items);
+  if(!save()) return;
+  closeModal("scentProfileModal");
+  render();
+  openDetail(x.id);
+  toast("Scent profile saved");
+}
 function submitItem(e){
   e.preventDefault();
   const data = {
     type:fType.value, category:fCategory.value, brand:fBrand.value.trim(), name:fName.value.trim(),
     color:fColor.value.trim(), size:fSize.value.trim(), price:Number(fPrice.value)||0,
-    date:fDate.value || new Date().toISOString().slice(0,7), photo:pendingPhoto || "", sourceUrl:normalizeUrl(fUrl.value), notes:fNotes.value.trim()
+    fabric:fFabric.value.trim(), date:fDate.value || new Date().toISOString().slice(0,7), photo:pendingPhoto || "", sourceUrl:normalizeUrl(fUrl.value), notes:fNotes.value.trim()
   };
   if(!data.brand || !data.name) return;
   if(editingId){
@@ -3032,7 +3308,7 @@ async function identifyPhoto(){
     const model = currentAiModel();
     const data = await openAiResponse({
       model,
-      instructions:"Identify a clothing, shoe, accessory, or fragrance item from the image. Return only valid JSON with brand, name, color, category, size, price_estimate, and notes. If unsure, use best_guess language in notes and leave exact fields broad.",
+      instructions:"Identify a clothing, shoe, accessory, or fragrance item from the image. Return only valid JSON with brand, name, color, category, size, fabric, price_estimate, and notes. Material matters: use specific fabric/material language when visible or known, such as cotton mesh, nappa leather, crocodile leather, wool tweed, mohair blend, canvas, nylon shell, or down fill. If unsure, use best_guess language in notes and leave exact fields broad.",
       input:[{role:"user",content:[
         {type:"input_text",text:"Identify this closet item and fill app fields."},
         {type:"input_image",image_url:pendingPhoto,detail:"high"}
@@ -3045,6 +3321,7 @@ async function identifyPhoto(){
     if(guess.color) fColor.value = guess.color;
     if(guess.category) fCategory.value = guess.category;
     if(guess.size) fSize.value = guess.size;
+    if(guess.fabric) fFabric.value = guess.fabric;
     if(guess.price_estimate) fPrice.value = Number(guess.price_estimate) || "";
     if(guess.notes) fNotes.value = guess.notes;
     toast("Fields filled");
@@ -3074,6 +3351,28 @@ function saveWishFromLinkOnly(){
   render();
   toast("Link saved");
 }
+function fragranceProfileFromWishData(data){
+  const accords = splitProfileList(data.fragranceAccords);
+  const notes = {
+    top:splitProfileList(data.fragranceTopNotes),
+    heart:splitProfileList(data.fragranceHeartNotes),
+    base:splitProfileList(data.fragranceBaseNotes),
+    all:splitProfileList(data.fragranceNotes)
+  };
+  const hasProfile = data.fragranceProfileSource || data.fragranceRating || data.fragranceLongevity || data.fragranceSillage || accords.length || notes.top.length || notes.heart.length || notes.base.length || notes.all.length;
+  if(!hasProfile) return null;
+  return {
+    source:data.fragranceProfileSource || "",
+    title:data.fragranceProfileTitle || `${data.brand || ""} ${data.name || ""}`.trim(),
+    rating:data.fragranceRating || "",
+    ratingCount:data.fragranceRatingCount || "",
+    longevity:data.fragranceLongevity || "",
+    sillage:data.fragranceSillage || "",
+    accords,
+    notes,
+    mappedFrom:data.fragranceProfileMappedFrom || ""
+  };
+}
 async function analyzeWishLink(){
   const url = normalizeUrl(document.getElementById("wishLink").value);
   if(!url){ toast("Paste a link"); return; }
@@ -3083,7 +3382,7 @@ async function analyzeWishLink(){
     const wish = item("wishlist",
       data.brand || sourceHost(url),
       data.name || "Wish item from link",
-      data.color || "",
+      data.category === "Fragrances" ? (data.fragranceSeason || data.color || "") : (data.color || ""),
       data.size || "",
       Number(data.price) || 0,
       new Date().toISOString().slice(0,7),
@@ -3091,7 +3390,19 @@ async function analyzeWishLink(){
       {
         sourceUrl:url,
         photo:normalizeUrl(data.photoUrl) || "",
-        notes:data.notes || `Added from ${sourceHost(url)}.`
+        fabric:data.fabric || "",
+        projection:data.fragranceProjection || "",
+        rating:Number(data.fragranceRating) ? Number(data.fragranceRating) / 2 : 0,
+        scentMood:data.fragranceMood || "",
+        fragranceProfile:fragranceProfileFromWishData(data),
+        fragranceProfileSource:data.fragranceProfileSource || "",
+        fragranceAccords:joinProfileList(data.fragranceAccords),
+        fragranceTopNotes:joinProfileList(data.fragranceTopNotes),
+        fragranceHeartNotes:joinProfileList(data.fragranceHeartNotes),
+        fragranceBaseNotes:joinProfileList(data.fragranceBaseNotes),
+        fragranceLongevity:data.fragranceLongevity || "",
+        fragranceSillage:data.fragranceSillage || "",
+        notes:[data.notes || `Added from ${sourceHost(url)}.`, data.overlapNote || ""].filter(Boolean).join(" ")
       }
     );
     state.items.unshift(wish);
@@ -3107,10 +3418,18 @@ async function analyzeWishLink(){
   }
 }
 async function aiWishFromUrl(url){
+  const ownedScentProfiles = ownedFragrances().map(x=>({
+    brand:x.brand,
+    name:x.name,
+    season:x.color,
+    projection:x.projection,
+    mood:fragranceMood(x),
+    profile:fragranceKnowledgeText(x)
+  })).slice(0,80);
   const data = await openAiResponse({
     model:currentAiModel(),
     tools:[{type:"web_search_preview"}],
-    instructions:"You identify fashion, fragrance, bag, shoe, accessory, and menswear wishlist items from a product URL. Use web search if needed. Return only valid JSON. If the page is unavailable, infer only from the URL and keep uncertain fields broad. Category must be one of Tops, Bottoms, Outerwear, Shoes, Hats, Socks, Accessories, Bags, Watches, Fragrances, or Wishlist. photoUrl should be a direct product image URL only when reasonably available; otherwise empty string.",
+    instructions:"You identify fashion, fragrance, bag, shoe, accessory, and menswear wishlist items from a product URL. Use web search if needed. Return only valid JSON. If the page is unavailable, infer only from the URL and keep uncertain fields broad. Category must be one of Tops, Bottoms, Outerwear, Shoes, Hats, Socks, Accessories, Bags, Watches, Fragrances, or Wishlist. photoUrl should be a direct product image URL only when reasonably available; otherwise empty string. Always fill fabric/material for clothing, shoes, and bags using specific language when possible: cotton mesh, wool tweed, mohair blend, nappa leather, crocodile leather, eel leather, suede, canvas, nylon shell, down fill, and so on. For fragrance wishlist items, look up perfume profile data from Parfumo when available and fill projection, mood, main accords, note pyramid, rating, longevity, sillage, and source. Compare against the user's owned scent profiles and write overlapNote when the wishlist scent duplicates something already owned or fills a genuine gap.",
     text:{
       format:{
         type:"json_schema",
@@ -3126,14 +3445,31 @@ async function aiWishFromUrl(url){
             size:{type:"string"},
             category:{type:"string"},
             price:{type:"number"},
+            fabric:{type:"string"},
             photoUrl:{type:"string"},
-            notes:{type:"string"}
+            notes:{type:"string"},
+            fragranceProfileTitle:{type:"string"},
+            fragranceProfileSource:{type:"string"},
+            fragranceProfileMappedFrom:{type:"string"},
+            fragranceSeason:{type:"string"},
+            fragranceProjection:{type:"string"},
+            fragranceMood:{type:"string"},
+            fragranceRating:{type:"number"},
+            fragranceRatingCount:{type:"string"},
+            fragranceLongevity:{type:"string"},
+            fragranceSillage:{type:"string"},
+            fragranceAccords:{type:"array",items:{type:"string"}},
+            fragranceTopNotes:{type:"array",items:{type:"string"}},
+            fragranceHeartNotes:{type:"array",items:{type:"string"}},
+            fragranceBaseNotes:{type:"array",items:{type:"string"}},
+            fragranceNotes:{type:"array",items:{type:"string"}},
+            overlapNote:{type:"string"}
           },
-          required:["brand","name","color","size","category","price","photoUrl","notes"]
+          required:["brand","name","color","size","category","price","fabric","photoUrl","notes","fragranceProfileTitle","fragranceProfileSource","fragranceProfileMappedFrom","fragranceSeason","fragranceProjection","fragranceMood","fragranceRating","fragranceRatingCount","fragranceLongevity","fragranceSillage","fragranceAccords","fragranceTopNotes","fragranceHeartNotes","fragranceBaseNotes","fragranceNotes","overlapNote"]
         }
       }
     },
-    input:[{role:"user",content:[{type:"input_text",text:"Create one wishlist item from this product URL for a closet archive app. URL: "+url}]}]
+    input:[{role:"user",content:[{type:"input_text",text:"Create one wishlist item from this product URL for a closet archive app. URL: "+url+"\n\nOwned scent profiles for overlap checks:\n"+JSON.stringify(ownedScentProfiles, null, 2)}]}]
   });
   const text = data.output_text || data.output?.flatMap(o=>o.content||[]).map(c=>c.text||"").join("") || "";
   return JSON.parse(text.replace(/^```json|```$/g,"").trim());
@@ -3180,6 +3516,13 @@ function setFragranceRating(id,rating){
   if(document.getElementById("detailModal").classList.contains("open")) openDetail(id);
   toast(`Rated ${x.personalRating}/5`);
 }
+function firstAvailableTopTenRank(exceptId=""){
+  const used = new Set(state.items.filter(i=>i.type==="fragrance" && i.topTen && i.id!==exceptId).map(topTenRank).filter(Boolean));
+  for(let n=1;n<=10;n++){
+    if(!used.has(n)) return n;
+  }
+  return 0;
+}
 function toggleTopTen(id){
   const x = state.items.find(i=>i.id===id && i.type==="fragrance");
   if(!x) return;
@@ -3189,6 +3532,7 @@ function toggleTopTen(id){
   }
   x.topTen = !x.topTen;
   x.topTenDate = x.topTen ? new Date().toISOString() : "";
+  x.topTenRank = x.topTen ? (topTenRank(x) || firstAvailableTopTenRank(x.id)) : 0;
   save();
   render();
   if(document.getElementById("detailModal").classList.contains("open")) openDetail(id);
@@ -3198,7 +3542,7 @@ function acquire(id){
   const x = state.items.find(i=>i.id===id);
   if(!x) return;
   dismissSeedWish(state, x);
-  x.type = x.category === "Fragrances" ? "fragrance" : "wardrobe";
+  x.type = isFragranceLike(x) ? "fragrance" : "wardrobe";
   x.date = new Date().toISOString().slice(0,7);
   save();
   activeTab = x.type;
@@ -3226,6 +3570,7 @@ function openBuildWeather(id){
   document.getElementById("weatherIntent").value = "auto";
   updateWeatherLabel();
   document.getElementById("buildModal").classList.add("open");
+  setTimeout(()=>document.getElementById("aiWeatherBuild").focus(),40);
   hydrateIcons();
 }
 function defaultWeatherTempFor(anchor){
@@ -3463,7 +3808,7 @@ function slotForItem(x){
   return "accessory";
 }
 function layerText(x){
-  return `${x?.brand || ""} ${x?.name || ""} ${x?.color || ""} ${x?.category || ""} ${x?.notes || ""} ${fragranceProfileSearchText(x)}`.toLowerCase();
+  return `${x?.brand || ""} ${x?.name || ""} ${x?.color || ""} ${x?.category || ""} ${x?.fabric || ""} ${x?.notes || ""} ${fragranceProfileSearchText(x)}`.toLowerCase();
 }
 function isMidLayer(x){
   return layerSlotsForTop(x).includes("midLayer");
@@ -3539,11 +3884,13 @@ function itemWeatherText(x){
   return `${layerText(x)} ${x?.notes || ""}`.toLowerCase();
 }
 function itemFabricProfile(x){
-  const text = itemWeatherText(x);
+  const explicit = String(x?.fabric || "").toLowerCase();
+  const text = `${itemWeatherText(x)} ${explicit}`;
   const fabrics = [];
-  ["cotton","linen","wool","mohair","alpaca","cashmere","denim","leather","suede","nylon","waxed","fleece","sherpa","down","corduroy","mesh","thermal","poplin","oxford"].forEach(f=>{
+  ["cotton","linen","wool","mohair","alpaca","cashmere","denim","leather","crocodile","nappa","eel","calfskin","suede","canvas","silk","viscose","polyester","nylon","waxed","fleece","sherpa","down","corduroy","mesh","thermal","poplin","oxford"].forEach(f=>{
     if(text.includes(f)) fabrics.push(f);
   });
+  if(explicit && !fabrics.length) fabrics.push(explicit);
   let weight = "medium";
   if(/down|puffer|coat|heavy|sherpa|fleece|wool|mohair|alpaca|thermal|tweed|corduroy/.test(text)) weight = "warm";
   if(/tank|mesh|linen|slub|poplin|camp|short sleeve|cropped tee|lightweight/.test(text)) weight = "light";
@@ -3901,6 +4248,7 @@ async function aiBuildFitAround(anchor, weather, anchorSlot, feedback=""){
       return {
         id:x.id,type:x.type,brand:x.brand,name:x.name,color:x.color,size:x.size,category:x.category,
         price:x.price,wears:x.wears,notes:x.notes,allowedSlots,
+        material:x.fabric || itemMaterialLabel(x),
         fabric:itemFabricProfile(x),
         weatherScores:Object.fromEntries(allowedSlots.map(slot=>[slot,weatherSuitabilityScore(x,slot,weatherPlan)])),
         photo:x.photo ? absolutePhotoUrl(x.photo) : ""
@@ -3910,7 +4258,7 @@ async function aiBuildFitAround(anchor, weather, anchorSlot, feedback=""){
   const slots = ["baseLayer","midLayer","outerwear","bottoms","shoes","socks","hat","watch","accessory","fragrance"];
   const data = await openAiResponse({
     model:currentAiModel(),
-    instructions:"You build practical but stylish men's outfits from the user's own closet. "+AI_STYLE_PROFILE+" Your target is an 85/100 or better outfit, not merely a complete outfit. Choose item ids only from closetOptions and only place an item in one of its allowedSlots. Follow the provided weatherPlan exactly for the top half: summer heat means base layer only; fall means base plus either mid layer or outerwear; winter means base layer, mid layer, and outerwear. If a top slot is not called for by weatherPlan, return an empty string for that slot unless it is the anchor slot. Mandatory non-top slots: always choose bottoms, shoes, socks, hat, watch, accessory, and fragrance. Never leave pants/bottoms empty. Use fabric and weatherScores when deciding: linen/mesh/slub/tanks/tees breathe in heat; thermal/henley/oxford/heavy cotton works under cold layers; wool/mohair/cable/sherpa/fleece/down are cool or cold weather; waxed/nylon/shell/down/jackets help rain, wind, and snow. Accessory should strongly prefer a belt when a belt works with the shoes, but bags can also live in the accessory slot. Hard slot rules: fragrance items can only go in fragrance; Bottoms can only go in bottoms; Shoes only in shoes; Socks only in socks; Hats only in hat; Watches only in watch; Accessories and Bags only in accessory; Outerwear only in outerwear; Tops marked baseLayer only touch the body; Tops marked midLayer are jerseys, rugbys, sweaters, hoodies, knits, quarter zips, and similar pieces worn over a tank/tee/shirt. Respect layer order: baseLayer touches body, midLayer goes over base, outerwear goes over both. Do not put a jacket-like mid layer under another jacket unless winter or protective weather demands it. Weather matters: 55-65F usually wants two visible layers, not base + sweater + jacket, unless rain/wind/snow demands protection. Do not pair summer mesh/tank/camp/linen base layers under wool/cable/mohair/sherpa layers. Warm temps need breathable base layers and lighter scents; at 64F or below, avoid bright summer fragrances like Vibrato unless the user asks for fresh and prefer woody/amber/tea/tobacco/leather warmth. Choose fragrance with weather and palette in mind: a warm amber, boozy, tobacco, leather, tea, or woody scent can be fire on a 50-60F dry day because it adds warmth and contrast against olive, black, cream, grey, or brown clothes; bright aquatic/citrus scents are mostly warm-weather choices unless intentionally used for contrast. Hats and watches are separate slots; the user commonly wears both. Never write item ids or UUIDs in the reason or any user-facing prose; ids are only for structured slot values. Make one confident, high-cohesion choice per required slot.",
+    instructions:"You build practical but stylish men's outfits from the user's own closet. "+AI_STYLE_PROFILE+" Your target is an 85/100 or better outfit, not merely a complete outfit. Choose item ids only from closetOptions and only place an item in one of its allowedSlots. Follow the provided weatherPlan exactly for the top half: summer heat means base layer only; fall means base plus either mid layer or outerwear; winter means base layer, mid layer, and outerwear. If a top slot is not called for by weatherPlan, return an empty string for that slot unless it is the anchor slot. Mandatory non-top slots: always choose bottoms, shoes, socks, hat, watch, accessory, and fragrance. Never leave pants/bottoms empty. Use material, fabric, and weatherScores when deciding: linen/mesh/slub/tanks/tees breathe in heat; thermal/henley/oxford/heavy cotton works under cold layers; wool/mohair/cable/sherpa/fleece/down are cool or cold weather; waxed/nylon/shell/down/jackets help rain, wind, and snow. Treat rare/upscale materials like eel leather, crocodile leather, nappa leather, suede, mohair, wool tweed, and good leather as style leverage only when they make the fit more coherent. Accessory should strongly prefer a belt when a belt works with the shoes, but bags can also live in the accessory slot. Hard slot rules: fragrance items can only go in fragrance; Bottoms can only go in bottoms; Shoes only in shoes; Socks only in socks; Hats only in hat; Watches only in watch; Accessories and Bags only in accessory; Outerwear only in outerwear; Tops marked baseLayer only touch the body; Tops marked midLayer are jerseys, rugbys, sweaters, hoodies, knits, quarter zips, and similar pieces worn over a tank/tee/shirt. Respect layer order: baseLayer touches body, midLayer goes over base, outerwear goes over both. Do not put a jacket-like mid layer under another jacket unless winter or protective weather demands it. Weather matters: 55-65F usually wants two visible layers, not base + sweater + jacket, unless rain/wind/snow demands protection. Do not pair summer mesh/tank/camp/linen base layers under wool/cable/mohair/sherpa layers. Warm temps need breathable base layers and lighter scents; at 64F or below, avoid bright summer fragrances like Vibrato unless the user asks for fresh and prefer woody/amber/tea/tobacco/leather warmth. Choose fragrance with weather and palette in mind: a warm amber, boozy, tobacco, leather, tea, or woody scent can be fire on a 50-60F dry day because it adds warmth and contrast against olive, black, cream, grey, or brown clothes; bright aquatic/citrus scents are mostly warm-weather choices unless intentionally used for contrast. Hats and watches are separate slots; the user commonly wears both. If you give an alternative/swap, make it meaningfully better and clearly different, not a lateral move. Never write item ids or UUIDs in the reason or any user-facing prose; ids are only for structured slot values. Make one confident, high-cohesion choice per required slot.",
     text:{
       format:{
         type:"json_schema",
@@ -3983,11 +4331,11 @@ async function judgeFit(){
 async function aiJudgeFit(pieces){
   const model = currentAiModel();
   const cleanPieces = Object.fromEntries(Object.entries(pieces).map(([slot,x])=>[slot,{
-    id:x.id,brand:x.brand,name:x.name,color:x.color,size:x.size,category:inferredCategory(x),notes:x.notes,wears:x.wears,price:x.price,fabric:itemFabricProfile(x),photo:x.photo ? absolutePhotoUrl(x.photo) : ""
+    id:x.id,brand:x.brand,name:x.name,color:x.color,size:x.size,category:inferredCategory(x),notes:x.notes,wears:x.wears,price:x.price,material:x.fabric || itemMaterialLabel(x),fabric:itemFabricProfile(x),photo:x.photo ? absolutePhotoUrl(x.photo) : ""
   }]));
   const closetOptions = state.items
     .filter(x=>x.type==="wardrobe")
-    .map(x=>({id:x.id,brand:x.brand,name:x.name,color:x.color,size:x.size,category:inferredCategory(x),price:x.price,wears:x.wears,allowedSlots:allowedSlotsForItem(x),fabric:itemFabricProfile(x)}))
+    .map(x=>({id:x.id,brand:x.brand,name:x.name,color:x.color,size:x.size,category:inferredCategory(x),price:x.price,wears:x.wears,allowedSlots:allowedSlotsForItem(x),material:x.fabric || itemMaterialLabel(x),fabric:itemFabricProfile(x)}))
     .slice(0,220);
   const content = [
     {type:"input_text",text:"Judge this outfit like a sharp men's stylist, not like a spreadsheet. Use the text data, inferred fabric, the layer slots, the closet options, weather context, style profile, and any attached item photos. Outfit data:\n"+JSON.stringify({styleProfile:AI_STYLE_PROFILE, vibe:currentFit.vibe || "fall", weather:currentFit.weatherTemp ? {tempF:currentFit.weatherTemp,condition:currentFit.weatherCondition || "dry",plan:layerPlanLabel(weatherLayerPlan(currentFit.weatherTemp,currentFit.weatherCondition,currentFit.vibe))} : null, pieces:cleanPieces, closetOptions}, null, 2)}
@@ -4000,7 +4348,7 @@ async function aiJudgeFit(pieces){
   });
   const data = await openAiResponse({
     model,
-    instructions:"You are a stylish, honest men's fashion friend judging whether an outfit is actually fire. "+AI_STYLE_PROFILE+" Be conversational, specific, and visually literate. Reward intention, proportion, color story, texture, confidence, personality, and elevated streetwear polish. Penalize awkward layering, generic matching, dead silhouettes, bad shoe/pant relationships, too many focal points, or pieces that technically match but do not have sauce. Voice target: talk like a sharp ChatGPT fit check, not a product grid. Lead with a human verdict such as 'This version is stronger than the original' or 'This is close, but the proportion is holding it back.' Name the exact pieces in plain language, explain why the strongest combination works, and then give the small details that push it closer to 10/10. Be willing to say '9/10' or '9.2/10' when the outfit is actually strong; do not artificially keep good outfits in the low 80s. Layering logic matters: base layer sits closest to body, mid layer goes over base, outer layer goes over both. A jacket-like mid layer should usually not get another jacket over it. Hat and watch are separate finishers for this user; do not treat a watch as replacing headwear, and do not treat a belt/scarf/keychain as replacing a hat. Fragrance is part of the fit logic. When judging fragrance, connect it to weather, temp, outfit palette, and texture. Do not say generic lines like 'adds a scent layer'; say why the scent works or does not, for example a warm amber/boozy scent on a 50-degree dry day contrasting an olive/black palette, or a bright aquatic scent feeling too summery for wool layers. Use the user's own closetOptions for upgrades whenever possible. Make every suggestion concrete and collection-aware: name the exact current slot or missing slot, name the exact item from closetOptions to add/swap, and return its id as suggestedItemId. Never write item ids or UUIDs in notes, verdict, upgrade, change, why, titles, or any user-facing prose; ids belong only in suggestedItemId. Avoid vague advice like 'swap one accent color'; instead say 'swap X for Y' using an actual owned item. Only use suggestedItemId values from closetOptions and only when the item is valid for that slot. Return valid JSON with keys: score number 0-100, metrics object with 0-10 numbers for Color, Proportion, Layering, Texture, Footwear, Personality, Cohesion, notes array of 4-6 concise natural-language notes, verdict string that sounds like a human stylist, upgrade string naming one specific swap or removal, and suggestions array of 1-3 upgrade cards.",
+    instructions:"You are a stylish, honest men's fashion friend judging whether an outfit is actually fire. "+AI_STYLE_PROFILE+" Be conversational, specific, and visually literate. Reward intention, proportion, color story, texture, material quality, confidence, personality, and elevated streetwear polish. Penalize awkward layering, generic matching, dead silhouettes, bad shoe/pant relationships, too many focal points, or pieces that technically match but do not have sauce. Use material specificity: eel/crocodile/nappa leather, suede, wool tweed, mohair, mesh, down, canvas, and cotton all change the score and styling advice. Upscale material should rate higher only when the fit uses it with taste. Voice target: talk like a sharp ChatGPT fit check, not a product grid. Lead with a human verdict such as 'This version is stronger than the original' or 'This is close, but the proportion is holding it back.' Name the exact pieces in plain language, explain why the strongest combination works, and then give the small details that push it closer to 10/10. Be willing to say '9/10' or '9.2/10' when the outfit is actually strong; do not artificially keep good outfits in the low 80s. Layering logic matters: base layer sits closest to body, mid layer goes over base, outer layer goes over both. A jacket-like mid layer should usually not get another jacket over it. Hat and watch are separate finishers for this user; do not treat a watch as replacing headwear, and do not treat a belt/scarf/keychain as replacing a hat. Fragrance is part of the fit logic. When judging fragrance, connect it to weather, temp, outfit palette, and texture. Do not say generic lines like 'adds a scent layer'; say why the scent works or does not, for example a warm amber/boozy scent on a 50-degree dry day contrasting an olive/black palette, or a bright aquatic scent feeling too summery for wool layers. Use the user's own closetOptions for upgrades whenever possible. Make every suggestion concrete, collection-aware, and meaningfully different from the current fit: name the exact current slot or missing slot, name the exact item from closetOptions to add/swap, and return its id as suggestedItemId. Never write item ids or UUIDs in notes, verdict, upgrade, change, why, titles, or any user-facing prose; ids belong only in suggestedItemId. Avoid vague advice like 'swap one accent color'; instead say 'swap X for Y' using an actual owned item. Only use suggestedItemId values from closetOptions and only when the item is valid for that slot. Return valid JSON with keys: score number 0-100, metrics object with 0-10 numbers for Color, Proportion, Layering, Texture, Footwear, Personality, Cohesion, notes array of 4-6 concise natural-language notes, verdict string that sounds like a human stylist, upgrade string naming one specific swap or removal, and suggestions array of 1-3 upgrade cards.",
     text:{
       format:{
         type:"json_schema",
@@ -4299,7 +4647,10 @@ function outfitPaletteText(p){
   return families.length ? [...new Set(families)].slice(0,3).join(", ") : "the outfit";
 }
 function fragranceMood(x){
-  const text = layerText(x);
+  if(x?.scentMood) return String(x.scentMood).toLowerCase();
+  const profile = fragranceProfileFor(x);
+  const profileText = profile ? `${fragranceProfileAccordsLine(profile)} ${fragranceProfileNotesLine(profile)}` : "";
+  const text = `${layerText(x)} ${profileText}`.toLowerCase();
   if(/havana gold|tobacco|vanille|amber|aoud|oud|naxos|plum|cognac|spicebomb|obsidian|leather|tea|tonka|whiskey|bourbon/.test(text)) return "warm";
   if(/gris charnel|halfeti|bois|wood|santal|cedar|patchouli|incense/.test(text)) return "woody";
   if(/vibrato|torino|aquatica|salt and pepper|citrus|fresh|marine|neroli|bergamot|mint/.test(text)) return "bright";
@@ -4582,7 +4933,7 @@ function normalizeLegacy(x,type){
   return {
     id:uid(), type, brand:x.brand || "", name:x.item || x.name || "", color:x.color || "",
     size:x.size || "", price:Number(x.price)||0, date:x.date || new Date().toISOString().slice(0,7),
-    category:x.cat || "Wardrobe", wears:0, photo:"", notes:x.est ? "Retail estimate" : ""
+    category:x.cat || "Wardrobe", wears:0, photo:"", notes:x.est ? "Retail estimate" : "", fabric:""
   };
 }
 function normalizeLegacyFrag(x){
@@ -4590,14 +4941,14 @@ function normalizeLegacyFrag(x){
     id:uid(), type:"fragrance", brand:x.house || "", name:x.name || "", color:x.season || "all",
     size:x.type || "", price:Number(x.price)||0, date:new Date().toISOString().slice(0,7),
     category:"Fragrances", wears:0, photo:"", notes:x.est ? "Retail estimate" : "",
-    projection:x.projection || "", rating:x.rating || 0, personalRating:0, topTen:false
+    projection:x.projection || "", rating:x.rating || 0, personalRating:0, topTen:false, topTenRank:0, scentMood:""
   };
 }
 function normalizeLegacyWish(x){
   return {
     id:uid(), type:"wishlist", brand:x.brand || "", name:x.item || "", color:x.color || "",
     size:x.size || "", price:Number(x.price)||0, date:x.added || new Date().toISOString().slice(0,7),
-    category:x.cat || "Wishlist", wears:0, photo:"", notes:x.note || ""
+    category:x.cat || "Wishlist", wears:0, photo:"", notes:x.note || "", fabric:""
   };
 }
 function fmtMonth(m){
@@ -4623,8 +4974,18 @@ document.addEventListener("click", e => {
   if(topTen){ toggleTopTen(topTen.dataset.topTen); return; }
   const photoTarget = e.target.closest("[data-photo-target]");
   if(photoTarget){ choosePhotoForItem(photoTarget.dataset.photoTarget); return; }
+  const editScentProfile = e.target.closest("[data-edit-scent-profile]");
+  if(editScentProfile){ openScentProfileEditor(editScentProfile.dataset.editScentProfile); return; }
+  const personalNotes = e.target.closest("[data-edit-personal-notes]");
+  if(personalNotes){ openEditorFromDetail(personalNotes.dataset.editPersonalNotes, "fNotes"); return; }
+  const editNotes = e.target.closest("[data-edit-notes]");
+  if(editNotes){ openEditorFromDetail(editNotes.dataset.editNotes, "fNotes"); return; }
   const edit = e.target.closest("[data-edit]");
-  if(edit){ openItem(edit.dataset.edit); return; }
+  if(edit){
+    if(document.getElementById("detailModal").classList.contains("open")) openEditorFromDetail(edit.dataset.edit);
+    else openItem(edit.dataset.edit);
+    return;
+  }
   const detail = e.target.closest("[data-detail]");
   if(detail){ openDetail(detail.dataset.detail); return; }
   const buildAround = e.target.closest("[data-build-around]");
@@ -4691,6 +5052,8 @@ document.addEventListener("change", e => {
 document.getElementById("search").addEventListener("input", render);
 document.getElementById("slotSearch").addEventListener("input", renderSlotPicker);
 document.getElementById("itemForm").addEventListener("submit", submitItem);
+document.getElementById("scentProfileForm").addEventListener("submit", submitScentProfile);
+document.getElementById("clearScentTopTen").addEventListener("click", clearScentTopTen);
 document.getElementById("deleteItem").addEventListener("click", deleteCurrent);
 document.getElementById("uploadPhoto").addEventListener("click", choosePhoto);
 document.getElementById("photoPreview").addEventListener("click", choosePhoto);
