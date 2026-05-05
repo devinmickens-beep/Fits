@@ -799,7 +799,7 @@ const tabs = [
 ];
 const releaseNotes = [
   "Deep green, cognac, cream, navy, and espresso interface palette.",
-  "Full v41 wardrobe seed with real weather layer plans, clearer My Top 10 scent labels, scent notes context, two LV bags, explicit layering, and duplicate cleanup.",
+  "Full v42 wardrobe seed with permanent My Top 10 scent shelf, cleaner fit judge paragraphs, hidden AI ids, real weather layer plans, scent notes context, two LV bags, explicit layering, and duplicate cleanup.",
   "Photo-first add flow with phone camera upload and saved item photos.",
   "AI Identify can fill item fields from a photo when an API key is saved.",
   "Item detail pages with CPW, wear count, notes, and best pairings.",
@@ -1699,7 +1699,7 @@ function filtered(type=activeTab){
 function matchesCollectionFilter(x,type,category){
   if(category === "All") return true;
   if(type === "fragrance"){
-    if(category === "top10") return Boolean(x.topTen);
+    if(category === "top10") return true;
     if(category === "beast") return /beast|high/i.test(x.projection || "");
     if(category === "sample") return /sample|decant|attar|oil|dupe/i.test(x.size || "");
     return x.color === category || x.size === category || x.category === category;
@@ -1853,9 +1853,10 @@ function fragranceSortCompare(a,b){
   return `${a.brand} ${a.name}`.localeCompare(`${b.brand} ${b.name}`);
 }
 function topFragranceCompare(a,b){
-  return fragrancePersonalRating(b)-fragrancePersonalRating(a)
+  return Number(Boolean(b.topTen))-Number(Boolean(a.topTen))
+    || fragrancePersonalRating(b)-fragrancePersonalRating(a)
     || fragranceArchiveScore(b)-fragranceArchiveScore(a)
-    || (a.topTenDate || "").localeCompare(b.topTenDate || "")
+    || (b.topTenDate || "").localeCompare(a.topTenDate || "")
     || fragranceSortCompare(a,b);
 }
 function topFragrancePicks(){
@@ -1939,15 +1940,17 @@ function fragranceTier(x){
   return "Test More";
 }
 function fragranceTopTenCard(){
-  if(activeCategory !== "top10") return "";
   const scents = topFragrancePicks();
-  const empty = !scents.length
-    ? `<div class="gap-item">No Top 10 scents picked yet. Tap <strong style="color:var(--gold)">Top 10</strong> on any fragrance card to build your personal shelf.</div>`
-    : "";
+  const rows = Array.from({length:10},(_,i)=>{
+    const x = scents[i];
+    if(!x){
+      return `<div class="gap-item"><strong style="color:var(--muted)">${i+1}. Open slot</strong><div style="margin-top:5px">Tap <strong style="color:var(--gold)">My Top 10</strong> on a fragrance card to lock this shelf in your order.</div></div>`;
+    }
+    return `<div class="gap-item"><strong style="color:var(--paper)">${i+1}. ${esc(itemLabel(x))}</strong><div style="margin-top:5px">Your ${fragrancePersonalRating(x) || "—"}/5 · ${fragranceArchiveScore(x)}/100 · ${esc(fragranceTier(x))} · ${esc(x.projection || "Projection TBD")}</div></div>`;
+  }).join("");
   return `<div class="judge-card" style="margin-bottom:12px">
-    <div class="panel-title">Your Top 10 Scent Shelf</div>
-    <div class="section-sub">${scents.length}/10 personally chosen</div>
-    <div class="gap-list">${empty}${scents.map((x,i)=>`<div class="gap-item"><strong style="color:var(--paper)">${i+1}. ${esc(itemLabel(x))}</strong><div style="margin-top:5px">Your ${fragrancePersonalRating(x) || "—"}/5 · ${fragranceArchiveScore(x)}/100 · ${esc(fragranceTier(x))} · ${esc(x.projection || "Projection TBD")}</div></div>`).join("")}</div>
+    <div class="section-head" style="margin:0 0 10px"><div><div class="panel-title">Your Permanent Top 10 Scent Shelf</div><div class="section-sub">${scents.length}/10 personally chosen</div></div></div>
+    <div class="gap-list">${rows}</div>
   </div>`;
 }
 function weatherScentPanel(){
@@ -2284,6 +2287,42 @@ function fragranceArt(x){
   const initials = String(x.brand || x.name || "F").split(/\s+/).filter(Boolean).slice(0,2).map(w=>w[0]).join("").toUpperCase();
   return `<span class="frag-art"><span>${esc(initials || "F")}</span></span>`;
 }
+function cleanUserFacingText(value){
+  const uuid = "[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}";
+  return String(value || "")
+    .replace(new RegExp("\\s*\\((?:id|item id|uuid)\\s*[:#]?\\s*"+uuid+"\\)","gi"),"")
+    .replace(new RegExp("\\s*\\("+uuid+"\\)","gi"),"")
+    .replace(new RegExp("\\s*\\b(?:id|item id|uuid)\\s*[:#]?\\s*"+uuid+"\\b","gi"),"")
+    .replace(/\s+([,.!?;:])/g,"$1")
+    .replace(/\s{2,}/g," ")
+    .trim();
+}
+function readableJudgeParagraphs(notes){
+  return (notes || []).flatMap(note=>{
+    const clean = cleanUserFacingText(note);
+    if(!clean) return [];
+    if(clean.length <= 260) return [clean];
+    const sentences = clean.match(/[^.!?]+[.!?]+(?:\s+|$)|[^.!?]+$/g) || [clean];
+    const paragraphs = [];
+    let paragraph = "";
+    sentences.forEach(raw=>{
+      const sentence = raw.trim();
+      if(!sentence) return;
+      const startsNewPiece = /^(The|For the|Bottoms|Shoes|Socks|Hat|Watch|Accessory|Fragrance|Overall|Better version)\b/i.test(sentence);
+      if(paragraph && (paragraph.length + sentence.length > 240 || startsNewPiece)){
+        paragraphs.push(paragraph.trim());
+        paragraph = sentence;
+      }else{
+        paragraph = paragraph ? `${paragraph} ${sentence}` : sentence;
+      }
+    });
+    if(paragraph) paragraphs.push(paragraph.trim());
+    return paragraphs;
+  });
+}
+function renderJudgeNotes(notes){
+  return readableJudgeParagraphs(notes).map(n=>`<div class="judge-note">${esc(n)}</div>`).join("");
+}
 function judgeCard(j){
   const metrics = j.metrics || {};
   return `<div class="judge-card">
@@ -2295,7 +2334,7 @@ function judgeCard(j){
       ${Object.entries(metrics).map(([k,v])=>`<div class="judge-metric"><span>${esc(k)}</span><strong>${esc(v)}/10</strong></div>`).join("")}
     </div>
     ${judgeSuggestions(j)}
-    <div class="judge-notes">${(j.notes || []).map(n=>`<div class="judge-note">${esc(n)}</div>`).join("")}</div>
+    <div class="judge-notes">${renderJudgeNotes(j.notes || [])}</div>
   </div>`;
 }
 function judgeSuggestions(j){
@@ -2310,9 +2349,9 @@ function judgeSuggestions(j){
         ${item ? `<img src="${esc(photo)}" alt="">` : ""}
         <div>
           <span>${s.targetScore ? `Could push toward ${esc(s.targetScore)}/100` : `Suggestion ${i+1}`}${s.slot ? ` · ${esc(slotLabel(s.slot))}` : ""}</span>
-          <strong>${esc(s.title || "Upgrade move")}</strong>
-          <p>${esc(s.change || "")}</p>
-          ${s.why ? `<p>${esc(s.why)}</p>` : ""}
+          <strong>${esc(cleanUserFacingText(s.title || "Upgrade move"))}</strong>
+          <p>${esc(cleanUserFacingText(s.change || ""))}</p>
+          ${s.why ? `<p>${esc(cleanUserFacingText(s.why))}</p>` : ""}
         </div>
       </div>`;
     }).join("")}
@@ -3285,7 +3324,7 @@ async function buildAroundItem(id, opts={}){
         currentFit = {...bestAiFit,vibe:currentFit.vibe,fireTarget:bestAiJudge.score,anchorId:anchor.id,weatherTemp:weather.temp,weatherCondition:weather.condition,builderSource:"OpenAI Builder"};
         currentJudgement = bestAiJudge;
         currentJudgement.source = "OpenAI Builder + Local Score";
-        if(currentFit.buildReason) currentJudgement.notes.unshift(currentFit.buildReason);
+        if(currentFit.buildReason) currentJudgement.notes.unshift(cleanUserFacingText(currentFit.buildReason));
         currentJudgement.notes.unshift(`AI aimed for 85+ and used ${layerPlanLabel(weatherLayerPlan(weather.temp,weather.condition,weather.intent,slot))} for ${weatherSummary(weather.temp,weather.condition)}.`);
         activeTab = "outfits";
         closeModal("detailModal");
@@ -3789,7 +3828,7 @@ async function aiBuildFitAround(anchor, weather, anchorSlot, feedback=""){
   const slots = ["baseLayer","midLayer","outerwear","bottoms","shoes","socks","hat","watch","accessory","fragrance"];
   const data = await openAiResponse({
     model:currentAiModel(),
-    instructions:"You build practical but stylish men's outfits from the user's own closet. "+AI_STYLE_PROFILE+" Your target is an 85/100 or better outfit, not merely a complete outfit. Choose item ids only from closetOptions and only place an item in one of its allowedSlots. Follow the provided weatherPlan exactly for the top half: summer heat means base layer only; fall means base plus either mid layer or outerwear; winter means base layer, mid layer, and outerwear. If a top slot is not called for by weatherPlan, return an empty string for that slot unless it is the anchor slot. Mandatory non-top slots: always choose bottoms, shoes, socks, hat, watch, accessory, and fragrance. Never leave pants/bottoms empty. Use fabric and weatherScores when deciding: linen/mesh/slub/tanks/tees breathe in heat; thermal/henley/oxford/heavy cotton works under cold layers; wool/mohair/cable/sherpa/fleece/down are cool or cold weather; waxed/nylon/shell/down/jackets help rain, wind, and snow. Accessory should strongly prefer a belt when a belt works with the shoes, but bags can also live in the accessory slot. Hard slot rules: fragrance items can only go in fragrance; Bottoms can only go in bottoms; Shoes only in shoes; Socks only in socks; Hats only in hat; Watches only in watch; Accessories and Bags only in accessory; Outerwear only in outerwear; Tops marked baseLayer only touch the body; Tops marked midLayer are jerseys, rugbys, sweaters, hoodies, knits, quarter zips, and similar pieces worn over a tank/tee/shirt. Respect layer order: baseLayer touches body, midLayer goes over base, outerwear goes over both. Do not put a jacket-like mid layer under another jacket unless winter or protective weather demands it. Weather matters: 55-65F usually wants two visible layers, not base + sweater + jacket, unless rain/wind/snow demands protection. Do not pair summer mesh/tank/camp/linen base layers under wool/cable/mohair/sherpa layers. Warm temps need breathable base layers and lighter scents; at 64F or below, avoid bright summer fragrances like Vibrato unless the user asks for fresh and prefer woody/amber/tea/tobacco/leather warmth. Choose fragrance with weather and palette in mind: a warm amber, boozy, tobacco, leather, tea, or woody scent can be fire on a 50-60F dry day because it adds warmth and contrast against olive, black, cream, grey, or brown clothes; bright aquatic/citrus scents are mostly warm-weather choices unless intentionally used for contrast. Hats and watches are separate slots; the user commonly wears both. Make one confident, high-cohesion choice per required slot.",
+    instructions:"You build practical but stylish men's outfits from the user's own closet. "+AI_STYLE_PROFILE+" Your target is an 85/100 or better outfit, not merely a complete outfit. Choose item ids only from closetOptions and only place an item in one of its allowedSlots. Follow the provided weatherPlan exactly for the top half: summer heat means base layer only; fall means base plus either mid layer or outerwear; winter means base layer, mid layer, and outerwear. If a top slot is not called for by weatherPlan, return an empty string for that slot unless it is the anchor slot. Mandatory non-top slots: always choose bottoms, shoes, socks, hat, watch, accessory, and fragrance. Never leave pants/bottoms empty. Use fabric and weatherScores when deciding: linen/mesh/slub/tanks/tees breathe in heat; thermal/henley/oxford/heavy cotton works under cold layers; wool/mohair/cable/sherpa/fleece/down are cool or cold weather; waxed/nylon/shell/down/jackets help rain, wind, and snow. Accessory should strongly prefer a belt when a belt works with the shoes, but bags can also live in the accessory slot. Hard slot rules: fragrance items can only go in fragrance; Bottoms can only go in bottoms; Shoes only in shoes; Socks only in socks; Hats only in hat; Watches only in watch; Accessories and Bags only in accessory; Outerwear only in outerwear; Tops marked baseLayer only touch the body; Tops marked midLayer are jerseys, rugbys, sweaters, hoodies, knits, quarter zips, and similar pieces worn over a tank/tee/shirt. Respect layer order: baseLayer touches body, midLayer goes over base, outerwear goes over both. Do not put a jacket-like mid layer under another jacket unless winter or protective weather demands it. Weather matters: 55-65F usually wants two visible layers, not base + sweater + jacket, unless rain/wind/snow demands protection. Do not pair summer mesh/tank/camp/linen base layers under wool/cable/mohair/sherpa layers. Warm temps need breathable base layers and lighter scents; at 64F or below, avoid bright summer fragrances like Vibrato unless the user asks for fresh and prefer woody/amber/tea/tobacco/leather warmth. Choose fragrance with weather and palette in mind: a warm amber, boozy, tobacco, leather, tea, or woody scent can be fire on a 50-60F dry day because it adds warmth and contrast against olive, black, cream, grey, or brown clothes; bright aquatic/citrus scents are mostly warm-weather choices unless intentionally used for contrast. Hats and watches are separate slots; the user commonly wears both. Never write item ids or UUIDs in the reason or any user-facing prose; ids are only for structured slot values. Make one confident, high-cohesion choice per required slot.",
     text:{
       format:{
         type:"json_schema",
@@ -3834,7 +3873,7 @@ async function aiBuildFitAround(anchor, weather, anchorSlot, feedback=""){
   const fit = fitFromSlotIds(json.slots || {});
   fit[anchorSlot] = anchor;
   fit.lockedSlot = anchorSlot;
-  fit.buildReason = json.reason || "";
+  fit.buildReason = cleanUserFacingText(json.reason || "");
   return completeRequiredFitSlots(fit);
 }
 function fitFromSlotIds(slots){
@@ -3879,7 +3918,7 @@ async function aiJudgeFit(pieces){
   });
   const data = await openAiResponse({
     model,
-    instructions:"You are a stylish, honest men's fashion friend judging whether an outfit is actually fire. "+AI_STYLE_PROFILE+" Be conversational, specific, and visually literate. Reward intention, proportion, color story, texture, confidence, personality, and elevated streetwear polish. Penalize awkward layering, generic matching, dead silhouettes, bad shoe/pant relationships, too many focal points, or pieces that technically match but do not have sauce. Voice target: talk like a sharp ChatGPT fit check, not a product grid. Lead with a human verdict such as 'This version is stronger than the original' or 'This is close, but the proportion is holding it back.' Name the exact pieces in plain language, explain why the strongest combination works, and then give the small details that push it closer to 10/10. Be willing to say '9/10' or '9.2/10' when the outfit is actually strong; do not artificially keep good outfits in the low 80s. Layering logic matters: base layer sits closest to body, mid layer goes over base, outer layer goes over both. A jacket-like mid layer should usually not get another jacket over it. Hat and watch are separate finishers for this user; do not treat a watch as replacing headwear, and do not treat a belt/scarf/keychain as replacing a hat. Fragrance is part of the fit logic. When judging fragrance, connect it to weather, temp, outfit palette, and texture. Do not say generic lines like 'adds a scent layer'; say why the scent works or does not, for example a warm amber/boozy scent on a 50-degree dry day contrasting an olive/black palette, or a bright aquatic scent feeling too summery for wool layers. Use the user's own closetOptions for upgrades whenever possible. Make every suggestion concrete and collection-aware: name the exact current slot or missing slot, name the exact item from closetOptions to add/swap, and return its id as suggestedItemId. Avoid vague advice like 'swap one accent color'; instead say 'swap X for Y' using an actual owned item. Only use suggestedItemId values from closetOptions and only when the item is valid for that slot. Return valid JSON with keys: score number 0-100, metrics object with 0-10 numbers for Color, Proportion, Layering, Texture, Footwear, Personality, Cohesion, notes array of 4-6 concise natural-language notes, verdict string that sounds like a human stylist, upgrade string naming one specific swap or removal, and suggestions array of 1-3 upgrade cards.",
+    instructions:"You are a stylish, honest men's fashion friend judging whether an outfit is actually fire. "+AI_STYLE_PROFILE+" Be conversational, specific, and visually literate. Reward intention, proportion, color story, texture, confidence, personality, and elevated streetwear polish. Penalize awkward layering, generic matching, dead silhouettes, bad shoe/pant relationships, too many focal points, or pieces that technically match but do not have sauce. Voice target: talk like a sharp ChatGPT fit check, not a product grid. Lead with a human verdict such as 'This version is stronger than the original' or 'This is close, but the proportion is holding it back.' Name the exact pieces in plain language, explain why the strongest combination works, and then give the small details that push it closer to 10/10. Be willing to say '9/10' or '9.2/10' when the outfit is actually strong; do not artificially keep good outfits in the low 80s. Layering logic matters: base layer sits closest to body, mid layer goes over base, outer layer goes over both. A jacket-like mid layer should usually not get another jacket over it. Hat and watch are separate finishers for this user; do not treat a watch as replacing headwear, and do not treat a belt/scarf/keychain as replacing a hat. Fragrance is part of the fit logic. When judging fragrance, connect it to weather, temp, outfit palette, and texture. Do not say generic lines like 'adds a scent layer'; say why the scent works or does not, for example a warm amber/boozy scent on a 50-degree dry day contrasting an olive/black palette, or a bright aquatic scent feeling too summery for wool layers. Use the user's own closetOptions for upgrades whenever possible. Make every suggestion concrete and collection-aware: name the exact current slot or missing slot, name the exact item from closetOptions to add/swap, and return its id as suggestedItemId. Never write item ids or UUIDs in notes, verdict, upgrade, change, why, titles, or any user-facing prose; ids belong only in suggestedItemId. Avoid vague advice like 'swap one accent color'; instead say 'swap X for Y' using an actual owned item. Only use suggestedItemId values from closetOptions and only when the item is valid for that slot. Return valid JSON with keys: score number 0-100, metrics object with 0-10 numbers for Color, Proportion, Layering, Texture, Footwear, Personality, Cohesion, notes array of 4-6 concise natural-language notes, verdict string that sounds like a human stylist, upgrade string naming one specific swap or removal, and suggestions array of 1-3 upgrade cards.",
     text:{
       format:{
         type:"json_schema",
@@ -3935,6 +3974,9 @@ async function aiJudgeFit(pieces){
   });
   const text = data.output_text || data.output?.flatMap(o=>o.content||[]).map(c=>c.text||"").join("") || "";
   const json = JSON.parse(text.replace(/^```json|```$/g,"").trim());
+  json.notes = (json.notes || []).map(cleanUserFacingText).filter(Boolean);
+  json.verdict = cleanUserFacingText(json.verdict || "");
+  json.upgrade = cleanUserFacingText(json.upgrade || "");
   json.suggestions = cleanJudgeSuggestions(json.suggestions || [], pieces, Number(json.score || 0));
   if(json.upgrade) json.notes = [...(json.notes||[]), "Better version: "+json.upgrade];
   if(json.verdict) json.notes = [json.verdict, ...(json.notes||[])];
@@ -4369,7 +4411,14 @@ function cleanJudgeSuggestions(suggestions,pieces,score){
       const item = s.suggestedItemId ? state.items.find(x=>x.id===s.suggestedItemId) : null;
       if(!item || (s.slot && !slotAllowsItem(s.slot,item))) return null;
       const current = s.currentItem || itemLabel(pieces[s.slot]);
-      return {...s,currentItem:current,suggestedItemId:item.id};
+      return {
+        ...s,
+        title:cleanUserFacingText(s.title || ""),
+        currentItem:cleanUserFacingText(current),
+        change:cleanUserFacingText(s.change || ""),
+        why:cleanUserFacingText(s.why || ""),
+        suggestedItemId:item.id
+      };
     })
     .filter(Boolean);
   if(cleaned.length) return cleaned.slice(0,3);
