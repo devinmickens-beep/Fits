@@ -1,7 +1,8 @@
-const CACHE_NAME = "closet-archive-v42";
+const CACHE_NAME = "closet-archive-v43";
 const APP_SHELL = [
   "/",
   "/index.html",
+  "/assets/fragrance-profiles.js",
   "/manifest.webmanifest",
   "/icon.svg",
   "/apple-touch-icon.png"

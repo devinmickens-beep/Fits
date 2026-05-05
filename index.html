@@ -289,6 +289,9 @@ h1{font-family:var(--serif);font-weight:400;font-size:30px;line-height:1;margin:
 .scent-context-chip strong{display:block;margin-top:5px;color:var(--text);font-family:var(--serif);font-size:16px;font-weight:400}
 .scent-notes{margin-top:9px;border-left:2px solid var(--seat);background:#0c0b09;border-radius:5px;padding:10px;color:var(--muted);font-size:11px;line-height:1.55}
 .scent-notes strong{display:block;color:var(--paper);font-family:var(--serif);font-size:16px;font-weight:400;margin-bottom:5px}
+.scent-notes a{color:var(--gold);text-decoration:none}
+.profile-source-link{display:inline-flex;align-items:center;gap:5px;margin-top:7px;color:var(--gold);font-size:9px;text-transform:uppercase;letter-spacing:.12em;text-decoration:none}
+.profile-source-link svg{width:12px;height:12px}
 .photo-picker{
   grid-column:1/-1;
   border:1px solid var(--line);
@@ -781,12 +784,14 @@ label{display:grid;gap:5px;color:var(--muted);font-size:8px;text-transform:upper
 <div class="toast" id="toast"></div>
 
 <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
+<script src="assets/fragrance-profiles.js"></script>
 <script>
 const STORAGE_KEY = "closet_archive_v2";
 const AI_KEY_STORAGE = "closet_openai_key";
 const AI_MODEL_STORAGE = "closet_openai_model";
 const DEFAULT_AI_MODEL = "gpt-4.1-mini";
 const FIT_META_KEYS = ["vibe","fireTarget","anchorId","weatherTemp","weatherCondition","builderSource","buildReason","lockedSlot"];
+const fragranceProfiles = window.FRAGRANCE_PROFILES || {};
 const AI_STYLE_PROFILE = "The user is going for Aime Leon Dore / ALD-style elevated streetwear as a clothing language, not a car reference: Queens/NYC prep, heritage sport, relaxed tailoring, collegiate pieces, loafers, fitted caps, textured knits, rugby/club/soccer details, and clothes that feel worn with taste instead of styled too perfectly. Blend that with Buck Mason's clean heritage basics, Drake's relaxed tailoring and offbeat prep, and Ralph Lauren's classic American sportswear polish. The signature tension is the point: a wool double-breasted suit can work with a fitted cap and Lemaire pipe loafers when the proportions, palette, and attitude are right. Favor olive, espresso brown, cream, black, navy, grey, denim, suede, leather, wool, cotton, and washed textures, but do not reduce the aesthetic to a single color palette. The target is not generic streetwear, hype matching, car cosplay, or stiff formalwear. It should feel wearable, expensive, intentional, layered, a little rare, and quietly fire.";
 const money = new Intl.NumberFormat("en-US",{style:"currency",currency:"USD",maximumFractionDigits:0});
 const monthFmt = new Intl.DateTimeFormat("en-US",{month:"short",year:"numeric"});
@@ -799,7 +804,7 @@ const tabs = [
 ];
 const releaseNotes = [
   "Deep green, cognac, cream, navy, and espresso interface palette.",
-  "Full v42 wardrobe seed with permanent My Top 10 scent shelf, cleaner fit judge paragraphs, hidden AI ids, real weather layer plans, scent notes context, two LV bags, explicit layering, and duplicate cleanup.",
+  "Full v43 wardrobe seed with Parfumo scent profiles, note pyramids, rating context, permanent My Top 10 shelf, real weather layer plans, and cleaner AI fit notes.",
   "Photo-first add flow with phone camera upload and saved item photos.",
   "AI Identify can fill item fields from a photo when an API key is saved.",
   "Item detail pages with CPW, wear count, notes, and best pairings.",
@@ -1376,6 +1381,72 @@ function rowsToFrags(rows){
     return item("fragrance",brand,name,season,type,price,"2026-04","Fragrances",{projection,rating:Number(rating)||0,personalRating:0,topTen:false,photo:starterPhotos[`fragrance::${brand}::${name}`] || ""});
   });
 }
+function fragranceProfileKey(x){
+  return `${x?.brand || ""}|${x?.name || ""}`;
+}
+function fragranceProfileFor(x){
+  return fragranceProfiles[fragranceProfileKey(x)] || null;
+}
+function fragranceProfileNotes(profile){
+  if(!profile) return {top:[],heart:[],base:[],all:[]};
+  const notes = profile.notes || {};
+  return {
+    top:Array.isArray(notes.top) ? notes.top : [],
+    heart:Array.isArray(notes.heart) ? notes.heart : [],
+    base:Array.isArray(notes.base) ? notes.base : [],
+    all:Array.isArray(notes.all) ? notes.all : []
+  };
+}
+function fragranceProfileNotesLine(profile){
+  const notes = fragranceProfileNotes(profile);
+  const parts = [];
+  if(notes.top.length) parts.push(`Top: ${notes.top.join(", ")}`);
+  if(notes.heart.length) parts.push(`Heart: ${notes.heart.join(", ")}`);
+  if(notes.base.length) parts.push(`Base: ${notes.base.join(", ")}`);
+  if(!parts.length && notes.all.length) parts.push(`Notes: ${notes.all.join(", ")}`);
+  return parts.join(" | ") || "No public Parfumo note pyramid found for this exact scent yet.";
+}
+function fragranceProfileAccordsLine(profile){
+  return profile && Array.isArray(profile.accords) && profile.accords.length ? profile.accords.join(", ") : "No public Parfumo accords found yet.";
+}
+function fragranceProfileRatingLine(profile){
+  if(!profile || !profile.rating) return "Parfumo rating unavailable";
+  const count = profile.ratingCount ? ` from ${profile.ratingCount} ratings` : "";
+  const performance = [profile.longevity && `longevity ${profile.longevity}`, profile.sillage && `sillage ${profile.sillage}`].filter(Boolean).join(", ");
+  return `Parfumo ${profile.rating}/10${count}${performance ? `; ${performance}` : ""}`;
+}
+function fragranceProfileSourceLabel(x, profile){
+  if(!profile) return "";
+  if(profile.mappedFrom) return `Parfumo inspiration profile: ${profile.mappedFrom}`;
+  if(profile.source) return "Source: Parfumo";
+  return `No exact Parfumo match for ${itemLabel(x)} yet`;
+}
+function fragranceProfileSummary(profile){
+  if(!profile) return "";
+  if(profile.missing) return "No exact Parfumo profile found yet. Use personal notes to keep this bottle smart in blends and weather picks.";
+  return [
+    fragranceProfileRatingLine(profile),
+    `Main accords: ${fragranceProfileAccordsLine(profile)}`,
+    fragranceProfileNotesLine(profile)
+  ].filter(Boolean).join(". ");
+}
+function fragranceProfileSearchText(x){
+  const profile = fragranceProfileFor(x);
+  if(!profile) return "";
+  const notes = fragranceProfileNotes(profile);
+  return [
+    profile.title,
+    profile.rating,
+    profile.longevity,
+    profile.sillage,
+    ...(profile.accords || []),
+    ...notes.top,
+    ...notes.heart,
+    ...notes.base,
+    ...notes.all,
+    profile.mappedFrom
+  ].filter(Boolean).join(" ");
+}
 function photoSourceKey(x){ return `${x.type}::${x.brand}::${x.name}`; }
 function photoVariantKey(x){ return `${x.type}::${x.brand}::${x.name}::${x.color}`; }
 function starterPhotoFor(x){ return starterPhotos[photoVariantKey(x)] || starterPhotos[photoSourceKey(x)] || ""; }
@@ -1681,7 +1752,7 @@ function filtered(type=activeTab){
   const results = state.items
     .filter(x => x.type === type)
     .filter(x => matchesCollectionFilter(x,type,activeCategory))
-    .filter(x => !q || [x.brand,x.name,x.color,x.size,x.category,x.notes].join(" ").toLowerCase().includes(q))
+    .filter(x => !q || [x.brand,x.name,x.color,x.size,x.category,x.notes,fragranceProfileSearchText(x)].join(" ").toLowerCase().includes(q))
     .sort((a,b)=>{
       if(type === "fragrance"){
         if(activeCategory === "top10") return topFragranceCompare(a,b);
@@ -1898,12 +1969,15 @@ function fragranceLayeringContext(x){
   return "Balanced enough to test as either the main scent or one-spray accent depending on weather.";
 }
 function fragranceKnowledgeText(x){
+  const profile = fragranceProfileFor(x);
   const parts = [
     `Season lane: ${fragranceSeasonLabel(x)}`,
     `Projection: ${x.projection || "Projection TBD"}`,
     `Archive score: ${fragranceArchiveScore(x)}/100`,
     `Personal rating: ${fragrancePersonalRating(x) || "unrated"}/5`,
     x.topTen ? "Marked as My Top 10" : "",
+    profile ? fragranceProfileSummary(profile) : "",
+    profile ? fragranceProfileSourceLabel(x, profile) : "",
     `Layering context: ${fragranceLayeringContext(x)}`,
     x.notes ? `User notes: ${x.notes}` : ""
   ].filter(Boolean);
@@ -1911,6 +1985,13 @@ function fragranceKnowledgeText(x){
 }
 function fragranceKnowledgeCard(x){
   const userNotes = String(x.notes || "").trim();
+  const profile = fragranceProfileFor(x);
+  const profileBlock = profile ? `
+    <div class="scent-notes"><strong>Parfumo Profile</strong>${esc(fragranceProfileSummary(profile))}${profile.source ? `<a class="profile-source-link" href="${esc(profile.source)}" target="_blank" rel="noopener">${icon("external-link")}Open Parfumo</a>` : ""}</div>
+    <div class="scent-notes"><strong>Main Accords</strong>${esc(fragranceProfileAccordsLine(profile))}</div>
+    <div class="scent-notes"><strong>Note Pyramid</strong>${esc(fragranceProfileNotesLine(profile))}</div>
+    <div class="scent-notes"><strong>Profile Source</strong>${esc(fragranceProfileSourceLabel(x, profile))}</div>
+  ` : `<div class="scent-notes"><strong>Parfumo Profile</strong>No Parfumo profile is linked for this scent yet. Your personal notes still guide weather picks and layering.</div>`;
   return `<div class="fragrance-detail-controls">
     <div class="section-head" style="margin:0 0 6px"><div><div class="panel-title">Scent Notes & Layering Context</div><div class="section-sub">${esc(x.topTen ? "Marked as My Top 10" : "Personal scent knowledge")}</div></div><button class="ghost" data-edit="${esc(x.id)}">${icon("pencil")}Edit Notes</button></div>
     <div class="scent-context-grid">
@@ -1919,7 +2000,8 @@ function fragranceKnowledgeCard(x){
       <div class="scent-context-chip"><span>Mood</span><strong>${esc(fragranceMood(x))}</strong></div>
       <div class="scent-context-chip"><span>Rank</span><strong>${esc(x.topTen ? "My Top 10" : "Unranked")}</strong></div>
     </div>
-    <div class="scent-notes"><strong>Notes</strong>${esc(userNotes || "No personal notes yet. Tap Edit Notes to add season, occasion, compliments, layering ideas, or anything you want AI to remember.")}</div>
+    ${profileBlock}
+    <div class="scent-notes"><strong>Personal Notes</strong>${esc(userNotes || "No personal notes yet. Tap Edit Notes to add season, occasion, compliments, layering ideas, or anything you want AI to remember.")}</div>
     <div class="scent-notes"><strong>Layering Context</strong>${esc(fragranceLayeringContext(x))}</div>
   </div>`;
 }
@@ -2251,7 +2333,7 @@ function renderSlotPicker(){
   const q = document.getElementById("slotSearch").value.toLowerCase();
   const anchor = currentFit.bottoms || currentFit.midLayer || currentFit.baseLayer || currentFit.top || currentFit.shoes;
   const items = slotPool(activeSlot)
-    .filter(x=>!q || `${x.brand} ${x.name} ${x.color} ${x.size}`.toLowerCase().includes(q))
+    .filter(x=>!q || `${x.brand} ${x.name} ${x.color} ${x.size} ${fragranceProfileSearchText(x)}`.toLowerCase().includes(q))
     .map(x=>({x,score:anchor && x.id!==anchor.id ? pairScore(anchor,x) : statementLevel(x)}))
     .sort((a,b)=>b.score-a.score)
     .slice(0,60);
@@ -2609,7 +2691,7 @@ function fragranceWishlistGuard(rating){
   const lanes = fragranceLanes(wishText);
   const ownedMatches = state.items
     .filter(x=>x.type==="fragrance")
-    .map(x=>({item:x,lanes:fragranceLanes(`${x.brand} ${x.name} ${x.color} ${x.size} ${x.notes}`.toLowerCase())}))
+    .map(x=>({item:x,lanes:fragranceLanes(`${x.brand} ${x.name} ${x.color} ${x.size} ${x.notes} ${fragranceProfileSearchText(x)}`.toLowerCase())}))
     .filter(x=>x.lanes.some(l=>lanes.includes(l)));
   const wantsFullBottle = /full bottle|100 ml|50 ml|bottle/.test(wishText);
   const alreadyHasSample = /sample|decant|10 ml|10ml|travel|rotation/.test(wishText);
@@ -3381,7 +3463,7 @@ function slotForItem(x){
   return "accessory";
 }
 function layerText(x){
-  return `${x?.brand || ""} ${x?.name || ""} ${x?.color || ""} ${x?.category || ""}`.toLowerCase();
+  return `${x?.brand || ""} ${x?.name || ""} ${x?.color || ""} ${x?.category || ""} ${x?.notes || ""} ${fragranceProfileSearchText(x)}`.toLowerCase();
 }
 function isMidLayer(x){
   return layerSlotsForTop(x).includes("midLayer");
