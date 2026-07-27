@@ -2287,7 +2287,7 @@ function card(x){
       ${scentControls}
       <div class="price-row"><div class="price">${x.price ? money.format(x.price) : "<small>TBD</small>"}</div><div class="eyebrow">${fmtMonth(x.date)}</div></div>
       ${x.type==="wishlist" ? wishActions(x) : wearActions(x,cpw)}
-      <div class="mini-actions">${buildAroundButton(x)}${source}<button class="ghost" data-detail="${x.id}">${icon("eye")}Detail</button><button class="ghost" data-edit="${x.id}">${icon("pencil")}Edit</button></div>
+      <div class="mini-actions">${buildAroundButton(x)}${source}<button class="ghost" data-detail="${x.id}">${icon("eye")}Detail</button><button class="ghost" data-share="${x.id}">${icon("share-2")}Share</button><button class="ghost" data-edit="${x.id}">${icon("pencil")}Edit</button></div>
     </div>
   </article>`;
 }
@@ -2307,6 +2307,45 @@ function itemMaterialLabel(x){
 }
 function sourceLinkButton(x){
   return x.sourceUrl ? `<a class="ghost" href="${esc(x.sourceUrl)}" target="_blank" rel="noreferrer">${icon("external-link")}${x.type==="wishlist" ? "Buy" : "Link"}</a>` : "";
+}
+function shareItemText(x){
+  const parts = [`${x.brand} ${x.name}`.trim()];
+  const details = [x.color, x.size].filter(Boolean).join(", ");
+  if(details) parts.push(details);
+  if(x.sourceUrl) parts.push(x.sourceUrl);
+  return parts.join("\n");
+}
+async function shareItem(id){
+  const x = state.items.find(i=>i.id===id);
+  if(!x) return;
+  const shareData = {
+    title: `${x.brand} ${x.name}`.trim(),
+    text: shareItemText(x),
+    url: x.sourceUrl || undefined
+  };
+  const photo = displayPhoto(x);
+  if(navigator.canShare && photo){
+    try{
+      const res = await fetch(photo);
+      const blob = await res.blob();
+      const file = new File([blob], "item.jpg", {type: blob.type || "image/jpeg"});
+      if(navigator.canShare({files:[file]})) shareData.files = [file];
+    }catch(err){ /* photo unavailable, share text only */ }
+  }
+  if(navigator.share){
+    try{ await navigator.share(shareData); }
+    catch(err){ if(err?.name !== "AbortError") copyShareFallback(x); }
+    return;
+  }
+  copyShareFallback(x);
+}
+async function copyShareFallback(x){
+  try{
+    await navigator.clipboard.writeText(shareItemText(x));
+    toast("Copied item details to clipboard");
+  }catch(err){
+    toast("Unable to share on this device");
+  }
 }
 function wearActions(x,cpw){
   return `<div class="wear">
@@ -2357,6 +2396,7 @@ function openDetail(id){
     <div class="modal-actions">
       ${x.type==="wishlist" ? "" : `<button class="primary" data-build-around="${x.id}">${icon("sparkles")}Build Around This</button>`}
       <button class="ghost" data-wear="${x.id}" data-delta="1">${icon("calendar-check")}Wore Today</button>
+      <button class="ghost" data-share="${x.id}">${icon("share-2")}Share</button>
       <button class="ghost" data-edit="${x.id}">${icon("pencil")}Edit Item</button>
     </div>`;
   document.getElementById("detailModal").classList.add("open");
@@ -4988,6 +5028,8 @@ document.addEventListener("click", e => {
   }
   const detail = e.target.closest("[data-detail]");
   if(detail){ openDetail(detail.dataset.detail); return; }
+  const share = e.target.closest("[data-share]");
+  if(share){ shareItem(share.dataset.share); return; }
   const buildAround = e.target.closest("[data-build-around]");
   if(buildAround){ openBuildWeather(buildAround.dataset.buildAround); return; }
   const wear = e.target.closest("[data-wear]");
