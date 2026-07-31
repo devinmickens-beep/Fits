@@ -482,6 +482,13 @@ h1{font-family:var(--serif);font-weight:400;font-size:30px;line-height:1;margin:
 .slot small{display:block;margin-top:5px;color:var(--muted);font-size:9px}
 .saved-thumbs{display:flex;gap:6px;margin-top:9px;flex-wrap:wrap}
 .saved-thumbs .row-thumb{width:38px;height:38px}
+.fit-photo{
+  width:100%;max-width:230px;aspect-ratio:3/4;margin-bottom:10px;
+  border:1px solid var(--line-2);border-radius:8px;overflow:hidden;
+  background:#0c0b09;display:block;padding:0;cursor:pointer;
+}
+.fit-photo img{width:100%;height:100%;object-fit:cover;display:block}
+.fit-photo-actions{display:flex;gap:6px;margin-top:9px;flex-wrap:wrap}
 .modal-wrap{
   position:fixed;inset:0;background:rgba(0,0,0,.72);
   display:none;align-items:flex-end;justify-content:center;z-index:20;padding:16px;
@@ -1436,6 +1443,7 @@ let currentFit = {};
 let currentJudgement = null;
 let pendingPhoto = "";
 let photoTargetId = null;
+let photoTargetFitId = null;
 let activeSlot = null;
 let pendingBuildAroundId = null;
 let currentGapInsight = null;
@@ -2578,7 +2586,14 @@ function savedOutfit(o){
   const entries = Object.entries(o.pieces).filter(([,v])=>v);
   const pieces = entries.map(([k,v])=>`${k}: ${v.name}`).join(" · ");
   const thumbs = entries.map(([,v])=>itemThumb(v)).join("");
-  return `<div class="row-card"><div><div class="row-title">${esc(o.name)}</div><div class="row-sub">${esc(pieces)}</div><div class="saved-thumbs">${thumbs}</div></div><button class="icon-btn" data-delete-fit="${o.id}">${icon("trash-2")}</button></div>`;
+  const photo = o.photo
+    ? `<button class="fit-photo" data-fit-photo="${o.id}" aria-label="Change photo for ${esc(o.name)}"><img src="${esc(o.photo)}" alt="Photo of ${esc(o.name)}"></button>`
+    : "";
+  const photoActions = `<div class="fit-photo-actions">
+      <button class="ghost" data-fit-photo="${o.id}">${icon("camera")}${o.photo ? "Change Fit Pic" : "Add Fit Pic"}</button>
+      ${o.photo ? `<button class="ghost" data-remove-fit-photo="${o.id}">${icon("trash-2")}Remove Pic</button>` : ""}
+    </div>`;
+  return `<div class="row-card"><div>${photo}<div class="row-title">${esc(o.name)}</div><div class="row-sub">${esc(pieces)}</div><div class="saved-thumbs">${thumbs}</div>${photoActions}</div><button class="icon-btn" data-delete-fit="${o.id}">${icon("trash-2")}</button></div>`;
 }
 function itemThumb(x,cls="row-thumb"){
   if(!x) return "";
@@ -3323,7 +3338,22 @@ function choosePhoto(){
 }
 function choosePhotoForItem(id){
   photoTargetId = id;
+  photoTargetFitId = null;
   document.getElementById("photoFile").click();
+}
+function choosePhotoForFit(id){
+  photoTargetFitId = id;
+  photoTargetId = null;
+  document.getElementById("photoFile").click();
+}
+function removeFitPhoto(id){
+  const outfit = state.outfits.find(o=>o.id===id);
+  if(!outfit || !outfit.photo) return;
+  const previous = outfit.photo;
+  delete outfit.photo;
+  if(!save()){ outfit.photo = previous; return; }
+  render();
+  toast("Fit photo removed");
 }
 async function handlePhotoFile(e){
   const file = e.target.files && e.target.files[0];
@@ -3335,7 +3365,21 @@ async function handlePhotoFile(e){
   }
   try{
     const photo = await resizeImage(file, 1200, 0.82);
-    if(photoTargetId){
+    if(photoTargetFitId){
+      const outfit = state.outfits.find(o=>o.id===photoTargetFitId);
+      if(outfit){
+        const previous = outfit.photo;
+        outfit.photo = photo;
+        if(save()){
+          render();
+          toast("Fit photo saved");
+        }else if(previous){
+          outfit.photo = previous;
+        }else{
+          delete outfit.photo;
+        }
+      }
+    }else if(photoTargetId){
       const item = state.items.find(x=>x.id===photoTargetId);
       if(item){
         item.photo = photo;
@@ -3352,6 +3396,7 @@ async function handlePhotoFile(e){
     toast("Photo failed");
   }
   photoTargetId = null;
+  photoTargetFitId = null;
   e.target.value = "";
 }
 async function identifyPhoto(){
@@ -5049,6 +5094,10 @@ document.addEventListener("click", e => {
   if(wear){ changeWear(wear.dataset.wear, wear.dataset.delta); return; }
   const acq = e.target.closest("[data-acquire]");
   if(acq){ acquire(acq.dataset.acquire); return; }
+  const fitPhoto = e.target.closest("[data-fit-photo]");
+  if(fitPhoto){ choosePhotoForFit(fitPhoto.dataset.fitPhoto); return; }
+  const fitPhotoRemove = e.target.closest("[data-remove-fit-photo]");
+  if(fitPhotoRemove){ removeFitPhoto(fitPhotoRemove.dataset.removeFitPhoto); return; }
   const fitDel = e.target.closest("[data-delete-fit]");
   if(fitDel){ state.outfits = state.outfits.filter(o=>o.id!==fitDel.dataset.deleteFit); save(); render(); return; }
   const layerDel = e.target.closest("[data-delete-layer]");
