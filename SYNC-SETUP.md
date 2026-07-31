@@ -40,25 +40,43 @@ SUPABASE_SERVICE_ROLE_KEY=eyJhbGci...
 
 Redeploy after adding them so the functions pick the values up.
 
-## 4. Pair your devices
+## 4. Pair your devices — start from the most accurate one
 
-1. Open the app on your desktop → **Sync Devices** in the left sidebar.
-2. Click **Generate New Code** and then **Copy Code**.
-3. Open the app on your phone → **Sync Devices** → paste the same code → **Sync Now**.
+Pair from whichever device holds the closet you trust. **Generating** a code
+declares that device the source; **pasting** a code makes a device a joiner.
 
-After that each device pushes automatically a couple of seconds after any
-change, and pulls when the app is opened.
+1. On the accurate device (the desktop) → **Sync Devices** in the left sidebar.
+2. **Generate New Code**, then **Copy Code**, then **Push This Device**.
+3. On the other device → **Sync Devices** → paste the code → **Sync Now**.
 
-## How conflicts are handled
+The joiner adopts the published closet on its first pull and replaces whatever
+it had. After that both devices push automatically a couple of seconds after a
+change and pull on launch.
 
-The newest snapshot wins. Before a device overwrites its local copy during a
-pull, the previous contents are kept in local storage under
-`closet_archive_v2_presync_backup`, so a bad overwrite can be recovered from
-the browser console.
+## How your accurate copy is protected
 
-If you edit the same closet on two devices while one is offline, the device
-that syncs last overwrites the other. Sync on a device before making a batch of
-changes on it.
+Three guards stop a thinner or staler copy from winning:
+
+- **Joiners cannot publish before they pull.** A device that pasted a code is
+  held in a pending state — its automatic pushes are suppressed until it has
+  pulled once, so it can never overwrite the established closet just because
+  you opened it and tapped something.
+- **Stale snapshots lose.** Every save stamps the closet with a timestamp, and
+  a pull is refused when the remote copy is older than what the device already
+  holds.
+- **Gutted snapshots are blocked.** If an incoming copy has less than half the
+  items of the local one, the pull stops and tells you the counts instead of
+  applying it. **Force Pull** accepts it anyway when that really is what you want.
+
+Before any pull replaces local data, the previous contents are saved to
+`closet_archive_v2_presync_backup` in local storage, recoverable from the
+browser console.
+
+`Push This Device` and `Force Pull` both ask for confirmation and both state
+the item counts involved, so the overwrite direction is always explicit.
+
+If you edit on two devices while one is offline, the one that syncs last wins.
+Sync a device before doing a batch of edits on it.
 
 ## Limits worth knowing
 
