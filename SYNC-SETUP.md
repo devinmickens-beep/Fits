@@ -1,46 +1,64 @@
 # Cross-device sync setup
 
-Until this is configured, the app works exactly as before — everything stays in
-each browser's local storage and the Sync Devices panel will report that the
-endpoint isn't configured. Nothing breaks; sync simply stays off.
+Until storage is configured, the app works exactly as before — everything stays
+in each browser's local storage and the Sync Devices panel reports that sync
+isn't configured. Nothing breaks; sync simply stays off.
 
-Sync uses **Supabase Storage** over its REST API. That choice means no npm
-packages and no build step, and the same code runs on both Vercel and Netlify —
-the app probes `/api/sync` first and falls back to
-`/.netlify/functions/sync`, so whichever host is live will work.
+The site runs on **Vercel** (`https://fits-rho-eight.vercel.app`), so the quick
+path below needs no new accounts and no new passwords. A Supabase alternative is
+documented afterwards if you ever move hosts.
 
-## 1. Create the Supabase project and bucket
+---
 
-1. Sign up at <https://supabase.com> and create a project (the free tier is enough).
-2. In the dashboard go to **Storage → Buckets → New bucket**.
-3. Name it exactly `fits-sync` and leave **Public** switched **off**.
+## Recommended: Vercel Blob (about 2 minutes, no signup)
 
-## 2. Collect two values
+1. Go to <https://vercel.com/dashboard> and open the **Fits** project.
+2. Click the **Storage** tab.
+3. **Create Database** → choose **Blob** → name it anything (`fits-blob` is fine)
+   → **Create**.
+4. When it offers to connect the store to the Fits project, accept. That is what
+   adds the `BLOB_READ_WRITE_TOKEN` environment variable for you.
+5. Go to **Deployments**, open the most recent one, and **Redeploy** so the
+   functions pick up the new variable.
 
-From **Project Settings → API**:
+Check it worked by opening this in a browser:
 
-| Value | Where it appears |
-| --- | --- |
-| Project URL, e.g. `https://abcdefgh.supabase.co` | "Project URL" |
-| Service role key | "Project API keys" → `service_role` |
+```
+https://fits-rho-eight.vercel.app/api/sync?code=probe
+```
 
-The service role key bypasses row-level security. Keep it server-side only —
-never paste it into the app, a client file, or a commit.
+- `{"error":"Invalid sync code"}` → **storage is connected.** (`probe` isn't a
+  real code, so this rejection is the success case.)
+- `{"error":"Sync storage is not configured..."}` → the variable isn't live yet;
+  confirm the store is connected to this project and redeploy.
 
-## 3. Add them as environment variables on your host
+Then pair your devices using the section further down.
 
-**Vercel** — Project → Settings → Environment Variables:
+---
+
+## Alternative: Supabase Storage
+
+Only needed if the app moves off Vercel. Requires a free Supabase account.
+
+1. Create a project at <https://supabase.com>.
+2. **Storage → Buckets → New bucket**, named exactly `fits-sync`, **Public off**.
+3. From **Project Settings → API**, copy the Project URL and the `service_role` key.
+4. Add both to your host's environment variables, then redeploy:
 
 ```
 SUPABASE_URL=https://abcdefgh.supabase.co
 SUPABASE_SERVICE_ROLE_KEY=eyJhbGci...
 ```
 
-**Netlify** — Site configuration → Environment variables: the same two keys.
+The service role key bypasses row-level security. Keep it server-side only —
+never paste it into the app or commit it.
 
-Redeploy after adding them so the functions pick the values up.
+If both backends are configured, Vercel Blob wins. The `storage` field in a push
+response tells you which one handled the request.
 
-## 4. Pair your devices — start from the most accurate one
+---
+
+## Pair your devices — start from the most accurate one
 
 Pair from whichever device holds the closet you trust. **Generating** a code
 declares that device the source; **pasting** a code makes a device a joiner.
@@ -65,14 +83,14 @@ Three guards stop a thinner or staler copy from winning:
   a pull is refused when the remote copy is older than what the device already
   holds.
 - **Gutted snapshots are blocked.** If an incoming copy has less than half the
-  items of the local one, the pull stops and tells you the counts instead of
+  items of the local one, the pull stops and reports both counts instead of
   applying it. **Force Pull** accepts it anyway when that really is what you want.
 
 Before any pull replaces local data, the previous contents are saved to
 `closet_archive_v2_presync_backup` in local storage, recoverable from the
 browser console.
 
-`Push This Device` and `Force Pull` both ask for confirmation and both state
+`Push This Device` and `Force Pull` both confirm before acting and both state
 the item counts involved, so the overwrite direction is always explicit.
 
 If you edit on two devices while one is offline, the one that syncs last wins.
@@ -80,12 +98,13 @@ Sync a device before doing a batch of edits on it.
 
 ## Limits worth knowing
 
-- A sync payload is capped at **4 MB**, which keeps it under the serverless
-  request body limits on both hosts. Fit photos are stored at 900px / 0.72
-  quality to stay well inside that, but a very large lookbook can eventually
-  exceed it — the app will say so instead of failing silently.
+- A sync payload is capped at **4 MB** to stay under serverless request body
+  limits. Fit photos save at 900px / 0.72 quality to stay well inside that, but
+  a very large lookbook can eventually exceed it — the app says so rather than
+  failing silently.
 - Anyone holding the sync code can read and overwrite that closet. It is a
   32-character random code, not a password, and there is no account system.
-  Treat it like a secret and use **Disconnect** plus a new code if it leaks.
-- There is no rate limiting on the endpoint. It is fine for personal use; do
-  not publish the code anywhere.
+  Treat it like a secret; use **Disconnect** and generate a new one if it leaks.
+- Snapshots are stored under a SHA-256 hash of the sync code, so the code itself
+  is never written to storage.
+- There is no rate limiting on the endpoint. Fine for personal use.

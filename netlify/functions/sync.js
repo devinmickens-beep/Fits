@@ -1,18 +1,20 @@
 // Cross-device sync endpoint (Netlify runtime).
-// Mirrors api/sync.js so the app works on either host. Storage is Supabase
-// Storage over its REST API, so this needs no npm packages. Required env vars:
-//   SUPABASE_URL                 e.g. https://xxxxxxxx.supabase.co
-//   SUPABASE_SERVICE_ROLE_KEY    service role key (server-side only)
-// A private Storage bucket named "fits-sync" must exist in the Supabase project.
+//
+// Two storage backends are supported and picked automatically from whichever
+// environment variables are present. Neither needs an npm package or a build
+// step, so the deployment stays a plain static site plus functions.
+//
+//   1. Vercel Blob  — set BLOB_READ_WRITE_TOKEN (added for you when you create
+//      a Blob store in the Vercel dashboard). Works from Netlify too.
+//   2. Supabase Storage — set SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY, and
+//      create a private bucket named "fits-sync".
+//
+// See SYNC-SETUP.md for the click-by-click setup.
 
-const BUCKET = "fits-sync";
-
-function storageConfig() {
-  const url = process.env.SUPABASE_URL;
-  const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
-  if (!url || !key) return null;
-  return { url: url.replace(/\/+$/, ""), key };
-}
+const PREFIX = "fits-sync";
+const SUPABASE_BUCKET = "fits-sync";
+const BLOB_API = "https://blob.vercel-storage.com";
+const BLOB_API_VERSION = "7";
 
 function isValidCode(code) {
   return typeof code === "string" && /^[a-f0-9]{32,64}$/.test(code);
@@ -23,8 +25,60 @@ async function hashCode(code) {
   return Array.from(new Uint8Array(digest)).map(b => b.toString(16).padStart(2, "0")).join("");
 }
 
-async function readSnapshot(cfg, path) {
-  const res = await fetch(`${cfg.url}/storage/v1/object/${BUCKET}/${path}`, {
+/* ---------------------------------------------------------------- Vercel Blob */
+
+function blobToken() {
+  return process.env.BLOB_READ_WRITE_TOKEN || "";
+}
+
+async function blobFindUrl(token, pathname) {
+  const res = await fetch(`${BLOB_API}?prefix=${encodeURIComponent(pathname)}&limit=1`, {
+    headers: { authorization: `Bearer ${token}`, "x-api-version": BLOB_API_VERSION }
+  });
+  if (!res.ok) throw new Error(`blob list failed (${res.status}): ${await res.text()}`);
+  const data = await res.json();
+  const hit = (data.blobs || []).find(b => b.pathname === pathname);
+  return hit ? (hit.downloadUrl || hit.url) : null;
+}
+
+async function blobRead(token, pathname) {
+  const url = await blobFindUrl(token, pathname);
+  if (!url) return null;
+  // Cache-bust so a pull never receives a stale CDN copy after a fresh push.
+  const res = await fetch(`${url}${url.includes("?") ? "&" : "?"}t=${Date.now()}`, {
+    cache: "no-store"
+  });
+  if (res.status === 404) return null;
+  if (!res.ok) throw new Error(`blob read failed (${res.status})`);
+  return await res.json();
+}
+
+async function blobWrite(token, pathname, body) {
+  const res = await fetch(`${BLOB_API}/${encodeURI(pathname)}`, {
+    method: "PUT",
+    headers: {
+      authorization: `Bearer ${token}`,
+      "x-api-version": BLOB_API_VERSION,
+      "x-content-type": "application/json",
+      "x-add-random-suffix": "0",
+      "x-cache-control-max-age": "0"
+    },
+    body: JSON.stringify(body)
+  });
+  if (!res.ok) throw new Error(`blob write failed (${res.status}): ${await res.text()}`);
+}
+
+/* ------------------------------------------------------------ Supabase Storage */
+
+function supabaseConfig() {
+  const url = process.env.SUPABASE_URL;
+  const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  if (!url || !key) return null;
+  return { url: url.replace(/\/+$/, ""), key };
+}
+
+async function supabaseRead(cfg, path) {
+  const res = await fetch(`${cfg.url}/storage/v1/object/${SUPABASE_BUCKET}/${path}`, {
     headers: { Authorization: `Bearer ${cfg.key}` }
   });
   if (res.status === 404 || res.status === 400) return null;
@@ -32,8 +86,8 @@ async function readSnapshot(cfg, path) {
   return await res.json();
 }
 
-async function writeSnapshot(cfg, path, body) {
-  const res = await fetch(`${cfg.url}/storage/v1/object/${BUCKET}/${path}`, {
+async function supabaseWrite(cfg, path, body) {
+  const res = await fetch(`${cfg.url}/storage/v1/object/${SUPABASE_BUCKET}/${path}`, {
     method: "POST",
     headers: {
       Authorization: `Bearer ${cfg.key}`,
@@ -45,6 +99,28 @@ async function writeSnapshot(cfg, path, body) {
   if (!res.ok) throw new Error(`storage write failed (${res.status}): ${await res.text()}`);
 }
 
+/* -------------------------------------------------------------------- provider */
+
+function resolveProvider() {
+  const token = blobToken();
+  if (token) {
+    return {
+      name: "vercel-blob",
+      read: path => blobRead(token, `${PREFIX}/${path}`),
+      write: (path, body) => blobWrite(token, `${PREFIX}/${path}`, body)
+    };
+  }
+  const cfg = supabaseConfig();
+  if (cfg) {
+    return {
+      name: "supabase",
+      read: path => supabaseRead(cfg, path),
+      write: (path, body) => supabaseWrite(cfg, path, body)
+    };
+  }
+  return null;
+}
+
 const json = (statusCode, payload) => ({
   statusCode,
   headers: { "Content-Type": "application/json" },
@@ -52,16 +128,18 @@ const json = (statusCode, payload) => ({
 });
 
 exports.handler = async function (event) {
-  const cfg = storageConfig();
-  if (!cfg) {
-    return json(500, { error: "Sync is not configured. Set SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY." });
+  const provider = resolveProvider();
+  if (!provider) {
+    return json(500, {
+      error: "Sync storage is not configured. Create a Vercel Blob store (sets BLOB_READ_WRITE_TOKEN), or set SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY."
+    });
   }
 
   try {
     if (event.httpMethod === "GET") {
       const code = event.queryStringParameters && event.queryStringParameters.code;
       if (!isValidCode(code)) return json(400, { error: "Invalid sync code" });
-      const snapshot = await readSnapshot(cfg, `${await hashCode(code)}.json`);
+      const snapshot = await provider.read(`${await hashCode(code)}.json`);
       if (!snapshot) return json(404, { error: "No snapshot yet for this code" });
       return json(200, snapshot);
     }
@@ -77,8 +155,8 @@ exports.handler = async function (event) {
       if (!isValidCode(code)) return json(400, { error: "Invalid sync code" });
       if (!state || typeof state !== "object") return json(400, { error: "Missing state" });
       const snapshot = { updatedAt: updatedAt || new Date().toISOString(), state };
-      await writeSnapshot(cfg, `${await hashCode(code)}.json`, snapshot);
-      return json(200, { ok: true, updatedAt: snapshot.updatedAt });
+      await provider.write(`${await hashCode(code)}.json`, snapshot);
+      return json(200, { ok: true, updatedAt: snapshot.updatedAt, storage: provider.name });
     }
 
     return json(405, { error: "Method not allowed" });
