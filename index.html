@@ -489,6 +489,35 @@ h1{font-family:var(--serif);font-weight:400;font-size:30px;line-height:1;margin:
 }
 .fit-photo img{width:100%;height:100%;object-fit:cover;display:block}
 .fit-photo-actions{display:flex;gap:6px;margin-top:9px;flex-wrap:wrap}
+.look-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:14px}
+.look-card{
+  border:1px solid rgba(111,150,88,.58);border-radius:8px;
+  background:linear-gradient(180deg,var(--card-2),var(--card));
+  overflow:hidden;display:flex;flex-direction:column;
+}
+.look-media{width:100%;aspect-ratio:3/4;border:0;padding:0;background:#0c0b09;cursor:pointer;display:block}
+.look-media img{width:100%;height:100%;object-fit:cover;display:block}
+.look-body{padding:12px}
+.look-actions{display:flex;gap:6px;margin-top:10px;flex-wrap:wrap}
+.heat-wrap{
+  border:1px solid rgba(111,150,88,.58);border-radius:8px;
+  background:linear-gradient(180deg,var(--card-2),var(--card));
+  padding:13px;overflow-x:auto;
+}
+.heat-months{display:flex;gap:3px;margin-bottom:4px;min-width:max-content}
+.heat-month{width:13px;font-size:9px;color:var(--faint);letter-spacing:.04em}
+.heat-grid{display:flex;gap:3px;min-width:max-content}
+.heat-col{display:flex;flex-direction:column;gap:3px}
+.heat-cell{width:10px;height:10px;border-radius:2px;background:rgba(244,239,228,.07);display:block}
+.heat-cell.heat-1{background:rgba(111,150,88,.45)}
+.heat-cell.heat-2{background:rgba(111,150,88,.72)}
+.heat-cell.heat-3{background:rgba(198,164,110,.92)}
+.heat-cell.heat-empty{background:transparent}
+.heat-legend{
+  display:flex;justify-content:space-between;align-items:center;gap:12px;
+  margin-top:10px;font-size:10px;color:var(--muted);min-width:max-content;
+}
+.heat-scale{display:flex;align-items:center;gap:3px}
 .modal-wrap{
   position:fixed;inset:0;background:rgba(0,0,0,.72);
   display:none;align-items:flex-end;justify-content:center;z-index:20;padding:16px;
@@ -608,7 +637,7 @@ label{display:grid;gap:5px;color:var(--muted);font-size:8px;text-transform:upper
   </aside>
   <main class="main">
     <header class="topbar">
-      <div class="search"><i data-lucide="search"></i><input id="search" type="search" placeholder="Search brand, item, color, note..."></div>
+      <div class="search"><i data-lucide="search"></i><input id="search" type="search" placeholder="Try: black boots under $500"></div>
       <div class="toolbar">
         <button class="ghost" data-action="random"><i data-lucide="sparkles"></i>Build Fit</button>
         <button class="primary" data-action="add"><i data-lucide="plus"></i>Add Item</button>
@@ -801,6 +830,35 @@ label{display:grid;gap:5px;color:var(--muted);font-size:8px;text-transform:upper
   </div>
 </div>
 
+<div class="modal-wrap" id="packModal" role="dialog" aria-modal="true">
+  <div class="modal">
+    <div class="modal-head">
+      <div class="modal-title">Packing Mode</div>
+      <button type="button" class="icon-btn" data-close="packModal" aria-label="Close"><i data-lucide="x"></i></button>
+    </div>
+    <div class="modal-body">
+      <div class="form-grid">
+        <label>Trip Length (days)<input class="field" id="packDays" type="number" min="1" max="21" step="1" value="4"></label>
+        <label>Destination Temp (°F)<input class="field" id="packTemp" type="number" min="-10" max="120" step="1" value="58"></label>
+        <label>Conditions
+          <select id="packCondition">
+            <option value="dry">Dry</option>
+            <option value="rain">Rain</option>
+            <option value="wind">Wind</option>
+            <option value="snow">Snow</option>
+            <option value="humid">Humid</option>
+          </select>
+        </label>
+      </div>
+      <div class="modal-actions">
+        <button type="button" class="ghost" id="packLocate"><i data-lucide="map-pin"></i>Use My Location</button>
+        <button type="button" class="primary" id="packBuild"><i data-lucide="luggage"></i>Build Capsule</button>
+      </div>
+      <div id="packResult"></div>
+    </div>
+  </div>
+</div>
+
 <div class="modal-wrap" id="slotModal" role="dialog" aria-modal="true">
   <div class="modal">
     <div class="modal-head">
@@ -826,6 +884,7 @@ label{display:grid;gap:5px;color:var(--muted);font-size:8px;text-transform:upper
         <input id="weatherTemp" type="range" min="25" max="95" step="1" value="58">
       </label>
       <div class="gap-item" id="weatherTempLabel" style="margin:8px 0 12px"></div>
+      <button type="button" class="ghost" id="autoWeather" style="width:100%;margin-bottom:12px"><i data-lucide="map-pin"></i>Use My Location</button>
       <div class="form-grid">
         <label>Weather
           <select id="weatherCondition">
@@ -874,6 +933,7 @@ const monthFmt = new Intl.DateTimeFormat("en-US",{month:"short",year:"numeric"})
 const tabs = [
   ["wardrobe","Wardrobe","shirt"],
   ["outfits","Outfits","sparkles"],
+  ["lookbook","Lookbook","images"],
   ["fragrance","Fragrance","spray-can"],
   ["wishlist","Wish List","star"],
   ["analytics","Value","bar-chart-3"]
@@ -1917,12 +1977,68 @@ function toast(msg){
   clearTimeout(toast.t);
   toast.t = setTimeout(()=>el.classList.remove("show"),1800);
 }
+const SEARCH_STOPWORDS = new Set(["what","whats","which","who","do","does","did","i","ive","im","my","mine","me","have","has","own","owns","got","get","show","list","find","all","any","the","a","an","of","in","is","are","there","some","for","with","that","this","and","or","to","please","can","you"]);
+const SEARCH_CATEGORY_WORDS = {
+  Shoes:["shoe","shoes","sneaker","sneakers","boot","boots","loafer","loafers","clog","clogs","slipper","slippers","trainer","trainers","footwear"],
+  Tops:["top","tops","shirt","shirts","tee","tees","tshirt","henley","sweater","sweaters","knit","knits","hoodie","hoodies","polo"],
+  Bottoms:["bottom","bottoms","pant","pants","trouser","trousers","jean","jeans","short","shorts","denim"],
+  Outerwear:["outerwear","jacket","jackets","coat","coats","parka","puffer","overshirt","blazer"],
+  Hats:["hat","hats","cap","caps","beanie","beanies","bucket"],
+  Socks:["sock","socks"],
+  Bags:["bag","bags","backpack","backpacks","keepall","duffle","tote"],
+  Watches:["watch","watches"],
+  Accessories:["accessory","accessories","belt","belts","scarf","glove","gloves","sunglasses"],
+  Fragrances:["fragrance","fragrances","scent","scents","perfume","perfumes","cologne","colognes","bottle","bottles"]
+};
+function parseSearchQuery(raw){
+  let text = String(raw || "").toLowerCase().trim();
+  const out = {price:null, categories:[], terms:[]};
+  if(!text) return out;
+  const priceRules = [
+    [/(?:under|below|less than|cheaper than|<)\s*\$?\s*(\d[\d,]*)/, (n)=>({max:n})],
+    [/(?:over|above|more than|pricier than|>)\s*\$?\s*(\d[\d,]*)/, (n)=>({min:n})],
+    [/\$\s*(\d[\d,]*)\s*(?:or less|and under)/, (n)=>({max:n})]
+  ];
+  priceRules.forEach(([re,make])=>{
+    const m = text.match(re);
+    if(m){
+      const n = Number(m[1].replace(/,/g,""));
+      if(Number.isFinite(n)) out.price = {...(out.price||{}), ...make(n)};
+      text = text.replace(re," ");
+    }
+  });
+  const tokens = text.split(/[^a-z0-9$']+/).filter(Boolean);
+  tokens.forEach(tok=>{
+    if(SEARCH_STOPWORDS.has(tok)) return;
+    const cat = Object.keys(SEARCH_CATEGORY_WORDS).find(c=>SEARCH_CATEGORY_WORDS[c].includes(tok));
+    if(cat){ if(!out.categories.includes(cat)) out.categories.push(cat); return; }
+    out.terms.push(tok);
+  });
+  return out;
+}
+function matchesParsedSearch(x,parsed){
+  if(parsed.price){
+    const price = Number(x.price) || 0;
+    if(parsed.price.max != null && !(price > 0 && price <= parsed.price.max)) return false;
+    if(parsed.price.min != null && !(price >= parsed.price.min)) return false;
+  }
+  if(parsed.categories.length){
+    const cat = inferredCategory(x) || x.category || "";
+    if(!parsed.categories.includes(cat)) return false;
+  }
+  if(parsed.terms.length){
+    const hay = [x.brand,x.name,x.color,x.size,x.category,x.fabric,x.notes,fragranceProfileSearchText(x)].join(" ").toLowerCase();
+    if(!parsed.terms.every(t=>hay.includes(t))) return false;
+  }
+  return true;
+}
 function filtered(type=activeTab){
   const q = document.getElementById("search").value.trim().toLowerCase();
+  const parsed = parseSearchQuery(q);
   const results = state.items
     .filter(x => x.type === type)
     .filter(x => matchesCollectionFilter(x,type,activeCategory))
-    .filter(x => !q || [x.brand,x.name,x.color,x.size,x.category,x.fabric,x.notes,fragranceProfileSearchText(x)].join(" ").toLowerCase().includes(q))
+    .filter(x => !q || matchesParsedSearch(x,parsed))
     .sort((a,b)=>{
       if(type === "fragrance"){
         if(activeCategory === "top10") return topFragranceCompare(a,b);
@@ -1978,6 +2094,7 @@ function render(){
   renderNav();
   renderStats();
   if(activeTab === "outfits") renderOutfits();
+  else if(activeTab === "lookbook") renderLookbook();
   else if(activeTab === "analytics") renderAnalytics();
   else if(activeTab === "fragrance") renderFragrance();
   else renderCollection(activeTab);
@@ -2499,7 +2616,8 @@ function renderOutfits(){
         <div class="gap-item" style="margin-bottom:8px">Target: 90+. Last build: ${currentFit.fireTarget ? currentFit.fireTarget+"/100" : "not built yet"}${weatherLine}.</div>
         <button class="ghost" style="width:100%;margin-bottom:8px" data-action="judgeFit">${icon("wand-sparkles")}Judge Fit</button>
         <button class="ghost" style="width:100%;margin-bottom:8px" data-action="wearFit">${icon("calendar-check")}Wore Today</button>
-        <button class="ghost" style="width:100%" data-action="saveFit">${icon("save")}Save Current Fit</button>
+        <button class="ghost" style="width:100%;margin-bottom:8px" data-action="saveFit">${icon("save")}Save Current Fit</button>
+        <button class="ghost" style="width:100%" data-action="packing">${icon("luggage")}Packing Mode</button>
       </div>
       <div class="panel">
         <div class="panel-title">Current Fit</div>
@@ -2594,6 +2712,207 @@ function savedOutfit(o){
       ${o.photo ? `<button class="ghost" data-remove-fit-photo="${o.id}">${icon("trash-2")}Remove Pic</button>` : ""}
     </div>`;
   return `<div class="row-card"><div>${photo}<div class="row-title">${esc(o.name)}</div><div class="row-sub">${esc(pieces)}</div><div class="saved-thumbs">${thumbs}</div>${photoActions}</div><button class="icon-btn" data-delete-fit="${o.id}">${icon("trash-2")}</button></div>`;
+}
+function packingSeasonFilter(pool,temp){
+  if(!pool.length) return pool;
+  const cold = temp <= 50, hot = temp >= 75;
+  const scored = pool.map(x=>{
+    const text = `${x.name} ${x.fabric || ""} ${x.color || ""}`.toLowerCase();
+    let s = 0;
+    if(cold && /wool|mohair|fleece|sherpa|quilted|thermal|heavy|knit|puffer|corduroy/.test(text)) s += 3;
+    if(cold && /linen|mesh|tank|short/.test(text)) s -= 3;
+    if(hot && /linen|cotton|mesh|tank|short|poplin/.test(text)) s += 3;
+    if(hot && /wool|fleece|sherpa|quilted|puffer|heavy/.test(text)) s -= 4;
+    return {x,s};
+  });
+  return scored.sort((a,b)=>b.s-a.s).map(r=>r.x);
+}
+function buildPackingPlan(days,temp,condition){
+  const d = Math.max(1, Math.min(21, Number(days) || 3));
+  const need = {
+    Tops: Math.min(8, Math.max(2, Math.ceil(d * 0.8))),
+    Bottoms: Math.min(5, Math.max(1, Math.ceil(d / 2.5))),
+    Shoes: Math.min(3, Math.max(1, Math.ceil(d / 4))),
+    Outerwear: temp <= 62 ? Math.min(2, Math.max(1, Math.ceil(d / 5))) : (condition === "rain" ? 1 : 0),
+    Socks: Math.min(10, d),
+    Accessories: Math.min(2, Math.max(1, Math.ceil(d / 5)))
+  };
+  const bag = {};
+  Object.entries(need).forEach(([cat,count])=>{
+    if(count <= 0) return;
+    bag[cat] = packingSeasonFilter(pickPool(cat), temp).slice(0, count);
+  });
+  const frags = state.items.filter(x=>x.type === "fragrance");
+  const season = temp <= 55 ? "fall" : temp >= 72 ? "spring" : "all";
+  bag.Fragrances = frags
+    .filter(x=>x.color === season || x.color === "all")
+    .sort((a,b)=>fragranceArchiveScore(b)-fragranceArchiveScore(a))
+    .slice(0, Math.min(2, Math.max(1, Math.ceil(d / 4))));
+  const tops = bag.Tops || [], bottoms = bag.Bottoms || [], shoes = bag.Shoes || [];
+  const outfits = [];
+  for(let i = 0; i < d; i++){
+    outfits.push({
+      day: i + 1,
+      top: tops.length ? tops[i % tops.length] : null,
+      bottom: bottoms.length ? bottoms[i % bottoms.length] : null,
+      shoe: shoes.length ? shoes[i % shoes.length] : null
+    });
+  }
+  const totalPieces = Object.values(bag).reduce((s,xs)=>s+xs.length,0);
+  return {days:d, temp, condition, bag, outfits, totalPieces};
+}
+function renderPackingResult(plan){
+  const el = document.getElementById("packResult");
+  if(!el) return;
+  const bagRows = Object.entries(plan.bag).filter(([,xs])=>xs.length).map(([cat,xs])=>
+    `<div class="pack-group"><div class="panel-title">${esc(cat)} <span style="color:var(--faint)">(${xs.length})</span></div>
+      <div class="list">${xs.map(x=>`<div class="row-card"><div class="row-main">${itemThumb(x)}<div><div class="row-title">${esc(x.brand)} ${esc(x.name)}</div><div class="row-sub">${esc(x.color || "")}${x.size ? " · "+esc(x.size) : ""}</div></div></div></div>`).join("")}</div></div>`
+  ).join("");
+  const dayRows = plan.outfits.map(o=>{
+    const parts = [o.top,o.bottom,o.shoe].filter(Boolean).map(p=>`${p.brand} ${p.name}`);
+    return `<div class="row-card"><div><div class="row-title">Day ${o.day}</div><div class="row-sub">${esc(parts.join(" · ") || "Not enough pieces for this day")}</div></div></div>`;
+  }).join("");
+  el.innerHTML = `<div class="dash-grid" style="margin:14px 0">
+      <div class="dash-card"><span>Pieces</span><strong>${plan.totalPieces}</strong><div class="meta">${plan.days} days</div></div>
+      <div class="dash-card"><span>Conditions</span><strong>${plan.temp}°F</strong><div class="meta">${esc(plan.condition)}</div></div>
+    </div>
+    ${bagRows}
+    <div class="panel-title" style="margin-top:16px">Day by Day</div>
+    <div class="list">${dayRows}</div>`;
+  hydrateIcons();
+}
+function openPacking(){
+  document.getElementById("packDays").value = "4";
+  document.getElementById("packTemp").value = String(currentFit.weatherTemp || 58);
+  document.getElementById("packCondition").value = currentFit.weatherCondition || "dry";
+  document.getElementById("packResult").innerHTML = `<div class="gap-item" style="margin-top:14px">Set trip length and conditions, then build the capsule.</div>`;
+  document.getElementById("packModal").classList.add("open");
+  hydrateIcons();
+}
+function runPacking(){
+  const days = Number(document.getElementById("packDays").value) || 3;
+  const temp = Number(document.getElementById("packTemp").value) || 58;
+  const condition = document.getElementById("packCondition").value || "dry";
+  renderPackingResult(buildPackingPlan(days,temp,condition));
+}
+async function packingUseLocation(){
+  await fetchLocalWeather();
+  const slider = document.getElementById("weatherTemp");
+  if(slider && currentFit.weatherTemp){
+    document.getElementById("packTemp").value = String(currentFit.weatherTemp);
+    document.getElementById("packCondition").value = currentFit.weatherCondition || "dry";
+  }
+}
+function renderLookbook(){
+  const fits = [...state.outfits].sort((a,b)=>(b.created||"").localeCompare(a.created||""));
+  const shot = fits.filter(o=>o.photo);
+  const unshot = fits.filter(o=>!o.photo);
+  document.getElementById("view").innerHTML =
+    header("Lookbook", `${shot.length} fit ${shot.length===1?"photo":"photos"} · tap a shot to replace it`) +
+    (shot.length
+      ? `<div class="look-grid">${shot.map(lookCard).join("")}</div>`
+      : `<div class="empty">No fit photos yet. Save a fit in the Outfits tab, then tap Add Fit Pic.</div>`) +
+    (unshot.length ? `<div style="height:20px"></div>
+      <div class="section-head"><div><h2 class="section-title">Missing a Photo</h2><div class="section-sub">Saved fits with no shot yet</div></div></div>
+      <div class="list">${unshot.map(o=>`<div class="row-card"><div><div class="row-title">${esc(o.name)}</div><div class="row-sub">${fitPieceLine(o)}</div></div><button class="ghost" data-fit-photo="${o.id}">${icon("camera")}Add Pic</button></div>`).join("")}</div>` : "");
+  hydrateIcons();
+}
+function fitPieceLine(o){
+  return esc(Object.values(o.pieces||{}).filter(Boolean).map(v=>v.name).join(" · "));
+}
+function lookCard(o){
+  const when = o.created ? new Date(o.created).toLocaleDateString(undefined,{month:"short",day:"numeric",year:"numeric"}) : "";
+  return `<article class="look-card">
+    <button class="look-media" data-fit-photo="${o.id}" aria-label="Change photo for ${esc(o.name)}"><img src="${esc(o.photo)}" alt="${esc(o.name)}"></button>
+    <div class="look-body">
+      <div class="row-title">${esc(o.name)}</div>
+      <div class="eyebrow">${esc(when)}</div>
+      <div class="row-sub">${fitPieceLine(o)}</div>
+      <div class="look-actions">
+        <button class="ghost" data-share-fit="${o.id}">${icon("share-2")}Share Fit</button>
+        <button class="ghost" data-remove-fit-photo="${o.id}">${icon("trash-2")}Remove</button>
+      </div>
+    </div>
+  </article>`;
+}
+function fitShareText(o){
+  const pieces = Object.values(o.pieces||{}).filter(Boolean).map(v=>`${v.brand} ${v.name}`);
+  return [o.name, ...pieces].join("\n");
+}
+function downloadBlob(blob,filename){
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  setTimeout(()=>URL.revokeObjectURL(url),1000);
+}
+function loadImage(src){
+  return new Promise((resolve,reject)=>{
+    const img = new Image();
+    img.crossOrigin = "anonymous";
+    img.onload = ()=>resolve(img);
+    img.onerror = ()=>reject(new Error("image load failed"));
+    img.src = src;
+  });
+}
+function truncateForCanvas(ctx,text,maxWidth){
+  let t = String(text || "");
+  if(ctx.measureText(t).width <= maxWidth) return t;
+  while(t.length && ctx.measureText(t+"…").width > maxWidth) t = t.slice(0,-1);
+  return t+"…";
+}
+async function buildFitCardBlob(o){
+  const W = 1080, H = 1350;
+  const canvas = document.createElement("canvas");
+  canvas.width = W;
+  canvas.height = H;
+  const ctx = canvas.getContext("2d");
+  ctx.fillStyle = "#12110f";
+  ctx.fillRect(0,0,W,H);
+  const img = await loadImage(o.photo);
+  const scale = Math.max(W/img.width, H/img.height);
+  const dw = img.width*scale, dh = img.height*scale;
+  ctx.drawImage(img,(W-dw)/2,(H-dh)/2,dw,dh);
+  const grad = ctx.createLinearGradient(0,H*0.42,0,H);
+  grad.addColorStop(0,"rgba(10,10,8,0)");
+  grad.addColorStop(1,"rgba(10,10,8,.94)");
+  ctx.fillStyle = grad;
+  ctx.fillRect(0,0,W,H);
+  ctx.fillStyle = "rgba(198,164,110,.95)";
+  ctx.font = "600 24px Helvetica, Arial, sans-serif";
+  ctx.fillText("FITS ARCHIVE", 60, 72);
+  ctx.fillStyle = "#f4efe4";
+  ctx.font = "600 62px Georgia, 'Times New Roman', serif";
+  ctx.fillText(truncateForCanvas(ctx,o.name,W-120), 60, H-262);
+  ctx.fillStyle = "rgba(244,239,228,.78)";
+  ctx.font = "400 30px Helvetica, Arial, sans-serif";
+  Object.values(o.pieces||{}).filter(Boolean).map(v=>`${v.brand} ${v.name}`).slice(0,4)
+    .forEach((line,i)=>ctx.fillText(truncateForCanvas(ctx,line,W-120), 60, H-192+i*42));
+  return new Promise((resolve,reject)=>{
+    canvas.toBlob(b => b ? resolve(b) : reject(new Error("toBlob failed")), "image/jpeg", 0.9);
+  });
+}
+async function shareFitCard(id){
+  const o = state.outfits.find(f=>f.id===id);
+  if(!o) return;
+  if(!o.photo){ toast("Add a fit photo first"); return; }
+  toast("Building fit card...");
+  try{
+    const blob = await buildFitCardBlob(o);
+    const file = new File([blob],"fit.jpg",{type:"image/jpeg"});
+    if(navigator.share && navigator.canShare && navigator.canShare({files:[file]})){
+      await navigator.share({title:o.name, text:fitShareText(o), files:[file]});
+      return;
+    }
+    downloadBlob(blob, `${String(o.name||"fit").replace(/[^a-z0-9]+/gi,"-").toLowerCase()}.jpg`);
+    toast("Fit card downloaded");
+  }catch(err){
+    if(err && err.name === "AbortError") return;
+    toast("Could not build fit card");
+  }
 }
 function itemThumb(x,cls="row-thumb"){
   if(!x) return "";
@@ -2692,12 +3011,102 @@ function renderAnalytics(){
     <div class="gap-list">${closetGaps().map(g=>`<div class="gap-item">${esc(g)}</div>`).join("")}</div>
     ${gapInsightCard()}
     <div style="height:18px"></div>
+    <div class="section-head"><div><h2 class="section-title">Dead Stock</h2><div class="section-sub">Pieces sitting idle — rescue one into a fit</div></div></div>
+    ${deadStockSection()}
+    <div style="height:18px"></div>
+    <div class="section-head"><div><h2 class="section-title">Wear Calendar</h2><div class="section-sub">Last 26 weeks of logged fits</div></div></div>
+    ${wearHeatmap()}
+    <div style="height:18px"></div>
     <div class="section-head"><div><h2 class="section-title">Recent Wears</h2><div class="section-sub">${(state.wearLog||[]).length} logged outfits</div></div></div>
     <div class="list">${(state.wearLog||[]).slice(0,5).map(log=>`<div class="row-card"><div><div class="row-title">${esc(log.vibe)}</div><div class="row-sub">${new Date(log.date).toLocaleDateString()} · ${log.pieces.length} pieces</div></div></div>`).join("") || `<div class="empty">Tap Wore Today in the outfit builder to start your wear calendar.</div>`}</div>
     <div style="height:18px"></div>
     <div class="section-head"><div><h2 class="section-title">Cost Per Wear Leaders</h2><div class="section-sub">Lower is better</div></div></div>
     ${leaders.length ? `<div class="grid">${leaders.map(card).join("")}</div>` : `<div class="empty">Log wears on a few pieces and this becomes useful.</div>`}`;
   hydrateIcons();
+}
+function lastWornMap(){
+  const map = {};
+  (state.wearLog || []).forEach(log=>{
+    (log.pieces || []).forEach(id=>{
+      if(!map[id] || String(log.date) > map[id]) map[id] = String(log.date);
+    });
+  });
+  return map;
+}
+function daysSince(iso){
+  const t = Date.parse(iso);
+  if(!Number.isFinite(t)) return null;
+  return Math.floor((Date.now() - t) / 86400000);
+}
+function deadStock(){
+  const worn = lastWornMap();
+  const items = state.items.filter(x=>x.type === "wardrobe");
+  const never = items.filter(x=>!(x.wears > 0) && !worn[x.id]);
+  const dormant = items
+    .map(x=>({x, days: worn[x.id] ? daysSince(worn[x.id]) : null}))
+    .filter(r=>r.days !== null && r.days >= 90)
+    .sort((a,b)=>b.days-a.days);
+  return {never, dormant};
+}
+function deadStockRow(x,label){
+  return `<div class="row-card"><div class="row-main">${itemThumb(x)}<div><div class="row-title">${esc(x.brand)} ${esc(x.name)}</div><div class="row-sub">${esc(label)}${x.price ? " · "+money.format(x.price) : ""}</div></div></div><button class="ghost" data-build-around="${x.id}">${icon("sparkles")}Rescue</button></div>`;
+}
+function deadStockSection(){
+  const {never, dormant} = deadStock();
+  const deadValue = never.reduce((s,x)=>s+(x.price||0),0);
+  if(!never.length && !dormant.length){
+    return `<div class="gap-item">Nothing is sitting unworn. Every piece has been in rotation.</div>`;
+  }
+  const neverRows = never.slice(0,8).map(x=>deadStockRow(x,"Never worn")).join("");
+  const dormantRows = dormant.slice(0,8).map(r=>deadStockRow(r.x,`${r.days} days since last wear`)).join("");
+  return `<div class="dash-grid" style="margin-bottom:12px">
+      <div class="dash-card"><span>Never Worn</span><strong>${never.length}</strong><div class="meta">${money.format(deadValue)} idle</div></div>
+      <div class="dash-card"><span>Dormant 90d+</span><strong>${dormant.length}</strong><div class="meta">pieces to revisit</div></div>
+    </div>
+    <div class="list">${neverRows}${dormantRows}</div>
+    ${never.length > 8 || dormant.length > 8 ? `<div class="gap-item" style="margin-top:10px">Showing the first 8 of each group.</div>` : ""}`;
+}
+function wearHeatmap(){
+  const weeks = 26;
+  const counts = {};
+  (state.wearLog || []).forEach(log=>{
+    const key = String(log.date || "").slice(0,10);
+    if(key) counts[key] = (counts[key] || 0) + 1;
+  });
+  const today = new Date();
+  today.setHours(0,0,0,0);
+  const end = new Date(today);
+  end.setDate(end.getDate() + (6 - end.getDay()));
+  const start = new Date(end);
+  start.setDate(end.getDate() - (weeks*7 - 1));
+  const cells = [];
+  const monthLabels = [];
+  let lastMonth = -1;
+  for(let w = 0; w < weeks; w++){
+    const col = [];
+    for(let d = 0; d < 7; d++){
+      const day = new Date(start);
+      day.setDate(start.getDate() + w*7 + d);
+      if(day > today){ col.push(`<span class="heat-cell heat-empty"></span>`); continue; }
+      const key = day.toISOString().slice(0,10);
+      const n = counts[key] || 0;
+      const level = n === 0 ? 0 : n === 1 ? 1 : n === 2 ? 2 : 3;
+      col.push(`<span class="heat-cell heat-${level}" title="${key}: ${n} logged"></span>`);
+    }
+    const firstOfCol = new Date(start);
+    firstOfCol.setDate(start.getDate() + w*7);
+    const m = firstOfCol.getMonth();
+    monthLabels.push(m !== lastMonth ? firstOfCol.toLocaleDateString(undefined,{month:"short"}) : "");
+    lastMonth = m;
+    cells.push(`<div class="heat-col">${col.join("")}</div>`);
+  }
+  const total = Object.values(counts).reduce((s,n)=>s+n,0);
+  const activeDays = Object.keys(counts).length;
+  return `<div class="heat-wrap">
+      <div class="heat-months">${monthLabels.map(l=>`<span class="heat-month">${l}</span>`).join("")}</div>
+      <div class="heat-grid">${cells.join("")}</div>
+      <div class="heat-legend"><span>${total} wears logged over ${activeDays} days</span><span class="heat-scale">less ${[0,1,2,3].map(l=>`<span class="heat-cell heat-${l}"></span>`).join("")} more</span></div>
+    </div>`;
 }
 function gapInsightCard(){
   if(!currentGapInsight) return "";
@@ -3676,6 +4085,49 @@ function defaultWeatherTempFor(anchor){
   if(vibe === "summer") return 78;
   if(vibe === "winter") return 38;
   return 58;
+}
+function weatherConditionFrom(cur){
+  const code = Number(cur.weather_code);
+  const precip = Number(cur.precipitation) || 0;
+  const humidity = Number(cur.relative_humidity_2m) || 0;
+  const wind = Number(cur.wind_speed_10m) || 0;
+  if([71,73,75,77,85,86].includes(code)) return "snow";
+  if(precip > 0 || [51,53,55,61,63,65,80,81,82,95,96,99].includes(code)) return "rain";
+  if(wind >= 18) return "wind";
+  if(humidity >= 70) return "humid";
+  return "dry";
+}
+async function fetchLocalWeather(){
+  if(!navigator.geolocation){ toast("Location not available here"); return; }
+  toast("Getting local weather...");
+  try{
+    const pos = await new Promise((resolve,reject)=>
+      navigator.geolocation.getCurrentPosition(resolve,reject,{timeout:10000,maximumAge:600000}));
+    const lat = pos.coords.latitude.toFixed(3);
+    const lon = pos.coords.longitude.toFixed(3);
+    const url = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}`
+      + `&current=temperature_2m,relative_humidity_2m,precipitation,wind_speed_10m,weather_code`
+      + `&temperature_unit=fahrenheit&wind_speed_unit=mph`;
+    const res = await fetch(url);
+    if(!res.ok) throw new Error("weather request failed");
+    const data = await res.json();
+    const cur = data.current || {};
+    const temp = Math.round(Number(cur.temperature_2m));
+    if(!Number.isFinite(temp)) throw new Error("no temperature returned");
+    const condition = weatherConditionFrom(cur);
+    const slider = document.getElementById("weatherTemp");
+    if(slider){
+      slider.value = String(Math.max(25, Math.min(95, temp)));
+      const select = document.getElementById("weatherCondition");
+      if(select) select.value = condition;
+      updateWeatherLabel();
+    }
+    currentFit.weatherTemp = temp;
+    currentFit.weatherCondition = condition;
+    toast(`${temp}°F · ${condition}`);
+  }catch(err){
+    toast(err && err.code === 1 ? "Location permission denied" : "Could not get local weather");
+  }
 }
 function updateWeatherLabel(){
   const temp = Number(document.getElementById("weatherTemp").value || 58);
@@ -5094,6 +5546,8 @@ document.addEventListener("click", e => {
   if(wear){ changeWear(wear.dataset.wear, wear.dataset.delta); return; }
   const acq = e.target.closest("[data-acquire]");
   if(acq){ acquire(acq.dataset.acquire); return; }
+  const shareFit = e.target.closest("[data-share-fit]");
+  if(shareFit){ shareFitCard(shareFit.dataset.shareFit); return; }
   const fitPhoto = e.target.closest("[data-fit-photo]");
   if(fitPhoto){ choosePhotoForFit(fitPhoto.dataset.fitPhoto); return; }
   const fitPhotoRemove = e.target.closest("[data-remove-fit-photo]");
@@ -5135,6 +5589,7 @@ document.addEventListener("click", e => {
   if(action === "logLayer") logLayer();
   if(action === "aiSettings") openAiSettings();
   if(action === "saveFit") saveFit();
+  if(action === "packing") openPacking();
   if(action === "export" || action === "import" || action === "menu") openArchive();
 });
 document.addEventListener("input", e => {
@@ -5159,6 +5614,9 @@ document.getElementById("itemForm").addEventListener("submit", submitItem);
 document.getElementById("scentProfileForm").addEventListener("submit", submitScentProfile);
 document.getElementById("clearScentTopTen").addEventListener("click", clearScentTopTen);
 document.getElementById("deleteItem").addEventListener("click", deleteCurrent);
+document.getElementById("autoWeather").addEventListener("click", fetchLocalWeather);
+document.getElementById("packBuild").addEventListener("click", runPacking);
+document.getElementById("packLocate").addEventListener("click", packingUseLocation);
 document.getElementById("uploadPhoto").addEventListener("click", choosePhoto);
 document.getElementById("photoPreview").addEventListener("click", choosePhoto);
 document.getElementById("identifyPhoto").addEventListener("click", identifyPhoto);
