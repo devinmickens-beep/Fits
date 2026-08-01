@@ -800,7 +800,13 @@ label{display:grid;gap:5px;color:var(--muted);font-size:8px;text-transform:upper
       <button type="button" class="icon-btn" data-close="importModal" aria-label="Close"><i data-lucide="x"></i></button>
     </div>
     <div class="modal-body">
-      <label>Archive JSON<textarea class="area" id="archiveText" style="min-height:260px"></textarea></label>
+      <div class="gap-item" id="archiveSummary" style="margin-bottom:12px"></div>
+      <div class="modal-actions" style="margin-top:0">
+        <button type="button" class="ghost" id="downloadArchive"><i data-lucide="hard-drive-download"></i>Download Backup File</button>
+        <button type="button" class="primary" id="restoreArchive"><i data-lucide="folder-open"></i>Restore From File</button>
+      </div>
+      <input id="archiveFile" type="file" accept="application/json,.json" style="display:none">
+      <label style="margin-top:14px">Archive JSON<textarea class="area" id="archiveText" style="min-height:200px"></textarea></label>
       <div class="modal-actions">
         <button type="button" class="ghost" data-close="importModal">Cancel</button>
         <button type="button" class="ghost" id="copyArchive"><i data-lucide="copy"></i>Copy</button>
@@ -5428,20 +5434,72 @@ function clearAiSettings(){
   closeModal("aiModal");
   toast("AI key cleared");
 }
+function ownPhotoCount(snapshot){
+  const isOwn = p => typeof p === "string" && p.startsWith("data:");
+  const items = Array.isArray(snapshot && snapshot.items) ? snapshot.items : [];
+  const outfits = Array.isArray(snapshot && snapshot.outfits) ? snapshot.outfits : [];
+  return items.filter(x=>x && isOwn(x.photo)).length + outfits.filter(o=>o && isOwn(o.photo)).length;
+}
+function describeArchive(snapshot){
+  const items = Array.isArray(snapshot && snapshot.items) ? snapshot.items.length : 0;
+  const fits = Array.isArray(snapshot && snapshot.outfits) ? snapshot.outfits.length : 0;
+  const mb = (JSON.stringify(snapshot).length / 1048576).toFixed(2);
+  return `${items} items · ${fits} saved fits · ${ownPhotoCount(snapshot)} photos you added · ${mb} MB`;
+}
 function openArchive(){
-  archiveText.value = JSON.stringify(state,null,2);
+  const summary = document.getElementById("archiveSummary");
+  if(summary) summary.textContent = `This device holds ${describeArchive(state)}.`;
+  const json = JSON.stringify(state);
+  // Dumping a multi-megabyte archive into a textarea can lock the browser up,
+  // so past a point the file buttons above are the only sane route.
+  archiveText.value = json.length > 1500000
+    ? "This archive is too large to show here. Use Download Backup File and Restore From File instead."
+    : JSON.stringify(state,null,2);
   document.getElementById("importModal").classList.add("open");
+  hydrateIcons();
+}
+function exportArchiveFile(){
+  try{
+    const stamp = new Date().toISOString().replace(/[:.]/g,"-").slice(0,19);
+    downloadBlob(new Blob([JSON.stringify(state)],{type:"application/json"}), `fits-archive-${stamp}.json`);
+    return true;
+  }catch(e){
+    toast("Could not build the backup file");
+    return false;
+  }
+}
+function adoptArchive(next,label){
+  if(!next || !Array.isArray(next.items)) throw new Error("Missing items array");
+  const incoming = ownPhotoCount(next);
+  const current = ownPhotoCount(state);
+  let message = `Replace this device's closet with ${label}?\n\nIncoming: ${describeArchive(next)}\nCurrent: ${describeArchive(state)}`;
+  if(current > incoming){
+    message += `\n\nWarning: the incoming copy has ${current - incoming} fewer of your own photos than what is here now.`;
+  }
+  if(!confirm(message)) return false;
+  // Keep every top-level key so wear history and fragrance layers survive.
+  state = upgradeState(next);
+  if(!save()) return false;
+  closeModal("importModal");
+  render();
+  toast(`Restored ${next.items.length} items, ${incoming} of your photos`);
+  return true;
 }
 function applyImport(){
   try{
-    const next = parseArchiveInput(archiveText.value);
-    if(!Array.isArray(next.items)) throw new Error("Missing items array");
-    state = {items:next.items,outfits:Array.isArray(next.outfits)?next.outfits:[]};
-    save();
-    closeModal("importModal");
-    render();
-    toast("Archive imported");
+    adoptArchive(parseArchiveInput(archiveText.value), "the JSON above");
   }catch(e){ alert("That JSON does not look like a Closet Archive export."); }
+}
+async function handleArchiveFile(e){
+  const file = e.target.files && e.target.files[0];
+  e.target.value = "";
+  if(!file) return;
+  try{
+    const text = await file.text();
+    adoptArchive(parseArchiveInput(text), file.name);
+  }catch(err){
+    alert(`Could not read that file as a Closet Archive export.\n\n${err && err.message || err}`);
+  }
 }
 function parseArchiveInput(text){
   try{ return JSON.parse(text); }catch(e){}
@@ -5629,6 +5687,11 @@ document.getElementById("localWeatherBuild").addEventListener("click", ()=>build
 document.getElementById("aiWeatherBuild").addEventListener("click", ()=>buildAroundWithWeather(true));
 document.getElementById("photoFile").addEventListener("change", handlePhotoFile);
 document.getElementById("applyImport").addEventListener("click", applyImport);
+document.getElementById("downloadArchive").addEventListener("click", ()=>{
+  if(exportArchiveFile()) toast("Backup file downloaded");
+});
+document.getElementById("restoreArchive").addEventListener("click", ()=>document.getElementById("archiveFile").click());
+document.getElementById("archiveFile").addEventListener("change", handleArchiveFile);
 document.getElementById("saveAiKey").addEventListener("click", saveAiSettings);
 document.getElementById("clearAiKey").addEventListener("click", clearAiSettings);
 document.getElementById("copyArchive").addEventListener("click", async()=>{
