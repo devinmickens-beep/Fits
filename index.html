@@ -633,7 +633,6 @@ label{display:grid;gap:5px;color:var(--muted);font-size:8px;text-transform:upper
       <button class="primary" data-action="add"><i data-lucide="plus"></i>Add Item</button>
       <button class="ghost" data-action="export"><i data-lucide="download"></i>Export</button>
       <button class="ghost" data-action="import"><i data-lucide="upload"></i>Import</button>
-      <button class="ghost" data-action="sync"><i data-lucide="refresh-cw"></i>Sync Devices</button>
     </div>
   </aside>
   <main class="main">
@@ -826,31 +825,6 @@ label{display:grid;gap:5px;color:var(--muted);font-size:8px;text-transform:upper
         <button type="button" class="ghost" id="clearAiKey"><i data-lucide="trash-2"></i>Clear</button>
         <button type="button" class="ghost" data-close="aiModal">Cancel</button>
         <button type="button" class="primary" id="saveAiKey"><i data-lucide="save"></i>Save</button>
-      </div>
-    </div>
-  </div>
-</div>
-
-<div class="modal-wrap" id="syncModal" role="dialog" aria-modal="true">
-  <div class="modal">
-    <div class="modal-head">
-      <div class="modal-title">Sync Across Devices</div>
-      <button type="button" class="icon-btn" data-close="syncModal" aria-label="Close"><i data-lucide="x"></i></button>
-    </div>
-    <div class="modal-body">
-      <div class="gap-item" style="margin-bottom:12px">Your closet normally lives only in this browser. Generate a sync code here, then enter that same code on your other devices to keep them in step.</div>
-      <label>Sync Code<input class="field" id="syncCodeField" autocomplete="off" spellcheck="false" placeholder="Generate or paste your code"></label>
-      <div class="fit-photo-actions">
-        <button type="button" class="ghost" id="syncGenerate"><i data-lucide="key-round"></i>Generate New Code</button>
-        <button type="button" class="ghost" id="syncCopy"><i data-lucide="copy"></i>Copy Code</button>
-      </div>
-      <div class="gap-item" id="syncStatus" style="margin-top:12px"></div>
-      <small style="display:block;margin-top:10px;color:var(--muted);line-height:1.6">Anyone with this code can read and overwrite your closet, so keep it private. Newest snapshot wins, and the copy this device had before a pull is kept as a local backup.</small>
-      <div class="modal-actions">
-        <button type="button" class="ghost" id="syncDisconnect"><i data-lucide="unlink"></i>Disconnect</button>
-        <button type="button" class="ghost" id="syncForcePull"><i data-lucide="download-cloud"></i>Force Pull</button>
-        <button type="button" class="ghost" id="syncPushBtn"><i data-lucide="upload-cloud"></i>Push This Device</button>
-        <button type="button" class="primary" id="syncNowBtn"><i data-lucide="refresh-cw"></i>Sync Now</button>
       </div>
     </div>
   </div>
@@ -1988,199 +1962,12 @@ function firstUrlFromText(text){
 }
 function save(){
   try{
-    state.updatedAt = new Date().toISOString();
     localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
-    scheduleSyncPush();
     return true;
   }catch(e){
     alert("This browser is out of closet photo storage. Remove a few photos or use smaller images, then try again.");
     return false;
   }
-}
-const SYNC_CODE_KEY = "closet_sync_code";
-const SYNC_META_KEY = "closet_sync_meta";
-const SYNC_BACKUP_KEY = "closet_archive_v2_presync_backup";
-const SYNC_MAX_BYTES = 4 * 1024 * 1024;
-let syncEndpoint = null;
-let syncPushTimer = null;
-let syncInFlight = false;
-function syncCode(){ return localStorage.getItem(SYNC_CODE_KEY) || ""; }
-function syncMeta(){
-  try{ return JSON.parse(localStorage.getItem(SYNC_META_KEY) || "{}"); }
-  catch(e){ return {}; }
-}
-function setSyncMeta(patch){
-  localStorage.setItem(SYNC_META_KEY, JSON.stringify({...syncMeta(), ...patch}));
-}
-function generateSyncCode(){
-  const bytes = new Uint8Array(16);
-  crypto.getRandomValues(bytes);
-  return Array.from(bytes).map(b=>b.toString(16).padStart(2,"0")).join("");
-}
-function isValidSyncCode(code){ return /^[a-f0-9]{32,64}$/.test(String(code || "").trim()); }
-async function resolveSyncEndpoint(){
-  if(syncEndpoint) return syncEndpoint;
-  for(const path of ["/api/sync","/.netlify/functions/sync"]){
-    try{
-      const res = await fetch(`${path}?code=probe`, {method:"GET"});
-      // 400 means the endpoint exists and rejected the placeholder code.
-      if(res.status !== 404 && res.status !== 405){ syncEndpoint = path; return path; }
-    }catch(e){ /* try the next candidate */ }
-  }
-  return null;
-}
-function syncPayloadSize(body){ return new Blob([body]).size; }
-async function syncPush({silent=true}={}){
-  const code = syncCode();
-  if(!isValidSyncCode(code) || syncInFlight) return false;
-  const endpoint = await resolveSyncEndpoint();
-  if(!endpoint){ if(!silent) toast("Sync endpoint not deployed yet"); return false; }
-  const updatedAt = state.updatedAt || new Date().toISOString();
-  const body = JSON.stringify({code, updatedAt, state});
-  if(syncPayloadSize(body) > SYNC_MAX_BYTES){
-    if(!silent) toast("Too large to sync — remove a few photos");
-    return false;
-  }
-  syncInFlight = true;
-  try{
-    const res = await fetch(endpoint, {method:"POST", headers:{"Content-Type":"application/json"}, body});
-    const data = await res.json().catch(()=>({}));
-    if(!res.ok) throw new Error(data.error || `push failed (${res.status})`);
-    setSyncMeta({lastPush:updatedAt, lastError:""});
-    if(!silent) toast("Synced up");
-    renderSyncStatus();
-    return true;
-  }catch(err){
-    setSyncMeta({lastError:String(err && err.message || err)});
-    if(!silent) toast("Sync up failed");
-    renderSyncStatus();
-    return false;
-  }finally{
-    syncInFlight = false;
-  }
-}
-function scheduleSyncPush(){
-  if(!isValidSyncCode(syncCode())) return;
-  // A device that joined an existing code must pull before it is allowed to
-  // publish, so a thinner copy can never overwrite the established closet.
-  if(syncMeta().pendingFirstPull) return;
-  clearTimeout(syncPushTimer);
-  syncPushTimer = setTimeout(()=>syncPush({silent:true}), 2500);
-}
-async function syncPull({silent=true, force=false}={}){
-  const code = syncCode();
-  if(!isValidSyncCode(code)) return false;
-  const endpoint = await resolveSyncEndpoint();
-  if(!endpoint){ if(!silent) toast("Sync endpoint not deployed yet"); return false; }
-  try{
-    const res = await fetch(`${endpoint}?code=${encodeURIComponent(code)}`);
-    if(res.status === 404){ if(!silent) toast("Nothing synced yet — push first"); return false; }
-    const data = await res.json().catch(()=>({}));
-    if(!res.ok) throw new Error(data.error || `pull failed (${res.status})`);
-    if(!data.state){ if(!silent) toast("Remote snapshot was empty"); return false; }
-    const remoteAt = data.updatedAt || "";
-    const localAt = state.updatedAt || "";
-    // A device joining an existing code adopts the established closet outright,
-    // so its own newer local timestamp must not block the first pull.
-    const joining = Boolean(syncMeta().pendingFirstPull);
-    if(!force && !joining && localAt && remoteAt && remoteAt <= localAt){
-      if(!silent) toast("This device already holds the newest copy");
-      return false;
-    }
-    // Guard against a gutted remote snapshot replacing a full local closet.
-    const remoteCount = Array.isArray(data.state.items) ? data.state.items.length : 0;
-    const localCount = Array.isArray(state.items) ? state.items.length : 0;
-    if(!force && localCount > 20 && remoteCount < localCount * 0.5){
-      setSyncMeta({lastError:`Blocked a remote copy with ${remoteCount} items against ${localCount} here`});
-      renderSyncStatus();
-      if(!silent) toast(`Remote copy has only ${remoteCount} items — use Force Pull to accept`);
-      return false;
-    }
-    localStorage.setItem(SYNC_BACKUP_KEY, JSON.stringify(state));
-    state = upgradeState(data.state);
-    state.updatedAt = remoteAt || new Date().toISOString();
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
-    setSyncMeta({lastPull:remoteAt || new Date().toISOString(), lastError:"", pendingFirstPull:false});
-    render();
-    renderSyncStatus();
-    if(!silent) toast("Synced down");
-    return true;
-  }catch(err){
-    setSyncMeta({lastError:String(err && err.message || err)});
-    if(!silent) toast("Sync down failed");
-    renderSyncStatus();
-    return false;
-  }
-}
-async function syncNow(){
-  if(!isValidSyncCode(syncCode())){ toast("Generate or enter a sync code first"); return; }
-  toast("Syncing...");
-  const pulled = await syncPull({silent:true});
-  await syncPush({silent:true});
-  toast(pulled ? "Synced — pulled remote changes" : "Synced");
-}
-function renderSyncStatus(){
-  const el = document.getElementById("syncStatus");
-  if(!el) return;
-  const meta = syncMeta();
-  const code = syncCode();
-  if(!isValidSyncCode(code)){
-    el.textContent = "Not connected. Generate a code to start syncing.";
-    return;
-  }
-  const when = t => t ? new Date(t).toLocaleString() : "never";
-  const count = Array.isArray(state.items) ? state.items.length : 0;
-  el.textContent = (meta.pendingFirstPull
-      ? `Joined an existing code — pull before this device can publish. `
-      : "Connected. ")
-    + `${count} items here · last pushed ${when(meta.lastPush)} · last pulled ${when(meta.lastPull)}`
-    + (meta.lastError ? ` · ${meta.lastError}` : "");
-}
-function openSyncSettings(){
-  document.getElementById("syncCodeField").value = syncCode();
-  renderSyncStatus();
-  document.getElementById("syncModal").classList.add("open");
-  hydrateIcons();
-}
-function commitSyncCode({joining=false}={}){
-  const raw = document.getElementById("syncCodeField").value.trim().toLowerCase();
-  if(!raw){
-    localStorage.removeItem(SYNC_CODE_KEY);
-    renderSyncStatus();
-    return false;
-  }
-  if(!isValidSyncCode(raw)){
-    toast("Codes are 32 hex characters");
-    return false;
-  }
-  const changed = raw !== syncCode();
-  localStorage.setItem(SYNC_CODE_KEY, raw);
-  // Joining someone else's existing code means this device must pull first.
-  if(changed && joining) setSyncMeta({pendingFirstPull:true, lastPull:"", lastPush:""});
-  renderSyncStatus();
-  return true;
-}
-async function pushThisDevice(){
-  if(!commitSyncCode()) return;
-  const count = Array.isArray(state.items) ? state.items.length : 0;
-  if(!confirm(`Publish this device's closet (${count} items) and overwrite whatever is currently synced?`)) return;
-  setSyncMeta({pendingFirstPull:false});
-  state.updatedAt = new Date().toISOString();
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
-  await syncPush({silent:false});
-}
-async function forcePull(){
-  if(!commitSyncCode()) return;
-  if(!confirm("Replace this device's closet with the synced copy? The current contents are kept as a local backup.")) return;
-  await syncPull({silent:false, force:true});
-}
-function disconnectSync(){
-  localStorage.removeItem(SYNC_CODE_KEY);
-  localStorage.removeItem(SYNC_META_KEY);
-  document.getElementById("syncCodeField").value = "";
-  syncEndpoint = null;
-  renderSyncStatus();
-  toast("Sync disconnected");
 }
 function icon(name){ return `<i data-lucide="${name}"></i>`; }
 function toast(msg){
@@ -3986,7 +3773,7 @@ async function handlePhotoFile(e){
     return;
   }
   try{
-    const photo = await resizeImage(file, photoTargetFitId ? 900 : 1200, photoTargetFitId ? 0.72 : 0.82);
+    const photo = await resizeImage(file, 1200, 0.82);
     if(photoTargetFitId){
       const outfit = state.outfits.find(o=>o.id===photoTargetFitId);
       if(outfit){
@@ -5803,7 +5590,6 @@ document.addEventListener("click", e => {
   if(action === "aiSettings") openAiSettings();
   if(action === "saveFit") saveFit();
   if(action === "packing") openPacking();
-  if(action === "sync") openSyncSettings();
   if(action === "export" || action === "import" || action === "menu") openArchive();
 });
 document.addEventListener("input", e => {
@@ -5829,26 +5615,6 @@ document.getElementById("scentProfileForm").addEventListener("submit", submitSce
 document.getElementById("clearScentTopTen").addEventListener("click", clearScentTopTen);
 document.getElementById("deleteItem").addEventListener("click", deleteCurrent);
 document.getElementById("autoWeather").addEventListener("click", fetchLocalWeather);
-document.getElementById("syncGenerate").addEventListener("click", ()=>{
-  document.getElementById("syncCodeField").value = generateSyncCode();
-  // Generating here makes this device the source of truth, so it may publish.
-  setSyncMeta({pendingFirstPull:false, lastPull:"", lastPush:""});
-  commitSyncCode();
-  toast("New sync code generated — this device is the source");
-});
-document.getElementById("syncCopy").addEventListener("click", async ()=>{
-  const code = document.getElementById("syncCodeField").value.trim();
-  if(!code){ toast("Generate a code first"); return; }
-  try{
-    await navigator.clipboard.writeText(code);
-    toast("Sync code copied");
-  }catch(e){ toast("Copy failed — select it manually"); }
-});
-document.getElementById("syncCodeField").addEventListener("change", ()=>commitSyncCode({joining:true}));
-document.getElementById("syncNowBtn").addEventListener("click", ()=>{ if(commitSyncCode({joining:true})) syncNow(); });
-document.getElementById("syncForcePull").addEventListener("click", forcePull);
-document.getElementById("syncPushBtn").addEventListener("click", pushThisDevice);
-document.getElementById("syncDisconnect").addEventListener("click", disconnectSync);
 document.getElementById("packBuild").addEventListener("click", runPacking);
 document.getElementById("packLocate").addEventListener("click", packingUseLocation);
 document.getElementById("uploadPhoto").addEventListener("click", choosePhoto);
@@ -5886,7 +5652,6 @@ if("serviceWorker" in navigator && location.protocol.indexOf("http") === 0){
 }
 render();
 handleSharedLinkLaunch();
-if(isValidSyncCode(syncCode())) syncPull({silent:true});
 </script>
 </body>
 </html>
