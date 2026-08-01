@@ -499,6 +499,53 @@ h1{font-family:var(--serif);font-weight:400;font-size:30px;line-height:1;margin:
 .look-media img{width:100%;height:100%;object-fit:cover;display:block}
 .look-body{padding:12px}
 .look-actions{display:flex;gap:6px;margin-top:10px;flex-wrap:wrap}
+.scent-shelf{display:flex;flex-direction:column;gap:2px}
+.shelf-row{display:flex;flex-direction:column}
+.shelf-bottles{
+  display:grid;grid-template-columns:repeat(5,1fr);gap:6px;
+  align-items:end;padding:0 8px;min-height:112px;
+}
+.shelf-slot{
+  display:flex;flex-direction:column;align-items:center;justify-content:flex-end;gap:3px;
+  background:none;border:0;padding:0 2px;cursor:pointer;color:inherit;text-align:center;min-width:0;
+}
+.shelf-slot.empty{cursor:default;opacity:.45}
+.shelf-bottle{
+  width:100%;height:78px;display:grid;place-items:end center;position:relative;
+}
+.shelf-bottle img{
+  max-width:100%;max-height:78px;object-fit:contain;display:block;
+  filter:drop-shadow(0 6px 7px rgba(0,0,0,.55));
+}
+.shelf-bottle .frag-art{width:34px;height:66px;border-radius:5px 5px 8px 8px}
+.shelf-bottle-ghost{
+  width:30px;height:56px;border:1px dashed var(--line-2);border-radius:5px 5px 8px 8px;
+  display:grid;place-items:center;font-size:11px;color:var(--faint);
+}
+.shelf-rank{
+  position:absolute;top:-2px;left:50%;transform:translateX(-50%);
+  font-size:8px;letter-spacing:.1em;color:var(--gold);
+}
+.shelf-label{
+  font-size:8px;line-height:1.25;color:var(--paper);max-width:100%;
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
+}
+.shelf-sub{
+  font-size:7px;letter-spacing:.08em;text-transform:uppercase;color:var(--faint);
+  max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
+}
+.shelf-board{
+  height:9px;border-radius:2px;margin:0 0 14px;
+  background:linear-gradient(180deg,#6b4a2f,#3a2718 60%,#241609);
+  box-shadow:0 3px 6px rgba(0,0,0,.5), inset 0 1px 0 rgba(214,178,122,.35);
+}
+@media (max-width:520px){
+  .shelf-bottles{grid-template-columns:repeat(5,1fr);gap:3px;padding:0 4px;min-height:96px}
+  .shelf-bottle{height:62px}
+  .shelf-bottle img{max-height:62px}
+  .shelf-label{font-size:7px}
+  .shelf-sub{display:none}
+}
 .heat-wrap{
   border:1px solid rgba(111,150,88,.58);border-radius:8px;
   background:linear-gradient(180deg,var(--card-2),var(--card));
@@ -2334,18 +2381,34 @@ function fragranceTier(x){
   if(score >= 68) return "Situational";
   return "Test More";
 }
+function shelfSlot(x,rank){
+  if(!x){
+    return `<div class="shelf-slot empty">
+      <div class="shelf-bottle"><div class="shelf-bottle-ghost">${rank}</div></div>
+      <div class="shelf-label">Open slot</div>
+    </div>`;
+  }
+  const photo = displayPhoto(x);
+  const title = `${x.brand} ${x.name} — your ${fragrancePersonalRating(x) || "—"}/5, ${fragranceArchiveScore(x)}/100, ${x.projection || "projection TBD"}`;
+  return `<button class="shelf-slot" data-detail="${x.id}" title="${esc(title)}">
+    <div class="shelf-bottle"><span class="shelf-rank">${rank}</span>${photo ? `<img src="${esc(photo)}" alt="${esc(x.name)}">` : fragranceArt(x)}</div>
+    <div class="shelf-label">${esc(x.name)}</div>
+    <div class="shelf-sub">${esc(x.brand)}</div>
+  </button>`;
+}
 function fragranceTopTenCard(){
   const scents = topFragrancePicks();
-  const rows = Array.from({length:TOP_SHELF_SIZE},(_,i)=>{
-    const x = scents[i];
-    if(!x){
-      return `<div class="gap-item"><strong style="color:var(--muted)">${i+1}. Open slot</strong><div style="margin-top:5px">Tap <strong style="color:var(--gold)">My Top ${TOP_SHELF_SIZE}</strong> on a fragrance card to lock this shelf in your order.</div></div>`;
-    }
-    return `<div class="gap-item"><strong style="color:var(--paper)">${i+1}. ${esc(itemLabel(x))}</strong><div style="margin-top:5px">Your ${fragrancePersonalRating(x) || "—"}/5 · ${fragranceArchiveScore(x)}/100 · ${esc(fragranceTier(x))} · ${esc(x.projection || "Projection TBD")}</div></div>`;
+  const perRow = Math.ceil(TOP_SHELF_SIZE / 3);
+  const rows = Array.from({length:3},(_,r)=>{
+    const slots = Array.from({length:perRow},(_,c)=>{
+      const i = r*perRow + c;
+      return i < TOP_SHELF_SIZE ? shelfSlot(scents[i], i+1) : "";
+    }).join("");
+    return `<div class="shelf-row"><div class="shelf-bottles">${slots}</div><div class="shelf-board"></div></div>`;
   }).join("");
   return `<div class="judge-card" style="margin-bottom:12px">
-    <div class="section-head" style="margin:0 0 10px"><div><div class="panel-title">Your Permanent Top ${TOP_SHELF_SIZE} Scent Shelf</div><div class="section-sub">${scents.length}/${TOP_SHELF_SIZE} personally chosen</div></div></div>
-    <div class="gap-list">${rows}</div>
+    <div class="section-head" style="margin:0 0 12px"><div><div class="panel-title">Your Permanent Top ${TOP_SHELF_SIZE} Scent Shelf</div><div class="section-sub">${scents.length}/${TOP_SHELF_SIZE} on the shelf · tap a bottle for its notes</div></div></div>
+    <div class="scent-shelf">${rows}</div>
   </div>`;
 }
 function weatherScentPanel(){
