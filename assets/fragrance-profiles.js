@@ -2115,5 +2115,190 @@ window.FRAGRANCE_PROFILES = Object.freeze({
       ],
       "all": []
     }
+  },
+  "Louis Vuitton|Imagination": {
+    "source": "https://www.parfumo.com/Perfumes/Louis_Vuitton/imagination",
+    "title": "Imagination by Louis Vuitton",
+    "accords": [
+      "Citrus",
+      "Fresh",
+      "Woody",
+      "Spicy",
+      "Ambery"
+    ],
+    "notes": {
+      "top": [
+        "Citron",
+        "Calabrian bergamot",
+        "Sicilian orange"
+      ],
+      "heart": [
+        "Tunisian neroli",
+        "Nigerian ginger",
+        "Ceylon cinnamon"
+      ],
+      "base": [
+        "Chinese black tea",
+        "Ambroxan",
+        "Guaiac wood",
+        "Olibanum"
+      ],
+      "all": []
+    }
+  },
+  "Louis Vuitton|Symphony": {
+    "source": "https://www.parfumo.com/Perfumes/Louis_Vuitton/symphony",
+    "title": "Symphony by Louis Vuitton",
+    "accords": [
+      "Citrus",
+      "Fresh",
+      "Spicy",
+      "Clean"
+    ],
+    "notes": {
+      "top": [
+        "Bergamot",
+        "Grapefruit",
+        "Orange"
+      ],
+      "heart": [
+        "Ginger"
+      ],
+      "base": [
+        "Musk"
+      ],
+      "all": []
+    }
+  },
+  "City Rhythm|Savannah": {
+    "source": "https://www.fragrantica.com/perfume/City-Rhythm/Savannah-134595.html",
+    "title": "Savannah by City Rhythm",
+    "accords": [
+      "Fruity",
+      "Sweet",
+      "Floral",
+      "Fresh"
+    ],
+    "notes": {
+      "top": [
+        "Georgia peach",
+        "Ruby grapefruit zest"
+      ],
+      "heart": [
+        "Tropical fruit nectar",
+        "Southern jasmine",
+        "Red berry accord"
+      ],
+      "base": [],
+      "all": []
+    }
+  },
+  "City Rhythm|DC": {
+    "source": "https://www.fragrantica.com/perfume/City-Rhythm/DC-134597.html",
+    "title": "DC by City Rhythm",
+    "accords": [
+      "Fruity",
+      "Floral",
+      "Fresh",
+      "Spicy"
+    ],
+    "notes": {
+      "top": [
+        "Anjou pear",
+        "Pink pepper",
+        "Wild cherry",
+        "Sakura petals"
+      ],
+      "heart": [
+        "White magnolia",
+        "Star jasmine"
+      ],
+      "base": [],
+      "all": []
+    }
+  },
+  "City Rhythm|Martha's Vineyard": {
+    "source": "https://www.parfumo.com/Perfumes/city-rhythm/martha-s-vineyard",
+    "title": "Martha's Vineyard by City Rhythm",
+    "accords": [
+      "Fruity",
+      "Floral",
+      "Sweet",
+      "Woody"
+    ],
+    "notes": {
+      "top": [
+        "Plum",
+        "Coconut",
+        "Orange"
+      ],
+      "heart": [
+        "Orris root",
+        "Jasmine"
+      ],
+      "base": [
+        "Vanilla",
+        "Tobacco",
+        "Driftwood",
+        "Musk"
+      ],
+      "all": []
+    }
+  },
+  "City Rhythm|Key West": {
+    "source": "https://www.parfumo.com/Perfumes/city-rhythm/key-west",
+    "title": "Key West by City Rhythm",
+    "accords": [
+      "Fresh",
+      "Citrus",
+      "Creamy",
+      "Floral",
+      "Ambery"
+    ],
+    "notes": {
+      "top": [
+        "Key lime",
+        "Sea salt",
+        "Coastal florals"
+      ],
+      "heart": [
+        "Coconut water",
+        "Neroli blossom",
+        "White florals"
+      ],
+      "base": [
+        "Velvet musks",
+        "Golden amber",
+        "Sandalwood"
+      ],
+      "all": []
+    }
+  },
+  "Scentora|Angels Share": {
+    "source": "https://www.parfumo.com/Perfumes/Kilian/angels-share",
+    "title": "Angels' Share by By Kilian (original this dupe follows)",
+    "accords": [
+      "Gourmand",
+      "Sweet",
+      "Boozy",
+      "Warm spicy",
+      "Woody"
+    ],
+    "notes": {
+      "top": [
+        "Cognac"
+      ],
+      "heart": [
+        "Oak absolute",
+        "Cinnamon",
+        "Tonka bean"
+      ],
+      "base": [
+        "Praline",
+        "Vanilla",
+        "Sandalwood"
+      ],
+      "all": []
+    }
   }
 });

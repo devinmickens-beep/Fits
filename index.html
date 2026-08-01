@@ -2285,6 +2285,15 @@ function fragranceKnowledgeText(x){
   ].filter(Boolean);
   return parts.join(". ");
 }
+function parfumoSearchUrl(x){
+  const q = `${x.brand || ""} ${x.name || ""}`.replace(/\s*\([^)]*\)\s*/g," ").trim();
+  return `https://www.parfumo.com/s_perfumes_x.php?in=1&filter=${encodeURIComponent(q)}`;
+}
+function parfumoLookupButton(x,profile){
+  const href = (profile && profile.source) || parfumoSearchUrl(x);
+  const label = profile && profile.source ? "Open on Parfumo" : "Find on Parfumo";
+  return `<a class="ghost" href="${esc(href)}" target="_blank" rel="noopener">${icon("search")}${label}</a>`;
+}
 function fragranceKnowledgeCard(x){
   const userNotes = String(x.notes || "").trim();
   const profile = fragranceProfileFor(x);
@@ -2294,9 +2303,9 @@ function fragranceKnowledgeCard(x){
     <div class="scent-notes"><strong>Main Accords</strong>${esc(fragranceProfileAccordsLine(profile))}</div>
     <div class="scent-notes"><strong>Note Pyramid</strong>${esc(fragranceProfileNotesLine(profile))}</div>
     <div class="scent-notes"><strong>Profile Source</strong>${esc(fragranceProfileSourceLabel(x, profile))}</div>
-  ` : `<div class="scent-notes"><strong>Parfumo Profile</strong>No Parfumo profile is linked for this scent yet. Your personal notes still guide weather picks and layering.</div>`;
+  ` : `<div class="scent-notes"><strong>Parfumo Profile</strong>No Parfumo profile is linked yet. Use Find on Parfumo to look this scent up, then Edit Profile to paste in its accords and note pyramid.<a class="profile-source-link" href="${esc(parfumoSearchUrl(x))}" target="_blank" rel="noopener">${icon("external-link")}Find on Parfumo</a></div>`;
   return `<div class="fragrance-detail-controls">
-    <div class="section-head" style="margin:0 0 6px"><div><div class="panel-title">Scent Notes & Layering Context</div><div class="section-sub">${esc(x.topTen ? "Marked as My Top 10" : "Personal scent knowledge")}</div></div><button class="ghost" data-edit-scent-profile="${esc(x.id)}">${icon("sliders-horizontal")}Edit Profile</button></div>
+    <div class="section-head" style="margin:0 0 6px"><div><div class="panel-title">Scent Notes & Layering Context</div><div class="section-sub">${esc(x.topTen ? "Marked as My Top 10" : "Personal scent knowledge")}</div></div><div class="fit-photo-actions" style="margin-top:0">${parfumoLookupButton(x,profile)}<button class="ghost" data-edit-scent-profile="${esc(x.id)}">${icon("sliders-horizontal")}Edit Profile</button></div></div>
     <div class="scent-context-grid">
       <div class="scent-context-chip"><span>Season</span><strong>${esc(fragranceSeasonLabel(x))}</strong></div>
       <div class="scent-context-chip"><span>Projection</span><strong>${esc(x.projection || "TBD")}</strong></div>
@@ -2432,7 +2441,7 @@ function card(x){
       ${scentControls}
       <div class="price-row"><div class="price">${x.price ? money.format(x.price) : "<small>TBD</small>"}</div><div class="eyebrow">${fmtMonth(x.date)}</div></div>
       ${x.type==="wishlist" ? wishActions(x) : wearActions(x,cpw)}
-      <div class="mini-actions">${buildAroundButton(x)}${source}<button class="ghost" data-detail="${x.id}">${icon("eye")}Detail</button><button class="ghost" data-share="${x.id}">${icon("share-2")}Share</button><button class="ghost" data-edit="${x.id}">${icon("pencil")}Edit</button></div>
+      <div class="mini-actions">${buildAroundButton(x)}${source}<button class="ghost" data-detail="${x.id}">${icon("eye")}Detail</button>${photo ? "" : `<button class="ghost" data-generate-item="${x.id}">${icon("wand-sparkles")}Generate Image</button>`}<button class="ghost" data-share="${x.id}">${icon("share-2")}Share</button><button class="ghost" data-edit="${x.id}">${icon("pencil")}Edit</button></div>
     </div>
   </article>`;
 }
@@ -2896,6 +2905,76 @@ async function generateFitImage(id){
     toast(String(err && err.message || err).slice(0,60));
   }
 }
+function itemImagePrompt(x){
+  const cat = (inferredCategory(x) || x.category || "clothing").toLowerCase();
+  const bits = [x.color, x.fabric, `${x.brand} ${x.name}`].filter(Boolean).join(" ");
+  const subject = isFragranceLike(x)
+    ? `a perfume bottle for ${bits}`
+    : `a single ${cat.replace(/s$/,"")} — ${bits}`;
+  return [
+    `Clean e-commerce product photograph of ${subject}.`,
+    "Centred on a plain warm neutral background, soft even studio lighting, subtle shadow, true-to-description colour and material.",
+    "No people, no hands, no text, no logos, no watermarks, no packaging."
+  ].join(" ");
+}
+async function generateItemImage(id){
+  const x = state.items.find(i=>i.id===id);
+  if(!x) return;
+  if(x.photo && !confirm(`"${x.brand} ${x.name}" already has a photo. Replace it with a generated image?`)) return;
+  toast("Generating item image...");
+  try{
+    const res = await fetch("/api/generate-fit-image",{
+      method:"POST",
+      headers:{"Content-Type":"application/json"},
+      body:JSON.stringify({prompt:itemImagePrompt(x), size:"square"})
+    });
+    const data = await res.json().catch(()=>({}));
+    if(!res.ok) throw new Error(data.error || `Request failed (${res.status})`);
+    const source = data.image || data.imageUrl;
+    if(!source) throw new Error("No image came back");
+    const compact = await shrinkImageSource(source, 900, 0.75);
+    const previous = x.photo;
+    x.photo = compact;
+    if(!save()){
+      if(previous) x.photo = previous; else x.photo = "";
+      return;
+    }
+    render();
+    toast("Item image generated");
+  }catch(err){
+    toast(String(err && err.message || err).slice(0,60));
+  }
+}
+function itemsMissingPhotos(){
+  return state.items.filter(x => !displayPhoto(x));
+}
+async function generateMissingItemImages(){
+  const pending = itemsMissingPhotos();
+  if(!pending.length){ toast("Every item already has an image"); return; }
+  if(!confirm(`Generate images for ${pending.length} item${pending.length===1?"":"s"} with no photo?\n\nThis runs one at a time and uses your OpenAI credit. You can close the app to stop it.`)) return;
+  let done = 0, failed = 0;
+  for(const x of pending){
+    toast(`Generating ${done+failed+1} of ${pending.length}...`);
+    try{
+      const res = await fetch("/api/generate-fit-image",{
+        method:"POST",
+        headers:{"Content-Type":"application/json"},
+        body:JSON.stringify({prompt:itemImagePrompt(x), size:"square"})
+      });
+      const data = await res.json().catch(()=>({}));
+      if(!res.ok) throw new Error(data.error || `failed (${res.status})`);
+      const source = data.image || data.imageUrl;
+      if(!source) throw new Error("no image");
+      x.photo = await shrinkImageSource(source, 900, 0.75);
+      if(!save()){ toast("Out of browser storage — stopped"); break; }
+      done++;
+    }catch(err){
+      failed++;
+    }
+  }
+  render();
+  toast(`Generated ${done}${failed ? `, ${failed} failed` : ""}`);
+}
 function shrinkImageSource(src,maxSide,quality){
   return new Promise((resolve,reject)=>{
     const img = new Image();
@@ -3088,6 +3167,8 @@ function renderAnalytics(){
     <div class="gap-list">${closetGaps().map(g=>`<div class="gap-item">${esc(g)}</div>`).join("")}</div>
     ${gapInsightCard()}
     <div style="height:18px"></div>
+    <div class="section-head"><div><h2 class="section-title">Missing Images</h2><div class="section-sub">${itemsMissingPhotos().length} items have no photo</div></div><button class="ghost" data-action="generateMissing">${icon("wand-sparkles")}Generate All Missing</button></div>
+    <div style="height:14px"></div>
     <div class="section-head"><div><h2 class="section-title">Dead Stock</h2><div class="section-sub">Pieces sitting idle — rescue one into a fit</div></div></div>
     ${deadStockSection()}
     <div style="height:18px"></div>
@@ -5675,6 +5756,8 @@ document.addEventListener("click", e => {
   if(wear){ changeWear(wear.dataset.wear, wear.dataset.delta); return; }
   const acq = e.target.closest("[data-acquire]");
   if(acq){ acquire(acq.dataset.acquire); return; }
+  const genItem = e.target.closest("[data-generate-item]");
+  if(genItem){ generateItemImage(genItem.dataset.generateItem); return; }
   const genFit = e.target.closest("[data-generate-fit]");
   if(genFit){ generateFitImage(genFit.dataset.generateFit); return; }
   const shareFit = e.target.closest("[data-share-fit]");
@@ -5721,6 +5804,7 @@ document.addEventListener("click", e => {
   if(action === "aiSettings") openAiSettings();
   if(action === "saveFit") saveFit();
   if(action === "packing") openPacking();
+  if(action === "generateMissing") generateMissingItemImages();
   if(action === "export" || action === "import" || action === "menu") openArchive();
 });
 document.addEventListener("input", e => {
