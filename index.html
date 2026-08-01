@@ -784,12 +784,12 @@ label{display:grid;gap:5px;color:var(--muted);font-size:8px;text-transform:upper
             <option value="5">5 stars</option>
           </select>
         </label>
-        <label>Top 10 Rank<input class="field" id="sProfileRank" type="number" min="1" max="10" step="1" placeholder="1-10 or blank"></label>
+        <label>Top Shelf Rank<input class="field" id="sProfileRank" type="number" min="1" max="15" step="1" placeholder="1-15 or blank"></label>
         <label>Accords<input class="field" id="sProfileAccords" placeholder="woody, amber, leather"></label>
         <label class="full">Note Pyramid<textarea class="area" id="sProfilePyramid" placeholder="Top: bergamot, fig | Heart: iris, leather | Base: cedar, vanilla"></textarea></label>
       </div>
       <div class="modal-actions">
-        <button type="button" class="ghost" id="clearScentTopTen"><i data-lucide="star-off"></i>Clear Top 10</button>
+        <button type="button" class="ghost" id="clearScentTopTen"><i data-lucide="star-off"></i>Clear Top Shelf</button>
         <button type="button" class="ghost" data-close="scentProfileModal">Cancel</button>
         <button class="primary" type="submit"><i data-lucide="save"></i>Save Profile</button>
       </div>
@@ -1770,9 +1770,9 @@ function normalizeTopTenRanksForItems(items){
     .sort((a,b)=>(Number(a.topTenRank)||99)-(Number(b.topTenRank)||99) || (a.topTenDate || "").localeCompare(b.topTenDate || ""))
     .forEach(x=>{
       let rank = Number(x.topTenRank) || 0;
-      if(rank < 1 || rank > 10 || used.has(rank)){
+      if(rank < 1 || rank > TOP_SHELF_SIZE || used.has(rank)){
         rank = 0;
-        for(let n=1;n<=10;n++){
+        for(let n=1;n<=TOP_SHELF_SIZE;n++){
           if(!used.has(n)){ rank = n; break; }
         }
         x.topTenRank = rank;
@@ -2123,7 +2123,7 @@ function renderPills(type){
   if(type==="fragrance"){
     const seasons = [
       ["All","All Scents"],
-      ["top10","Top 10"],
+      ["top10",`Top ${TOP_SHELF_SIZE}`],
       ["fall","Fall/Winter"],
       ["spring","Spring/Summer"],
       ["all","All Season"],
@@ -2217,9 +2217,10 @@ function fragranceScoreRating(x){
 function fragranceSortCompare(a,b){
   return `${a.brand} ${a.name}`.localeCompare(`${b.brand} ${b.name}`);
 }
+const TOP_SHELF_SIZE = 15;
 function topTenRank(x){
   const n = Number(x?.topTenRank || 0);
-  return n >= 1 && n <= 10 ? Math.round(n) : 0;
+  return n >= 1 && n <= TOP_SHELF_SIZE ? Math.round(n) : 0;
 }
 function topFragranceCompare(a,b){
   const topDiff = Number(Boolean(b.topTen))-Number(Boolean(a.topTen));
@@ -2233,16 +2234,16 @@ function topFragranceCompare(a,b){
     || fragranceSortCompare(a,b);
 }
 function topFragrancePicks(){
-  return state.items.filter(x=>x.type==="fragrance" && x.topTen).sort(topFragranceCompare).slice(0,10);
+  return state.items.filter(x=>x.type==="fragrance" && x.topTen).sort(topFragranceCompare).slice(0,TOP_SHELF_SIZE);
 }
 function fragranceRatingControls(x){
   const personal = fragrancePersonalRating(x);
   const label = personal ? `Your ${personal}/5` : "Tap stars";
   const stars = [1,2,3,4,5].map(n=>`<button type="button" class="star-btn ${personal>=n?"on":""}" data-frag-rating="${esc(x.id)}" data-rating="${n}" aria-label="Rate ${esc(itemLabel(x))} ${n} of 5">${icon("star")}</button>`).join("");
-  const topTenLabel = x.topTen ? (topTenRank(x) ? `Top 10 #${topTenRank(x)}` : "In My Top 10") : "My Top 10";
+  const topTenLabel = x.topTen ? (topTenRank(x) ? `Top ${TOP_SHELF_SIZE} #${topTenRank(x)}` : `In My Top ${TOP_SHELF_SIZE}`) : `My Top ${TOP_SHELF_SIZE}`;
   return `<div class="fragrance-controls">
     <div><div class="star-rating">${stars}</div><div class="rating-label">${esc(label)}</div></div>
-    <button type="button" class="top-ten-toggle ${x.topTen?"on":""}" data-top-ten="${esc(x.id)}" aria-label="${x.topTen?"Remove from":"Add to"} My Top 10">${icon("star")}${esc(topTenLabel)}</button>
+    <button type="button" class="top-ten-toggle ${x.topTen?"on":""}" data-top-ten="${esc(x.id)}" aria-label="${x.topTen?"Remove from":"Add to"} My Top ${TOP_SHELF_SIZE}">${icon("star")}${esc(topTenLabel)}</button>
   </div>`;
 }
 function fragranceDetailControls(x){
@@ -2277,7 +2278,7 @@ function fragranceKnowledgeText(x){
     `Projection: ${x.projection || "Projection TBD"}`,
     `Archive score: ${fragranceArchiveScore(x)}/100`,
     `Personal rating: ${fragrancePersonalRating(x) || "unrated"}/5`,
-    x.topTen ? "Marked as My Top 10" : "",
+    x.topTen ? `Marked as My Top ${TOP_SHELF_SIZE}` : "",
     profile ? fragranceProfileSummary(profile) : "",
     profile ? fragranceProfileSourceLabel(x, profile) : "",
     `Layering context: ${fragranceLayeringContext(x)}`,
@@ -2297,7 +2298,7 @@ function parfumoLookupButton(x,profile){
 function fragranceKnowledgeCard(x){
   const userNotes = String(x.notes || "").trim();
   const profile = fragranceProfileFor(x);
-  const rank = x.topTen ? (topTenRank(x) ? `My Top 10 #${topTenRank(x)}` : "My Top 10") : "Unranked";
+  const rank = x.topTen ? (topTenRank(x) ? `My Top ${TOP_SHELF_SIZE} #${topTenRank(x)}` : `My Top ${TOP_SHELF_SIZE}`) : "Unranked";
   const profileBlock = profile ? `
     <div class="scent-notes"><strong>Parfumo Profile</strong>${esc(fragranceProfileSummary(profile))}${profile.source ? `<a class="profile-source-link" href="${esc(profile.source)}" target="_blank" rel="noopener">${icon("external-link")}Open Parfumo</a>` : ""}</div>
     <div class="scent-notes"><strong>Main Accords</strong>${esc(fragranceProfileAccordsLine(profile))}</div>
@@ -2305,7 +2306,7 @@ function fragranceKnowledgeCard(x){
     <div class="scent-notes"><strong>Profile Source</strong>${esc(fragranceProfileSourceLabel(x, profile))}</div>
   ` : `<div class="scent-notes"><strong>Parfumo Profile</strong>No Parfumo profile is linked yet. Use Find on Parfumo to look this scent up, then Edit Profile to paste in its accords and note pyramid.<a class="profile-source-link" href="${esc(parfumoSearchUrl(x))}" target="_blank" rel="noopener">${icon("external-link")}Find on Parfumo</a></div>`;
   return `<div class="fragrance-detail-controls">
-    <div class="section-head" style="margin:0 0 6px"><div><div class="panel-title">Scent Notes & Layering Context</div><div class="section-sub">${esc(x.topTen ? "Marked as My Top 10" : "Personal scent knowledge")}</div></div><div class="fit-photo-actions" style="margin-top:0">${parfumoLookupButton(x,profile)}<button class="ghost" data-edit-scent-profile="${esc(x.id)}">${icon("sliders-horizontal")}Edit Profile</button></div></div>
+    <div class="section-head" style="margin:0 0 6px"><div><div class="panel-title">Scent Notes & Layering Context</div><div class="section-sub">${esc(x.topTen ? `Marked as My Top ${TOP_SHELF_SIZE}` : "Personal scent knowledge")}</div></div><div class="fit-photo-actions" style="margin-top:0">${parfumoLookupButton(x,profile)}<button class="ghost" data-edit-scent-profile="${esc(x.id)}">${icon("sliders-horizontal")}Edit Profile</button></div></div>
     <div class="scent-context-grid">
       <div class="scent-context-chip"><span>Season</span><strong>${esc(fragranceSeasonLabel(x))}</strong></div>
       <div class="scent-context-chip"><span>Projection</span><strong>${esc(x.projection || "TBD")}</strong></div>
@@ -2335,15 +2336,15 @@ function fragranceTier(x){
 }
 function fragranceTopTenCard(){
   const scents = topFragrancePicks();
-  const rows = Array.from({length:10},(_,i)=>{
+  const rows = Array.from({length:TOP_SHELF_SIZE},(_,i)=>{
     const x = scents[i];
     if(!x){
-      return `<div class="gap-item"><strong style="color:var(--muted)">${i+1}. Open slot</strong><div style="margin-top:5px">Tap <strong style="color:var(--gold)">My Top 10</strong> on a fragrance card to lock this shelf in your order.</div></div>`;
+      return `<div class="gap-item"><strong style="color:var(--muted)">${i+1}. Open slot</strong><div style="margin-top:5px">Tap <strong style="color:var(--gold)">My Top ${TOP_SHELF_SIZE}</strong> on a fragrance card to lock this shelf in your order.</div></div>`;
     }
     return `<div class="gap-item"><strong style="color:var(--paper)">${i+1}. ${esc(itemLabel(x))}</strong><div style="margin-top:5px">Your ${fragrancePersonalRating(x) || "—"}/5 · ${fragranceArchiveScore(x)}/100 · ${esc(fragranceTier(x))} · ${esc(x.projection || "Projection TBD")}</div></div>`;
   }).join("");
   return `<div class="judge-card" style="margin-bottom:12px">
-    <div class="section-head" style="margin:0 0 10px"><div><div class="panel-title">Your Permanent Top 10 Scent Shelf</div><div class="section-sub">${scents.length}/10 personally chosen</div></div></div>
+    <div class="section-head" style="margin:0 0 10px"><div><div class="panel-title">Your Permanent Top ${TOP_SHELF_SIZE} Scent Shelf</div><div class="section-sub">${scents.length}/${TOP_SHELF_SIZE} personally chosen</div></div></div>
     <div class="gap-list">${rows}</div>
   </div>`;
 }
@@ -3813,7 +3814,7 @@ function clearScentTopTen(){
   x.topTenDate = "";
   save();
   document.getElementById("sProfileRank").value = "";
-  toast("Top 10 cleared");
+  toast("Top shelf slot cleared");
 }
 function submitScentProfile(e){
   e.preventDefault();
@@ -3830,7 +3831,7 @@ function submitScentProfile(e){
   x.projection = projection;
   x.scentMood = mood;
   x.personalRating = Math.max(0, Math.min(5, Math.round(rating)));
-  if(rank >= 1 && rank <= 10){
+  if(rank >= 1 && rank <= TOP_SHELF_SIZE){
     state.items.forEach(other=>{
       if(other.id !== x.id && other.type === "fragrance" && Number(other.topTenRank) === rank){
         other.topTenRank = 0;
@@ -4183,7 +4184,7 @@ function setFragranceRating(id,rating){
 }
 function firstAvailableTopTenRank(exceptId=""){
   const used = new Set(state.items.filter(i=>i.type==="fragrance" && i.topTen && i.id!==exceptId).map(topTenRank).filter(Boolean));
-  for(let n=1;n<=10;n++){
+  for(let n=1;n<=TOP_SHELF_SIZE;n++){
     if(!used.has(n)) return n;
   }
   return 0;
@@ -4191,8 +4192,8 @@ function firstAvailableTopTenRank(exceptId=""){
 function toggleTopTen(id){
   const x = state.items.find(i=>i.id===id && i.type==="fragrance");
   if(!x) return;
-  if(!x.topTen && state.items.filter(i=>i.type==="fragrance" && i.topTen).length >= 10){
-    toast("Top 10 full");
+  if(!x.topTen && state.items.filter(i=>i.type==="fragrance" && i.topTen).length >= TOP_SHELF_SIZE){
+    toast(`Top ${TOP_SHELF_SIZE} full`);
     return;
   }
   x.topTen = !x.topTen;
@@ -4201,7 +4202,7 @@ function toggleTopTen(id){
   save();
   render();
   if(document.getElementById("detailModal").classList.contains("open")) openDetail(id);
-  toast(x.topTen ? "Added to Top 10" : "Removed from Top 10");
+  toast(x.topTen ? `Added to Top ${TOP_SHELF_SIZE}` : `Removed from Top ${TOP_SHELF_SIZE}`);
 }
 function acquire(id){
   const x = state.items.find(i=>i.id===id);
