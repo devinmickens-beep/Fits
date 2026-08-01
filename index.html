@@ -2716,6 +2716,7 @@ function savedOutfit(o){
     : "";
   const photoActions = `<div class="fit-photo-actions">
       <button class="ghost" data-fit-photo="${o.id}">${icon("camera")}${o.photo ? "Change Fit Pic" : "Add Fit Pic"}</button>
+      <button class="ghost" data-generate-fit="${o.id}">${icon("wand-sparkles")}${o.photo ? "Regenerate" : "Generate Image"}</button>
       ${o.photo ? `<button class="ghost" data-remove-fit-photo="${o.id}">${icon("trash-2")}Remove Pic</button>` : ""}
     </div>`;
   return `<div class="row-card"><div>${photo}<div class="row-title">${esc(o.name)}</div><div class="row-sub">${esc(pieces)}</div><div class="saved-thumbs">${thumbs}</div>${photoActions}</div><button class="icon-btn" data-delete-fit="${o.id}">${icon("trash-2")}</button></div>`;
@@ -2821,7 +2822,7 @@ function renderLookbook(){
       : `<div class="empty">No fit photos yet. Save a fit in the Outfits tab, then tap Add Fit Pic.</div>`) +
     (unshot.length ? `<div style="height:20px"></div>
       <div class="section-head"><div><h2 class="section-title">Missing a Photo</h2><div class="section-sub">Saved fits with no shot yet</div></div></div>
-      <div class="list">${unshot.map(o=>`<div class="row-card"><div><div class="row-title">${esc(o.name)}</div><div class="row-sub">${fitPieceLine(o)}</div></div><button class="ghost" data-fit-photo="${o.id}">${icon("camera")}Add Pic</button></div>`).join("")}</div>` : "");
+      <div class="list">${unshot.map(o=>`<div class="row-card"><div><div class="row-title">${esc(o.name)}</div><div class="row-sub">${fitPieceLine(o)}</div></div><div class="look-actions"><button class="ghost" data-generate-fit="${o.id}">${icon("wand-sparkles")}Generate</button><button class="ghost" data-fit-photo="${o.id}">${icon("camera")}Add Pic</button></div></div>`).join("")}</div>` : "");
   hydrateIcons();
 }
 function fitPieceLine(o){
@@ -2837,10 +2838,79 @@ function lookCard(o){
       <div class="row-sub">${fitPieceLine(o)}</div>
       <div class="look-actions">
         <button class="ghost" data-share-fit="${o.id}">${icon("share-2")}Share Fit</button>
+        <button class="ghost" data-generate-fit="${o.id}">${icon("wand-sparkles")}Regenerate</button>
         <button class="ghost" data-remove-fit-photo="${o.id}">${icon("trash-2")}Remove</button>
       </div>
     </div>
   </article>`;
+}
+const SLOT_WORDS = {
+  baseLayer:"base layer", midLayer:"mid layer", outerwear:"outerwear",
+  bottoms:"trousers", shoes:"shoes", socks:"socks", hat:"hat",
+  watch:"watch", accessory:"accessory"
+};
+function fitImagePrompt(o){
+  const parts = Object.entries(o.pieces || {})
+    .filter(([slot,v]) => v && slot !== "fragrance")
+    .map(([slot,v]) => {
+      const bits = [v.color, v.fabric, `${v.brand} ${v.name}`].filter(Boolean).join(" ");
+      return `${SLOT_WORDS[slot] || slot}: ${bits}`;
+    });
+  if(!parts.length) return "";
+  return [
+    "Editorial menswear lookbook photograph of a full outfit laid out as a flat lay on a warm neutral background.",
+    "Show these exact garments, accurately coloured and proportioned:",
+    parts.join("; ") + ".",
+    "Soft directional daylight, subtle shadows, muted earthy film tones, square-on overhead angle.",
+    "No people, no faces, no text, no logos, no watermarks."
+  ].join(" ");
+}
+async function generateFitImage(id){
+  const o = state.outfits.find(f=>f.id===id);
+  if(!o) return;
+  const prompt = fitImagePrompt(o);
+  if(!prompt){ toast("Add pieces to this fit first"); return; }
+  if(o.photo && !confirm(`"${o.name}" already has a photo. Replace it with a generated image?`)) return;
+  toast("Generating fit image...");
+  try{
+    const res = await fetch("/api/generate-fit-image",{
+      method:"POST",
+      headers:{"Content-Type":"application/json"},
+      body:JSON.stringify({prompt})
+    });
+    const data = await res.json().catch(()=>({}));
+    if(!res.ok) throw new Error(data.error || `Request failed (${res.status})`);
+    const source = data.image || data.imageUrl;
+    if(!source) throw new Error("No image came back");
+    // Shrink before storing so a generated image does not blow the browser quota.
+    const compact = await shrinkImageSource(source, 900, 0.72);
+    const previous = o.photo;
+    o.photo = compact;
+    if(!save()){
+      if(previous) o.photo = previous; else delete o.photo;
+      return;
+    }
+    render();
+    toast("Fit image generated");
+  }catch(err){
+    toast(String(err && err.message || err).slice(0,60));
+  }
+}
+function shrinkImageSource(src,maxSide,quality){
+  return new Promise((resolve,reject)=>{
+    const img = new Image();
+    img.crossOrigin = "anonymous";
+    img.onerror = ()=>reject(new Error("Could not read the generated image"));
+    img.onload = ()=>{
+      const scale = Math.min(1, maxSide / Math.max(img.width, img.height));
+      const canvas = document.createElement("canvas");
+      canvas.width = Math.max(1, Math.round(img.width * scale));
+      canvas.height = Math.max(1, Math.round(img.height * scale));
+      canvas.getContext("2d").drawImage(img,0,0,canvas.width,canvas.height);
+      resolve(canvas.toDataURL("image/jpeg", quality));
+    };
+    img.src = src;
+  });
 }
 function fitShareText(o){
   const pieces = Object.values(o.pieces||{}).filter(Boolean).map(v=>`${v.brand} ${v.name}`);
@@ -5605,6 +5675,8 @@ document.addEventListener("click", e => {
   if(wear){ changeWear(wear.dataset.wear, wear.dataset.delta); return; }
   const acq = e.target.closest("[data-acquire]");
   if(acq){ acquire(acq.dataset.acquire); return; }
+  const genFit = e.target.closest("[data-generate-fit]");
+  if(genFit){ generateFitImage(genFit.dataset.generateFit); return; }
   const shareFit = e.target.closest("[data-share-fit]");
   if(shareFit){ shareFitCard(shareFit.dataset.shareFit); return; }
   const fitPhoto = e.target.closest("[data-fit-photo]");
