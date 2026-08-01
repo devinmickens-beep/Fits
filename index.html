@@ -584,7 +584,7 @@ label{display:grid;gap:5px;color:var(--muted);font-size:8px;text-transform:upper
   .slot b,.slot small{overflow-wrap:anywhere}
   .bottom-nav{
     position:fixed;left:0;right:0;bottom:0;display:grid;
-    grid-template-columns:repeat(5,1fr);
+    grid-template-columns:repeat(6,1fr);
     background:rgba(17,17,15,.96);
     border-top:1px solid var(--line);
     padding:6px 6px calc(6px + env(safe-area-inset-bottom));
@@ -592,8 +592,12 @@ label{display:grid;gap:5px;color:var(--muted);font-size:8px;text-transform:upper
   }
   .bottom-nav button{
     min-height:48px;border:0;background:transparent;color:var(--muted);
-    border-radius:8px;font-size:8px;text-transform:uppercase;letter-spacing:.1em;
+    border-radius:8px;font-size:7px;text-transform:uppercase;letter-spacing:.04em;
     display:grid;place-items:center;gap:2px;
+    padding:0 1px;overflow:hidden;
+  }
+  .bottom-nav button span{
+    max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
   }
   .bottom-nav button svg{width:18px;height:18px}
   .bottom-nav button.on{background:var(--panel-2);color:var(--leather)}
