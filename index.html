@@ -852,7 +852,9 @@ label{display:grid;gap:5px;color:var(--muted);font-size:8px;text-transform:upper
     </div>
     <div class="modal-body">
       <div class="gap-item" id="archiveSummary" style="margin-bottom:12px"></div>
+      <div class="gap-item" id="storageSummary" style="margin-bottom:12px"></div>
       <div class="modal-actions" style="margin-top:0">
+        <button type="button" class="ghost" id="freeSpace"><i data-lucide="eraser"></i>Free Up Space</button>
         <button type="button" class="ghost" id="downloadArchive"><i data-lucide="hard-drive-download"></i>Download Backup File</button>
         <button type="button" class="primary" id="restoreArchive"><i data-lucide="folder-open"></i>Restore From File</button>
       </div>
@@ -979,6 +981,8 @@ label{display:grid;gap:5px;color:var(--muted);font-size:8px;text-transform:upper
 <script src="assets/fragrance-profiles.js"></script>
 <script>
 const STORAGE_KEY = "closet_archive_v2";
+const CORRUPT_BACKUP_KEY = "closet_archive_v2_unreadable_backup";
+let loadWarning = "";
 const AI_KEY_STORAGE = "closet_openai_key";
 const AI_MODEL_STORAGE = "closet_openai_model";
 const DEFAULT_AI_MODEL = "gpt-4.1-mini";
@@ -1836,11 +1840,31 @@ function normalizeTopTenRanksForItems(items){
   return changed;
 }
 function load(){
+  let parsed = null;
   try{
     const raw = localStorage.getItem(STORAGE_KEY);
-    if(raw) return upgradeState(JSON.parse(raw));
-  }catch(e){}
-  return structuredClone(seed);
+    if(raw) parsed = JSON.parse(raw);
+  }catch(e){
+    // Stored data exists but will not parse. Never silently replace it with the
+    // factory catalogue — keep the raw copy aside so it can be recovered.
+    try{
+      const raw = localStorage.getItem(STORAGE_KEY);
+      if(raw && !localStorage.getItem(CORRUPT_BACKUP_KEY)) localStorage.setItem(CORRUPT_BACKUP_KEY, raw);
+    }catch(inner){}
+  }
+  if(!parsed) return structuredClone(seed);
+  try{
+    return upgradeState(parsed);
+  }catch(e){
+    // An upgrade step failed (most often a full-storage write). The user's own
+    // closet still parsed fine, so hand that back rather than the seed.
+    loadWarning = "Some catalogue updates could not be applied — your closet was loaded unchanged.";
+    parsed.items ||= [];
+    parsed.outfits ||= [];
+    parsed.wearLog ||= [];
+    parsed.fragLayers ||= [];
+    return parsed;
+  }
 }
 function upgradeState(existing){
   existing.items ||= [];
@@ -1851,7 +1875,7 @@ function upgradeState(existing){
   if(existing.items.length === 0){
     existing.items = structuredClone(seed.items);
     existing.outfits = existing.outfits || [];
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(existing));
+    try{ localStorage.setItem(STORAGE_KEY, JSON.stringify(existing)); }catch(e){}
     return existing;
   }
   let changed = false;
@@ -1986,7 +2010,15 @@ function upgradeState(existing){
     }
   });
   if(normalizeTopTenRanksForItems(existing.items)) changed = true;
-  if(changed) localStorage.setItem(STORAGE_KEY, JSON.stringify(existing));
+  if(changed){
+    try{
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(existing));
+    }catch(e){
+      // Out of room. The in-memory upgrade is still valid, so carry on and let
+      // the user free space rather than failing the whole load.
+      loadWarning = "Browser storage is full — catalogue updates were not saved. Free space in Import/Export.";
+    }
+  }
   return existing;
 }
 function itemKey(x){
@@ -2020,6 +2052,31 @@ function save(){
     return true;
   }catch(e){
     alert("This browser is out of closet photo storage. Remove a few photos or use smaller images, then try again.");
+    return false;
+  }
+}
+async function storageUsage(){
+  try{
+    if(navigator.storage && navigator.storage.estimate){
+      const e = await navigator.storage.estimate();
+      if(e && e.quota) return {used:e.usage||0, quota:e.quota, pct:Math.round(((e.usage||0)/e.quota)*100)};
+    }
+  }catch(err){}
+  const bytes = new Blob([localStorage.getItem(STORAGE_KEY) || ""]).size;
+  return {used:bytes, quota:0, pct:0};
+}
+function archiveBytes(){
+  try{ return new Blob([JSON.stringify(state)]).size; }catch(e){ return 0; }
+}
+// A write must leave headroom, or the next load has nowhere to put its updates.
+function hasRoomForMore(extraBytes){
+  try{
+    const probe = "__room__";
+    localStorage.setItem(probe, "z".repeat(Math.max(1, extraBytes)));
+    localStorage.removeItem(probe);
+    return true;
+  }catch(e){
+    try{ localStorage.removeItem("__room__"); }catch(inner){}
     return false;
   }
 }
@@ -2956,7 +3013,7 @@ async function generateFitImage(id){
     const source = data.image || data.imageUrl;
     if(!source) throw new Error("No image came back");
     // Shrink before storing so a generated image does not blow the browser quota.
-    const compact = await shrinkImageSource(source, 900, 0.72);
+    const compact = await shrinkImageSource(source, 720, 0.68);
     const previous = o.photo;
     o.photo = compact;
     if(!save()){
@@ -2996,7 +3053,7 @@ async function generateItemImage(id){
     if(!res.ok) throw new Error(data.error || `Request failed (${res.status})`);
     const source = data.image || data.imageUrl;
     if(!source) throw new Error("No image came back");
-    const compact = await shrinkImageSource(source, 900, 0.75);
+    const compact = await shrinkImageSource(source, 640, 0.68);
     const previous = x.photo;
     x.photo = compact;
     if(!save()){
@@ -3019,6 +3076,10 @@ async function generateMissingItemImages(){
   let done = 0, failed = 0;
   for(const x of pending){
     toast(`Generating ${done+failed+1} of ${pending.length}...`);
+    if(!hasRoomForMore(600 * 1024)){
+      toast("Stopped — browser storage is nearly full");
+      break;
+    }
     try{
       const res = await fetch("/api/generate-fit-image",{
         method:"POST",
@@ -3029,7 +3090,7 @@ async function generateMissingItemImages(){
       if(!res.ok) throw new Error(data.error || `failed (${res.status})`);
       const source = data.image || data.imageUrl;
       if(!source) throw new Error("no image");
-      x.photo = await shrinkImageSource(source, 900, 0.75);
+      x.photo = await shrinkImageSource(source, 640, 0.68);
       if(!save()){ toast("Out of browser storage — stopped"); break; }
       done++;
     }catch(err){
@@ -5672,7 +5733,36 @@ function openArchive(){
     ? "This archive is too large to show here. Use Download Backup File and Restore From File instead."
     : JSON.stringify(state,null,2);
   document.getElementById("importModal").classList.add("open");
+  renderStorageSummary();
   hydrateIcons();
+}
+async function renderStorageSummary(){
+  const el = document.getElementById("storageSummary");
+  if(!el) return;
+  const mb = n => (n/1048576).toFixed(1);
+  const own = state.items.filter(x=>String(x.photo||"").startsWith("data:")).length
+    + (state.outfits||[]).filter(o=>String(o.photo||"").startsWith("data:")).length;
+  const u = await storageUsage();
+  el.textContent = u.quota
+    ? `Browser storage: ${mb(u.used)} MB of ${mb(u.quota)} MB used (${u.pct}%). This closet is ${mb(archiveBytes())} MB, holding ${own} embedded photos.`
+    : `This closet is ${mb(archiveBytes())} MB, holding ${own} embedded photos.`;
+  if(u.quota && u.pct >= 80) el.textContent += " Storage is nearly full — free space or new changes may not save.";
+}
+function freeUpSpace(){
+  const own = state.items.filter(x=>String(x.photo||"").startsWith("data:"));
+  const fits = (state.outfits||[]).filter(o=>String(o.photo||"").startsWith("data:"));
+  const restorable = own.filter(x=>starterPhotoFor(x));
+  if(!restorable.length){
+    alert(`Nothing can be freed automatically.\n\nEvery embedded photo here is one the catalogue cannot replace: ${own.length} on items and ${fits.length} on saved fits. Download a backup file first, then remove individual photos you no longer need.`);
+    return;
+  }
+  if(!confirm(`Remove ${restorable.length} embedded photo${restorable.length===1?"":"s"} that the built-in catalogue can supply instead?\n\nYour own photos on the other ${own.length-restorable.length} items and ${fits.length} saved fits are left alone. A backup file downloads first.`)) return;
+  exportArchiveFile();
+  restorable.forEach(x=>{ x.photo = ""; });
+  if(!save()) return;
+  render();
+  renderStorageSummary();
+  toast(`Freed ${restorable.length} photos`);
 }
 function exportArchiveFile(){
   try{
@@ -5908,6 +5998,7 @@ document.getElementById("localWeatherBuild").addEventListener("click", ()=>build
 document.getElementById("aiWeatherBuild").addEventListener("click", ()=>buildAroundWithWeather(true));
 document.getElementById("photoFile").addEventListener("change", handlePhotoFile);
 document.getElementById("applyImport").addEventListener("click", applyImport);
+document.getElementById("freeSpace").addEventListener("click", freeUpSpace);
 document.getElementById("downloadArchive").addEventListener("click", ()=>{
   if(exportArchiveFile()) toast("Backup file downloaded");
 });
@@ -5936,6 +6027,7 @@ if("serviceWorker" in navigator && location.protocol.indexOf("http") === 0){
 }
 render();
 handleSharedLinkLaunch();
+if(loadWarning) setTimeout(()=>toast(loadWarning), 900);
 </script>
 </body>
 </html>
