@@ -2116,187 +2116,237 @@ window.FRAGRANCE_PROFILES = Object.freeze({
       "all": []
     }
   },
-  "Louis Vuitton|Imagination": {
-    "source": "https://www.parfumo.com/Perfumes/Louis_Vuitton/imagination",
-    "title": "Imagination by Louis Vuitton",
+  "Yom and Layl|Fumee d'Ambre (Clive Christian Blonde Amber dupe)": {
+    "source": "https://www.parfumo.com/Perfumes/Clive_Christian/xxi-art-deco-blonde-amber",
+    "title": "Blonde Amber by Clive Christian",
+    "rating": "9.0",
+    "ratingCount": "531",
+    "longevity": "9.1",
+    "sillage": "8.4",
     "accords": [
-      "Citrus",
-      "Fresh",
+      "Sweet",
+      "Spicy",
+      "Resinous",
+      "Fruity",
+      "Woody"
+    ],
+    "notes": {
+      "top": [
+        "Pink pepper",
+        "Bitter orange",
+        "Davana",
+        "Rum"
+      ],
+      "heart": [
+        "Dried fruits",
+        "Tuberose",
+        "Osmanthus",
+        "Blond tobacco"
+      ],
+      "base": [
+        "Tonka bean",
+        "Myrrh",
+        "Sandalwood"
+      ],
+      "all": []
+    },
+    "mappedFrom": "Clive Christian Blonde Amber"
+  },
+  "Yom and Layl|Luminous (Fragrance Du Bois Lucius dupe)": {
+    "source": "https://www.parfumo.com/Perfumes/Fragrance_Du_Bois/lucius",
+    "title": "Lucius by Fragrance Du Bois",
+    "rating": "8.3",
+    "ratingCount": "285",
+    "longevity": "8.0",
+    "sillage": "",
+    "accords": [
       "Woody",
       "Spicy",
-      "Ambery"
-    ],
-    "notes": {
-      "top": [
-        "Citron",
-        "Calabrian bergamot",
-        "Sicilian orange"
-      ],
-      "heart": [
-        "Tunisian neroli",
-        "Nigerian ginger",
-        "Ceylon cinnamon"
-      ],
-      "base": [
-        "Chinese black tea",
-        "Ambroxan",
-        "Guaiac wood",
-        "Olibanum"
-      ],
-      "all": []
-    }
-  },
-  "Louis Vuitton|Symphony": {
-    "source": "https://www.parfumo.com/Perfumes/Louis_Vuitton/symphony",
-    "title": "Symphony by Louis Vuitton",
-    "accords": [
       "Citrus",
-      "Fresh",
-      "Spicy",
-      "Clean"
-    ],
-    "notes": {
-      "top": [
-        "Bergamot",
-        "Grapefruit",
-        "Orange"
-      ],
-      "heart": [
-        "Ginger"
-      ],
-      "base": [
-        "Musk"
-      ],
-      "all": []
-    }
-  },
-  "City Rhythm|Savannah": {
-    "source": "https://www.fragrantica.com/perfume/City-Rhythm/Savannah-134595.html",
-    "title": "Savannah by City Rhythm",
-    "accords": [
-      "Fruity",
       "Sweet",
-      "Floral",
       "Fresh"
     ],
     "notes": {
       "top": [
-        "Georgia peach",
-        "Ruby grapefruit zest"
+        "Mandarin orange",
+        "Pink pepper",
+        "Bergamot"
       ],
       "heart": [
-        "Tropical fruit nectar",
-        "Southern jasmine",
-        "Red berry accord"
+        "Orange blossom",
+        "Cedarwood"
       ],
-      "base": [],
+      "base": [
+        "Tonka bean",
+        "Amber",
+        "Vetiver"
+      ],
       "all": []
-    }
+    },
+    "mappedFrom": "Fragrance Du Bois Lucius"
   },
-  "City Rhythm|DC": {
-    "source": "https://www.fragrantica.com/perfume/City-Rhythm/DC-134597.html",
-    "title": "DC by City Rhythm",
+  "Yom and Layl|Oud Solaris (Fragrance Du Bois Oud Orange Intense dupe)": {
+    "source": "https://www.parfumo.com/Perfumes/Fragrance_Du_Bois/oud-orange-intense",
+    "title": "Oud Orange Intense by Fragrance Du Bois",
+    "rating": "7.9",
+    "ratingCount": "216",
+    "longevity": "",
+    "sillage": "",
+    "accords": [
+      "Sweet",
+      "Fruity",
+      "Tropical",
+      "Gourmand",
+      "Woody"
+    ],
+    "notes": {
+      "top": [
+        "Fruits",
+        "Coconut"
+      ],
+      "heart": [
+        "Bourbon vanilla"
+      ],
+      "base": [
+        "Musk",
+        "Vanilla",
+        "Oud"
+      ],
+      "all": []
+    },
+    "mappedFrom": "Fragrance Du Bois Oud Orange Intense"
+  },
+  "Yom and Layl|The Luna (Frederic Malle The Moon dupe)": {
+    "source": "https://www.parfumo.com/Perfumes/Editions_de_Parfum_Frederic_Malle/the-moon-1",
+    "title": "The Moon by Frederic Malle",
+    "rating": "8.4",
+    "ratingCount": "1244",
+    "longevity": "9.0",
+    "sillage": "8.7",
     "accords": [
       "Fruity",
-      "Floral",
+      "Woody",
+      "Smoky",
+      "Oriental",
+      "Sweet"
+    ],
+    "notes": {
+      "top": [
+        "Raspberry",
+        "Saffron",
+        "Lychee"
+      ],
+      "heart": [
+        "Red currant",
+        "Rose"
+      ],
+      "base": [
+        "Oud",
+        "Leather",
+        "Olibanum",
+        "Amber",
+        "Sandalwood"
+      ],
+      "all": []
+    },
+    "mappedFrom": "Frederic Malle The Moon"
+  },
+  "Yom and Layl|Triple Spear (Argos Neptune's Trident dupe)": {
+    "source": "https://www.parfumo.com/Perfumes/Argos/neptune-s-trident",
+    "title": "Neptune's Trident by Argos",
+    "rating": "8.2",
+    "ratingCount": "202",
+    "longevity": "7.1",
+    "sillage": "6.8",
+    "accords": [
+      "Citrus",
       "Fresh",
+      "Green",
+      "Aquatic",
       "Spicy"
     ],
     "notes": {
-      "top": [
-        "Anjou pear",
-        "Pink pepper",
-        "Wild cherry",
-        "Sakura petals"
-      ],
-      "heart": [
-        "White magnolia",
-        "Star jasmine"
-      ],
+      "top": [],
+      "heart": [],
       "base": [],
-      "all": []
-    }
+      "all": [
+        "Bergamot",
+        "Grapefruit",
+        "Mandarin orange",
+        "Green apple",
+        "Aquatic notes",
+        "Vetiver",
+        "Ambergris",
+        "Musk"
+      ]
+    },
+    "mappedFrom": "Argos Neptune's Trident"
   },
-  "City Rhythm|Martha's Vineyard": {
-    "source": "https://www.parfumo.com/Perfumes/city-rhythm/martha-s-vineyard",
-    "title": "Martha's Vineyard by City Rhythm",
+  "BDK Parfums|Impadia": {
+    "source": "https://www.parfumo.com/Perfumes/bdk_Parfums/impadia-eau-de-parfum",
+    "title": "Impadia (Eau de Parfum) by bdk Parfums",
+    "rating": "7.5",
+    "ratingCount": "478",
+    "longevity": "8.4",
+    "sillage": "8.1",
     "accords": [
-      "Fruity",
       "Floral",
       "Sweet",
-      "Woody"
+      "Fruity",
+      "Creamy",
+      "Synthetic"
     ],
     "notes": {
       "top": [
-        "Plum",
-        "Coconut",
-        "Orange"
+        "Pear",
+        "Italian bergamot",
+        "Italian mandarine Orpur"
       ],
       "heart": [
-        "Orris root",
-        "Jasmine"
+        "Bulgarian rose",
+        "Moroccan orange blossom absolute Orpur",
+        "Turkish rose absolute Orpur"
       ],
       "base": [
-        "Vanilla",
-        "Tobacco",
-        "Driftwood",
-        "Musk"
+        "Akigalawood",
+        "Praline",
+        "Bourbon vanilla absolute",
+        "Sandalwood"
       ],
       "all": []
     }
   },
-  "City Rhythm|Key West": {
-    "source": "https://www.parfumo.com/Perfumes/city-rhythm/key-west",
-    "title": "Key West by City Rhythm",
+  "Byredo|Bal d'Afrique": {
+    "source": "https://www.parfumo.com/Perfumes/Byredo/Bal_d_Afrique_Eau_de_Parfum",
+    "title": "Bal d'Afrique (Eau de Parfum) by Byredo",
+    "rating": "8.1",
+    "ratingCount": "2812",
+    "longevity": "7.3",
+    "sillage": "6.8",
     "accords": [
       "Fresh",
+      "Fruity",
       "Citrus",
-      "Creamy",
       "Floral",
-      "Ambery"
-    ],
-    "notes": {
-      "top": [
-        "Key lime",
-        "Sea salt",
-        "Coastal florals"
-      ],
-      "heart": [
-        "Coconut water",
-        "Neroli blossom",
-        "White florals"
-      ],
-      "base": [
-        "Velvet musks",
-        "Golden amber",
-        "Sandalwood"
-      ],
-      "all": []
-    }
-  },
-  "Scentora|Angels Share": {
-    "source": "https://www.parfumo.com/Perfumes/Kilian/angels-share",
-    "title": "Angels' Share by By Kilian (original this dupe follows)",
-    "accords": [
-      "Gourmand",
-      "Sweet",
-      "Boozy",
-      "Warm spicy",
       "Woody"
     ],
     "notes": {
       "top": [
-        "Cognac"
+        "Buchu",
+        "African marigold",
+        "Bergamot",
+        "Blackcurrant"
       ],
       "heart": [
-        "Oak absolute",
-        "Cinnamon",
-        "Tonka bean"
+        "Cyclamen",
+        "Jasmine petals",
+        "Violet"
       ],
       "base": [
-        "Praline",
-        "Vanilla",
-        "Sandalwood"
+        "Tonka bean absolute",
+        "Cedarwood",
+        "Musk",
+        "Vetiver"
       ],
       "all": []
     }
