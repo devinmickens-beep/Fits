@@ -1,4 +1,4 @@
-const CACHE_NAME = "closet-archive-v214-timeout-crashguard";
+const CACHE_NAME = "closet-archive-v220-declutter-explain";
 const APP_SHELL = [
   "/",
   "/index.html",

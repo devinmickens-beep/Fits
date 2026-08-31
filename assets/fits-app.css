@@ -2391,3 +2391,29 @@ label{display:grid;gap:5px;color:var(--muted);font-size:8px;text-transform:upper
   .batch-scan-row{grid-template-columns:70px minmax(0,1fr)}.batch-scan-row>img{width:70px;height:96px}
   .batch-scan-fields{grid-template-columns:1fr}
 }
+
+/* --- Outfits: one Details drawer instead of four stacked panels --- */
+.fit-details-drawer{margin:0 0 12px}
+.fit-details-drawer>summary{display:flex;align-items:baseline;justify-content:space-between;gap:10px;cursor:pointer;list-style:none;padding:2px 0}
+.fit-details-drawer>summary::-webkit-details-marker{display:none}
+.fit-details-drawer>summary span{font-size:12px;letter-spacing:.1em;text-transform:uppercase;opacity:.85;display:flex;align-items:center;gap:6px}
+.fit-details-drawer>summary small{font-size:11px;opacity:.5;text-align:right;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:55%}
+.fit-details-body{margin-top:10px;display:flex;flex-direction:column;gap:10px}
+.fit-details-body>*{margin:0!important}
+
+/* --- plain-language build explanation --- */
+.fit-explain{display:flex;flex-direction:column;gap:6px;margin:0 0 10px}
+.fit-why-row{display:flex;flex-direction:column;gap:1px;padding:8px 10px;border:1px solid var(--line);border-radius:9px;background:rgba(255,255,255,.02)}
+.fit-why-row>span{font-size:10px;letter-spacing:.12em;text-transform:uppercase;opacity:.55}
+.fit-why-row>strong{font-size:13px;line-height:1.35}
+.fit-why-row>small{font-size:11px;opacity:.62;line-height:1.45}
+
+/* --- Archive Health: repair from one place --- */
+.archive-repair{display:flex;flex-direction:column;gap:12px;margin:12px 0}
+.archive-repair-head{display:flex;align-items:baseline;justify-content:space-between;gap:8px;margin-bottom:6px}
+.archive-repair-head strong{font-size:12px;letter-spacing:.08em;text-transform:uppercase}
+.archive-repair-head small{font-size:11px;opacity:.5}
+.archive-repair-items{display:flex;flex-wrap:wrap;gap:6px}
+.archive-repair-item{display:flex;flex-direction:column;align-items:flex-start;gap:1px;padding:7px 10px;font-size:12px;text-align:left;max-width:100%}
+.archive-repair-item small{font-size:10px;opacity:.5}
+.archive-repair-more{align-self:center;font-size:11px;opacity:.5;padding:0 4px}

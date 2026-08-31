@@ -16,8 +16,8 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;1,300;1,400;1,500;1,600&family=Geist:wght@300;400;500;600;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="assets/fits-app.css?v=175">
-<link rel="stylesheet" href="assets/style-os.css?v=4">
+<link rel="stylesheet" href="assets/fits-app.css?v=220">
+<link rel="stylesheet" href="assets/style-os.css?v=5">
 </head>
 <body>
 <div class="app">
@@ -424,6 +424,10 @@
           </select>
         </label>
         <label>Top Shelf Rank<input class="field" id="sProfileRank" type="number" min="1" max="15" step="1" placeholder="1-15 or blank"></label>
+        <label>Recommended Low °F<input class="field" id="sProfileMinTemp" type="number" min="-20" max="130" step="1" placeholder="e.g. 55"></label>
+        <label>Recommended High °F<input class="field" id="sProfileMaxTemp" type="number" min="-20" max="130" step="1" placeholder="e.g. 85"></label>
+        <label>Sweet Spot Low °F<input class="field" id="sProfileSweetMin" type="number" min="-20" max="130" step="1" placeholder="e.g. 65"></label>
+        <label>Sweet Spot High °F<input class="field" id="sProfileSweetMax" type="number" min="-20" max="130" step="1" placeholder="e.g. 75"></label>
         <label>Accords<input class="field" id="sProfileAccords" placeholder="woody, amber, leather"></label>
         <label class="full">Note Pyramid<textarea class="area" id="sProfilePyramid" placeholder="Top: bergamot, fig | Heart: iris, leather | Base: cedar, vanilla"></textarea></label>
       </div>
@@ -575,6 +579,7 @@
 <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
 <script src="assets/fragrance-profiles.js?v=146"></script>
 <script src="assets/fits-intelligence.js?v=146"></script>
+<script src="assets/fragrance-temperature.js?v=1"></script>
 <script>
 const STORAGE_KEY = "closet_archive_v2";
 const AI_KEY_STORAGE = "closet_openai_key";
@@ -594,7 +599,7 @@ const STYLE_RADAR_STORAGE = "fits_daily_style_radar_v1";
 const FITOFDAY_STORAGE = "fits_fit_of_day_v1";
 const TODAY_CITY_STORAGE = "fits_today_city_v1";
 const CLOUD_SYNC_CHUNK_SIZE = 650000;
-const APP_VERSION = "v218-battle-value-repair";
+const APP_VERSION = "v219-temperature-studio";
 // === Native shell support (Capacitor iOS wrap) ===
 // When running inside the native app, relative /api/* calls have no server —
 // route them to the production Vercel deployment. No-op in the browser/PWA.
@@ -613,7 +618,7 @@ if(IS_NATIVE_APP){
 const TOP_SHELF_LIMIT = 15;
 const DEFAULT_AI_MODEL = "gpt-4.1-mini";
 const STYLE_ONBOARDING_LANES = ["ALD Editorial","Tailored Streetwear","Buck Mason / Premium Americana","Drake's / Heritage Prep","Clean Workwear / Utility","Luxury Casual","Sport + Tailoring","Minimal Neutrals"];
-const FIT_META_KEYS = ["vibe","occasion","colorDirection","dressCode","fireTarget","anchorId","weatherTemp","weatherCondition","judgeContext","judgeWeatherTemp","judgeWeatherCondition","builderSource","buildReason","fitBuildSource","lockedSlot","lockedItemIds","battleHeroIds","rejectedItemIds","boardSwapHistory","pieceFeedback","editingOutfitId","editingOutfitName","styleLane","concept","styleDirective","heroPiece","silhouette","mockupCorrections"];
+const FIT_META_KEYS = ["vibe","occasion","colorDirection","dressCode","fireTarget","anchorId","weatherTemp","weatherCondition","judgeContext","judgeWeatherTemp","judgeWeatherCondition","builderSource","buildReason","fitBuildSource","lockedSlot","lockedItemIds","battleHeroIds","rejectedItemIds","boardSwapHistory","pieceFeedback","editingOutfitId","editingOutfitName","styleLane","concept","styleDirective","heroPiece","heroSlot","silhouette","mockupCorrections"];
 const FIT_SLOTS = ["baseLayer","midLayer","outerwear","bottoms","shoes","socks","hat","watch","belt","detail","fragrance"];
 const LAYER_SLOT_VALUES = ["baseLayer","midLayer","outerwear"];
 const OUTFIT_OCCASIONS = ["everyday","errands","brunch","gallery","date night","client meeting","dinner","travel","rain day","statement","low cpw"];
@@ -848,14 +853,6 @@ function fitsIQAgreement(fit, weather){
 }
 const FIRE_FIT_TARGET = 90;
 const AI_BUILD_ATTEMPTS = 4;
-// Every AI call must be able to give up. Without this the builder awaits a
-// stalled /api/judge-fit forever: the catch never runs, the local fallback
-// never runs, and the fit is left exactly as picked — locked pieces showing,
-// every other slot empty, score stuck on "...".
-const AI_REQUEST_TIMEOUT_MS = 35000;
-const MOCKUP_REQUEST_TIMEOUT_MS = 120000;
-const UPLOAD_REQUEST_TIMEOUT_MS = 60000;
-const SYNC_REQUEST_TIMEOUT_MS = 45000;
 const BUILDER_CANDIDATE_COUNT = 25;
 const BUILDER_RECENT_LIMIT = 10;
 const fragranceProfiles = window.FRAGRANCE_PROFILES || {};
@@ -1458,11 +1455,11 @@ const starterPhotos = {
   "fragrance::Day Three::Midnight Raspberry":"https://ifragranceofficial.com/wp-content/uploads/2025/10/Midnight-Raspberry-Day-Three-for-Women-and-Men-2025.webp",
   "fragrance::Dries Van Noten::Havana Gold":"https://media.parfumo.com/perfume_imagery/c3/c3e536_havana-gold-dries-van-noten_1200.jpg?width=150&aspect_ratio=1:1",
   "fragrance::Dries Van Noten::Rock the Myrrh":"https://www.driesvannoten.com/cdn/shop/products/ROCK_THE_MYRRH_REFILL.jpg?crop=center&height=933&v=1645355269&width=700",
-  "fragrance::Dubai Majalis::Dubai Majalis":"https://fimgs.net/mdimg/perfume/375x500.37766.jpg",
+  "fragrance::Dubai Majalis::Dubai Majalis":"https://fragrancerevival.com/wp-content/uploads/2023/03/fr5519-majalis-by-the-spirit-of-dubai.png",
   "fragrance::Fragrance Du Bois::Sahraa":"https://www.fragrancereview.com/php_assets/uploads/fragrance-du-bois-sahraa.jpeg",
   "fragrance::Frederic Malle::Cologne Indelebile":"https://chicagofragrance.com/cdn/shop/files/Frederic-Malle-Cologne-Indelebile-1.png?v=1733600674",
   "fragrance::Frederic Malle::Musc Ravageur":"https://chicagofragrance.com/cdn/shop/files/Frederic-Malle-Musc-Ravageur-1.png?v=1733594083",
-  "fragrance::Hermetica Paris::Verticaloud":"https://fimgs.net/mdimg/perfume/375x500.52021.jpg",
+  "fragrance::Hermetica Paris::Verticaloud":"https://fragrancerevival.com/wp-content/uploads/2023/02/fr2250-verticaloud-by-hermetica.png",
   "fragrance::Houbigant::Ambre des Abysses":"https://www.myfragrancesamples.com/cdn/shop/files/houbigant_ambre_des_abysses.jpg?v=1758729422",
   "fragrance::Hugo Boss::Bottled Absolu Parfum Intense":"https://fragrancebd.com/wp-content/uploads/2025/01/Hugo-Boss-Boss-Bottled-Absolu-Parfum-Intense-100mL.jpg",
   "fragrance::Jo Malone::Oud and Orange Intense":"https://www.jomalone.com/media/export/cms/campaigns/FY25_Hinoki_Cedarwood/Nav/25B01_Nav_Cologne-Intense_HC.png",
@@ -1928,6 +1925,9 @@ let currentWishlistInsight = null;
 let currentLayerIdeas = null;
 let weatherScentPrefs = {temp:58,condition:"dry",occasion:"everyday"};
 let currentWeatherScent = null;
+let _fragranceTemperatureMapOpen = false;
+let _fragranceTemperatureFilter = "all";
+let _fragranceTemperaturePreview = null;
 let wardrobeSortMode = "type";
 let fragranceHouseFilter = "All";
 let recentBuilderFits = loadRecentBuilderFits();
@@ -2875,31 +2875,14 @@ function normalizeTopTenRanksForItems(items){
   return changed;
 }
 function load(){
-  // Read and upgrade are separated on purpose. Any throw inside upgradeState()
-  // used to fall through to the seed, and because the closet then looked like
-  // the factory catalogue, the next save() wrote those defaults over the real
-  // archive — permanent loss.
-  let parsed = null;
   try{
     const raw = localStorage.getItem(STORAGE_KEY);
-    if(raw) parsed = JSON.parse(raw);
-  }catch(e){
-    console.warn("[Storage] Stored archive could not be parsed.", e);
-  }
-  if(parsed && typeof parsed === "object"){
-    parsed.__fromStorage = true;
-    try{
+    if(raw){
+      const parsed = JSON.parse(raw);
+      parsed.__fromStorage = true;
       return upgradeState(parsed);
-    }catch(e){
-      console.error("[Storage] Catalogue upgrade failed; returning the stored closet unchanged.", e);
-      delete parsed.__fromStorage;
-      parsed.items ||= []; parsed.outfits ||= []; parsed.inspirations ||= [];
-      parsed.wearLog ||= []; parsed.fitFeedback ||= []; parsed.fragLayers ||= [];
-      parsed.dismissedSeedWishKeys ||= []; parsed.deletedItemKeys ||= [];
-      parsed.deletedCatalogItemKeys ||= [];
-      return parsed;
     }
-  }
+  }catch(e){}
   return upgradeState(structuredClone(seed));
 }
 function upgradeState(existing){
@@ -3697,6 +3680,43 @@ function restoreProtectedArchiveValueV218(){
   console.info("[FITS Archive Value] Protected ledger applied",{added,repriced,corrected,total:owned.reduce((sum,item)=>sum+(Number(item.price)||0),0)});
   return {added,repriced,corrected};
 }
+const FRAGRANCE_TEMPERATURE_SEEDS_V219 = Object.freeze([
+  {names:["The Moon","The Luna (Frederic Malle The Moon dupe)"],minTempF:25,maxTempF:55,sweetSpotMinF:35,sweetSpotMaxF:45},
+  {names:["Oud Satin Mood"],minTempF:25,maxTempF:55,sweetSpotMinF:35,sweetSpotMaxF:45},
+  {names:["1861 Naxos EDP","Naxos"],minTempF:35,maxTempF:65,sweetSpotMinF:45,sweetSpotMaxF:55},
+  {names:["Triumph of Bacchus Extrait","Triumph of Bacchus"],minTempF:35,maxTempF:65,sweetSpotMinF:45,sweetSpotMaxF:55},
+  {names:["Rhythm and Sex"],minTempF:40,maxTempF:70,sweetSpotMinF:50,sweetSpotMaxF:60},
+  {names:["African Leather"],minTempF:40,maxTempF:70,sweetSpotMinF:50,sweetSpotMaxF:60},
+  {names:["Lamar EDP","Lamar"],minTempF:55,maxTempF:85,sweetSpotMinF:65,sweetSpotMaxF:75},
+  {names:["Impadia"],minTempF:55,maxTempF:85,sweetSpotMinF:65,sweetSpotMaxF:75},
+  {names:["Vibrato Collection EDP","Vibrato"],minTempF:65,maxTempF:100,sweetSpotMinF:75,sweetSpotMaxF:90},
+  {names:["Imagination"],minTempF:65,maxTempF:100,sweetSpotMinF:75,sweetSpotMaxF:90}
+]);
+function applyFragranceTemperatureSeedDataV219({persist=true}={}){
+  const migration = "v219-fragrance-temperature-seed-20260830";
+  state.contentMigrations ||= [];
+  if(state.contentMigrations.includes(migration)) return {updated:0};
+  let updated = 0;
+  state.items.filter(item=>item.type==="fragrance").forEach(item=>{
+    const name = cleanKeyValue(item.name);
+    const seed = FRAGRANCE_TEMPERATURE_SEEDS_V219.find(entry=>entry.names.some(candidate=>cleanKeyValue(candidate)===name));
+    if(!seed) return;
+    let changed = false;
+    ["minTempF","maxTempF","sweetSpotMinF","sweetSpotMaxF"].forEach(key=>{
+      if(!Number.isFinite(Number(item[key]))){ item[key] = seed[key]; changed = true; }
+    });
+    if(changed) updated++;
+  });
+  state.contentMigrations.push(migration);
+  if(persist){
+    try{
+      localStorage.setItem(STORAGE_KEY,JSON.stringify(state));
+    }catch(error){
+      console.warn("[FITS Temperature Map] Temperature metadata is visible but could not be saved",error);
+    }
+  }
+  return {updated};
+}
 function fragranceHouseDisplayName(x){
   return canonicalFragranceHouseName(x?.brand);
 }
@@ -3774,40 +3794,7 @@ function switchTabSmooth(go){
   } else go();
 }
 let _lastRenderTab = null;
-// Error boundary. render() had no try/catch: any exception left the page
-// half-written, and because every later interaction calls render() again —
-// which throws again — the app stayed dead until it was force-restarted.
 function render(){
-  try{
-    renderInner();
-  }catch(e){
-    renderCrashNotice(e);
-  }
-}
-function renderCrashNotice(e){
-  const failedTab = activeTab;
-  const msg = String((e && (e.stack || e.message)) || e || "Unknown error");
-  try{ console.error("[Fits] render failed on tab:", failedTab, e); }catch(_){}
-  const safe = msg.replace(/[&<>"]/g, c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c])).slice(0,1500);
-  const view = document.getElementById("view");
-  if(!view) return;
-  view.innerHTML = `<div style="padding:24px;max-width:640px;margin:0 auto">
-    <h2 style="margin:0 0 8px">This screen hit an error</h2>
-    <p style="opacity:.75;line-height:1.6;margin:0 0 16px">Your closet is safe — nothing was changed. Go back to Today and keep using the app.</p>
-    <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:18px">
-      <button type="button" id="crashBackBtn" style="padding:10px 14px;border-radius:10px;cursor:pointer">Back to Today</button>
-      <button type="button" id="crashCopyBtn" style="padding:10px 14px;border-radius:10px;cursor:pointer">Copy error</button>
-    </div>
-    <pre style="white-space:pre-wrap;word-break:break-word;font-size:11px;opacity:.7;border:1px solid rgba(128,128,128,.35);border-radius:10px;padding:12px;max-height:260px;overflow:auto">${safe}</pre>
-  </div>`;
-  const back = document.getElementById("crashBackBtn");
-  if(back) back.addEventListener("click", ()=>{ activeTab = "today"; render(); });
-  const copy = document.getElementById("crashCopyBtn");
-  if(copy) copy.addEventListener("click", ()=>{
-    try{ navigator.clipboard.writeText(failedTab + ": " + msg); copy.textContent = "Copied"; }catch(_){}
-  });
-}
-function renderInner(){
   const sameTab = _lastRenderTab === activeTab;
   const keepY = sameTab ? window.scrollY : 0;
   renderNav();
@@ -5129,18 +5116,118 @@ function renderToday(){
     setTimeout(()=>refreshTodayWeather({quiet:true}),0);
   }
 }
+function fragranceTemperatureItems(){
+  return state.items.filter(item=>item.type==="fragrance" && FragranceTemperature.fragranceTemperatureProfile(item));
+}
+function fragranceTemperatureContext(){
+  const weather = trustedTodayWeather();
+  const actualTemp = weather ? Math.round(Number(weather.temp)) : null;
+  const previewTemp = _fragranceTemperaturePreview !== null && _fragranceTemperaturePreview !== "" && Number.isFinite(Number(_fragranceTemperaturePreview))
+    ? Number(_fragranceTemperaturePreview)
+    : null;
+  const manualTemp = 73;
+  return {
+    weather,
+    actualTemp,
+    temp:previewTemp ?? actualTemp ?? manualTemp,
+    preview:previewTemp !== null && previewTemp !== actualTemp,
+    verified:Boolean(weather)
+  };
+}
+function fragranceTemperatureScale(items){
+  const profiles = items.map(item=>FragranceTemperature.fragranceTemperatureProfile(item)).filter(Boolean);
+  const low = Math.min(30,...profiles.map(profile=>profile.minTempF));
+  const high = Math.max(100,...profiles.map(profile=>profile.maxTempF));
+  const scaleLow = Math.floor(low/10)*10;
+  const scaleHigh = Math.ceil(high/10)*10;
+  const ticks = [];
+  for(let value=scaleLow;value<=scaleHigh;value+=10) ticks.push(value);
+  return {low:scaleLow,high:scaleHigh,ticks};
+}
+function fragranceTemperatureRangeStyle(min,max,scale){
+  const left = FragranceTemperature.temperatureToChartPosition(min,scale.low,scale.high);
+  const right = FragranceTemperature.temperatureToChartPosition(max,scale.low,scale.high);
+  return `--range-left:${left.toFixed(3)}%;--range-width:${Math.max(0,right-left).toFixed(3)}%`;
+}
+function fragranceTemperatureFilterItems(entries){
+  if(_fragranceTemperatureFilter==="perfect") return entries.filter(entry=>entry.match.status==="perfect");
+  if(_fragranceTemperatureFilter==="warm") return entries.filter(entry=>entry.match.profile.minTempF>=55);
+  if(_fragranceTemperatureFilter==="cool") return entries.filter(entry=>entry.match.profile.maxTempF<=70);
+  return entries;
+}
+function fragranceTemperatureRow(entry,scale){
+  const {fragrance,match} = entry;
+  const profile = match.profile;
+  const general = fragranceTemperatureRangeStyle(profile.minTempF,profile.maxTempF,scale);
+  const sweet = fragranceTemperatureRangeStyle(profile.sweetSpotMinF,profile.sweetSpotMaxF,scale);
+  return `<button class="temp-map-row status-${esc(match.status)}" data-detail="${esc(fragrance.id)}" aria-label="${esc(`${fragrance.name}: ${match.label} at ${fragranceTemperatureContext().temp} degrees`)}">
+    <span class="temp-map-name"><strong>${esc(fragrance.name)}</strong>${match.status==="perfect"?`<small>Perfect</small>`:""}</span>
+    <span class="temp-map-track"><span class="temp-map-general" style="${general}"></span><span class="temp-map-sweet" style="${sweet}"></span></span>
+  </button>`;
+}
+function fragranceTemperatureCard(entry,temp){
+  const item = entry.fragrance;
+  const profile = entry.match.profile;
+  const photo = displayPhoto(item);
+  return `<button class="temp-perfect-card status-${esc(entry.match.status)}" data-detail="${esc(item.id)}">
+    <span class="temp-perfect-photo">${photo?`<img src="${esc(proxiedImageUrl(photo))}" alt="${esc(itemLabel(item))}" loading="lazy" onerror="this.onerror=null;this.src='${PLACEHOLDER_IMG}'">`:fragranceArt(item)}</span>
+    <span class="temp-match-badge"><i></i>${esc(entry.match.label)}</span>
+    <strong>${esc(item.name)}</strong><small>${profile.minTempF}–${profile.maxTempF}°F range</small><em>${profile.sweetSpotMinF}–${profile.sweetSpotMaxF}°F sweet</em>
+  </button>`;
+}
+function fragranceTemperatureMap(){
+  const context = fragranceTemperatureContext();
+  const allItems = fragranceTemperatureItems();
+  const scale = fragranceTemperatureScale(allItems);
+  const ranked = FragranceTemperature.rankFragrancesForWeather(allItems,context.temp);
+  const entries = fragranceTemperatureFilterItems([...ranked].sort((a,b)=>{
+    const centerA=(a.match.profile.sweetSpotMinF+a.match.profile.sweetSpotMaxF)/2;
+    const centerB=(b.match.profile.sweetSpotMinF+b.match.profile.sweetSpotMaxF)/2;
+    return centerA-centerB || itemLabel(a.fragrance).localeCompare(itemLabel(b.fragrance));
+  }));
+  const perfect = ranked.filter(entry=>entry.match.status==="perfect");
+  const wearable = ranked.filter(entry=>["perfect","great","wearable"].includes(entry.match.status));
+  const featured = (perfect.length ? ranked.filter(entry=>["perfect","great"].includes(entry.match.status)) : ranked).slice(0,6);
+  const nowPosition = FragranceTemperature.temperatureToChartPosition(context.temp,scale.low,scale.high);
+  const missing = state.items.filter(item=>item.type==="fragrance").length-allItems.length;
+  const location = context.weather?.location || localStorage.getItem(TODAY_CITY_STORAGE) || "Manual preview";
+  const condition = context.weather?.label || context.weather?.condition || "Weather not verified";
+  return `<section class="temperature-map-screen" aria-label="Fragrance Temperature Map">
+    <header class="temperature-map-header"><button class="icon-btn" data-action="closeTemperatureMap" aria-label="Back to fragrance cabinet">${icon("chevron-left")}</button><div><span>Fragrance intelligence</span><h2>Fragrance Temperature Map</h2></div><button class="icon-btn" data-action="temperatureMapInfo" aria-label="About the temperature map">${icon("info")}</button></header>
+    <div class="temp-weather-card ${context.verified?"verified":"unverified"}">
+      <div class="temp-weather-reading"><strong>${Math.round(context.temp)}<sup>°F</sup></strong><small>${context.preview?"Preview":context.verified?"Today":"Manual"} · ${esc(condition)}</small></div>
+      <i></i><div class="temp-weather-counts"><strong>${perfect.length}<span>in their sweet spot</span></strong><small>${wearable.length}<span>wearable today</span></small></div>
+      <button class="icon-btn" data-action="${context.verified?"todayWeather":"setTodayCity"}" aria-label="${context.verified?"Refresh weather":"Set weather city"}">${icon(context.verified?"refresh-cw":"map-pin")}</button>
+    </div>
+    <div class="temp-map-source">${context.verified?`${esc(location)} · verified live weather`:`Weather is not verified. Preview the map manually or set your city.`}${missing>0?` · ${missing} scent${missing===1?"":"s"} still need a range`:""}</div>
+    <div class="temp-map-scrubber"><label for="temperatureMapPreview">Preview temperature <strong>${Math.round(context.temp)}°F</strong></label><input id="temperatureMapPreview" data-temperature-preview type="range" min="${scale.low}" max="${scale.high}" step="1" value="${esc(context.temp)}"><button class="ghost" data-action="resetTemperaturePreview" ${context.preview?"":"disabled"}>Use ${context.verified?"live":"default"}</button></div>
+    <div class="temp-map-filters" role="tablist" aria-label="Temperature filters">${[["all","All"],["perfect","Sweet spot"],["warm","Warm weather"],["cool","Cool weather"]].map(([id,label])=>`<button class="${_fragranceTemperatureFilter===id?"on":""}" data-temperature-filter="${id}" role="tab" aria-selected="${_fragranceTemperatureFilter===id}">${label}</button>`).join("")}</div>
+    ${allItems.length<3?`<div class="empty temp-map-empty">Add temperature ranges to at least three fragrances to unlock the map.<button class="primary" data-action="closeTemperatureMap">Open fragrance cabinet</button></div>`:`<div class="temperature-chart" style="--temp-now:${nowPosition.toFixed(3)}%">
+      <div class="temp-map-scale"><div class="temp-map-scale-track"><span class="temp-map-flag" style="left:${nowPosition.toFixed(3)}%">${Math.round(context.temp)}°F</span>${scale.ticks.map(tick=>`<span class="temp-map-tick" style="left:${FragranceTemperature.temperatureToChartPosition(tick,scale.low,scale.high).toFixed(3)}%">${tick}°</span>`).join("")}</div></div>
+      <div class="temp-map-rows"><div class="temp-map-grid" aria-hidden="true">${scale.ticks.slice(1,-1).map(tick=>`<i style="left:${FragranceTemperature.temperatureToChartPosition(tick,scale.low,scale.high).toFixed(3)}%"></i>`).join("")}<b></b></div>${entries.length?entries.map(entry=>fragranceTemperatureRow(entry,scale)).join(""):`<div class="empty">No fragrances match this filter.</div>`}</div>
+    </div>`}
+    <section class="temp-perfect-section"><div class="section-head"><div><h3>Perfect Today</h3><div class="section-sub">${perfect.length?`${perfect.length} sweet-spot match${perfect.length===1?"":"es"} at ${Math.round(context.temp)}°F`:`No exact sweet spot · nearest matches shown`}</div></div></div><div class="temp-perfect-list">${featured.map(entry=>fragranceTemperatureCard(entry,context.temp)).join("")}</div></section>
+    <div class="temp-map-legend"><span><i class="sweet"></i><b>Sweet spot<small>At its best here</small></b></span><span><i class="wearable"></i><b>Wearable<small>Still works</small></b></span><span><i class="out"></i><b>Out of range<small>Save for another day</small></b></span></div>
+    <button class="temp-map-fit-hook" data-action="pairTemperatureScent" ${featured.length?`data-fragrance-id="${esc(featured[0].fragrance.id)}"`:"disabled"}>${icon("shirt")}<span><strong>Pair with the current fit</strong><small>${featured.length?`${esc(featured[0].fragrance.name)} leads at ${Math.round(context.temp)}°F`:"Add a temperature range first"}</small></span>${icon("chevron-right")}</button>
+  </section>`;
+}
 function renderFragrance(){
+  if(_fragranceTemperatureMapOpen){
+    document.getElementById("view").innerHTML = fragranceTemperatureMap();
+    hydrateIcons();
+    return;
+  }
   if(fragranceHouseFilter !== "All" && !fragranceHouseCounts().has(fragranceHouseFilter)){
     fragranceHouseFilter = "All";
   }
   const items = filtered("fragrance");
   const value = items.reduce((s,x)=>s+(x.price||0),0);
   document.getElementById("view").innerHTML =
-	    header(archivePageTitle("fragrance"), archiveHeaderSub(`${items.length} bottles · ${money.format(value)} archive value`), `<div class="toolbar"><button class="ghost" data-action="scentCopOrDrop">${icon("flask-conical")}Scent Cop or Drop?</button><button class="ghost" data-action="aiLayerIdeas">${icon("sparkles")}AI Layer Ideas</button><button class="primary" data-action="logLayer">${icon("blend")}Log Layer</button></div>`) +
+	    header(archivePageTitle("fragrance"), archiveHeaderSub(`${items.length} bottles · ${money.format(value)} archive value`), `<div class="toolbar"><button class="ghost" data-action="openTemperatureMap">${icon("thermometer-sun")}Temperature Map</button><button class="ghost" data-action="scentCopOrDrop">${icon("flask-conical")}Scent Cop or Drop?</button><button class="ghost" data-action="aiLayerIdeas">${icon("sparkles")}AI Layer Ideas</button><button class="primary" data-action="logLayer">${icon("blend")}Log Layer</button></div>`) +
 	    renderPills("fragrance") +
 	    fragranceShelfNav(items.length) +
 	    buildAroundSelectionTray() +
-    `<div class="wishlist-actions"><button class="ghost" data-action="scentCopOrDrop">${icon("flask-conical")}Scent Cop or Drop?</button><button class="ghost" data-action="aiLayerIdeas">${icon("sparkles")}AI Layer Ideas</button><button class="primary" data-action="logLayer">${icon("blend")}Log Layer</button></div>` +
+	    `<div class="wishlist-actions fragrance-mobile-actions"><button class="ghost" data-action="openTemperatureMap">${icon("thermometer-sun")}Temperature Map</button><button class="ghost" data-action="scentCopOrDrop">${icon("flask-conical")}Scent Cop or Drop?</button><button class="ghost" data-action="aiLayerIdeas">${icon("sparkles")}AI Layer Ideas</button><button class="primary" data-action="logLayer">${icon("blend")}Log Layer</button></div>` +
     weatherScentPanel() +
     weatherScentCard() +
     fragranceTopTenCard() +
@@ -5205,6 +5292,22 @@ function fragranceDetailControls(x){
   return `<div class="fragrance-detail-controls">
     <div class="panel-title">Personal Scent Rank</div>
     ${fragranceRatingControls(x)}
+  </div>`;
+}
+function fragranceTemperatureDetailCard(x){
+  const profile = FragranceTemperature.fragranceTemperatureProfile(x);
+  if(!profile) return `<div class="fragrance-detail-controls temperature-detail-card"><div class="panel-title">Temperature</div><div class="section-sub">No temperature range yet.</div><button class="ghost" data-edit-scent-profile="${esc(x.id)}">${icon("thermometer-sun")}Add Range</button></div>`;
+  const context = fragranceTemperatureContext();
+  const match = FragranceTemperature.getFragranceTemperatureMatch(x,context.temp);
+  return `<div class="fragrance-detail-controls temperature-detail-card">
+    <div class="section-head" style="margin:0"><div><div class="panel-title">Temperature</div><div class="section-sub">${context.verified&&!context.preview?"Verified current weather":context.preview?"Preview temperature":"Manual temperature"}</div></div><span class="temp-match-badge status-${esc(match.status)}"><i></i>${esc(match.label)}</span></div>
+    <div class="scent-context-grid">
+      <div class="scent-context-chip"><span>Recommended</span><strong>${profile.minTempF}–${profile.maxTempF}°F</strong></div>
+      <div class="scent-context-chip"><span>Sweet Spot</span><strong>${profile.sweetSpotMinF}–${profile.sweetSpotMaxF}°F</strong></div>
+      <div class="scent-context-chip"><span>Current</span><strong>${Math.round(context.temp)}°F</strong></div>
+      <div class="scent-context-chip"><span>Match</span><strong>${esc(match.label)}</strong></div>
+    </div>
+    <button class="ghost" data-edit-scent-profile="${esc(x.id)}">${icon("sliders-horizontal")}Edit Temperature Range</button>
   </div>`;
 }
 function fragranceSeasonLabel(x){
@@ -5464,7 +5567,8 @@ function layerCard(r){
 function card(x){
   const cpw = x.wears && x.price ? "$"+(x.price/x.wears).toFixed(2)+"/wear" : "Log wears";
   const cardClass = x.type==="fragrance" ? "fragrance-card" : x.type==="wishlist" && x.category==="Fragrances" ? "wishlist-fragrance-card" : "";
-  const photo = displayPhoto(x);
+  // best available: clean cutout if we have one, else the original/starter photo
+  const photo = displayBoardPhoto(x);
   const media = photo ? `<img src="${esc(photo)}" alt="">` : x.type==="fragrance" || x.category==="Fragrances" ? fragranceArt(x) : icon("image-plus");
   const source = sourceLinkButton(x);
   const meta = x.type === "fragrance"
@@ -5787,7 +5891,7 @@ function openDetail(id){
     </div>
     ${!isScent ? visualMetaCard(x) : ""}
     ${!isScent ? garmentFitProfileCard(x) : ""}
-    ${isScent ? (x.type==="fragrance" ? fragranceDetailControls(x) : "") + fragranceKnowledgeCard(x) : ""}
+    ${isScent ? (x.type==="fragrance" ? fragranceDetailControls(x) + fragranceTemperatureDetailCard(x) : "") + fragranceKnowledgeCard(x) : ""}
     ${x.sourceUrl ? `<a class="primary" href="${esc(x.sourceUrl)}" target="_blank" rel="noreferrer" style="width:100%;margin-bottom:12px">${icon("external-link")}Open ${esc(sourceHost(x.sourceUrl))}</a>` : ""}
     ${x.type!=="fragrance" && x.notes ? `<div class="gap-item">${esc(x.notes)}</div>` : ""}
     <div class="panel-title" style="margin-top:14px">Best Pairings</div>
@@ -6364,16 +6468,33 @@ function studioViewTabs(){
     <button class="${_studioView==="battle"?"on":""}" data-studio-view="battle" role="tab" aria-selected="${_studioView==="battle"}">${icon("swords")}Battle</button>
   </div>`;
 }
-function fitBoardPiece(slot,item,scale="regular"){
+function fitBoardHeroSlot(){
+  const preferred = String(currentFit.heroSlot || "");
+  if(FIT_SLOTS.includes(preferred) && currentFit[preferred]) return preferred;
+  return ["outerwear","midLayer","bottoms","baseLayer","shoes"].find(slot=>currentFit[slot]) || "midLayer";
+}
+function setBoardHero(slot){
+  const item = currentFit[slot];
+  if(!item) return;
+  currentFit.heroSlot = slot;
+  currentFit.heroPiece = item.name || itemLabel(item);
+  currentFit.pieceFeedback = [...(currentFit.pieceFeedback||[]),{slot,itemId:item.id,signal:"hero",at:new Date().toISOString()}].slice(-40);
+  saveCurrentFitDraft();
+  render();
+  toast(`${item.name} is leading the fit`);
+}
+function fitBoardPiece(slot,item,scale="regular",isHero=false){
   if(!item){
-    return `<button class="fit-board-piece empty ${esc(scale)}" data-slot="${esc(slot)}">
+    return `<button class="fit-board-piece empty ${esc(scale)} ${isHero?"board-hero":""}" data-slot="${esc(slot)}">
+      ${isHero?`<span class="fit-board-hero-badge">Hero</span>`:""}
       ${icon("plus")}<span>${esc(slotLabel(slot))}</span>
     </button>`;
   }
   const photo = displayBoardPhoto(item);
   const locked = (currentFit.lockedItemIds || []).includes(item.id);
   const cleaning = _cutoutJobs.has(item.id);
-  return `<article class="fit-board-piece filled ${esc(scale)} ${locked?"kept":""}" data-board-piece="${esc(slot)}">
+  return `<article class="fit-board-piece filled ${esc(scale)} ${locked?"kept":""} ${isHero?"board-hero":""}" data-board-piece="${esc(slot)}">
+    <button class="fit-board-hero-toggle ${isHero?"on":""}" data-board-action="hero" data-board-slot="${esc(slot)}" title="${isHero?"Hero piece":"Make this the hero piece"}" aria-label="${isHero?"Current hero piece":"Make this the hero piece"}">${isHero?"Hero":icon("star")}</button>
     <button class="fit-board-image" data-slot="${esc(slot)}" title="Choose another ${esc(slotLabel(slot))}">
       ${photo ? `<img src="${esc(photo)}" alt="${esc(itemLabel(item))}" onerror="this.onerror=null;this.src='${PLACEHOLDER_IMG}'">` : icon("shirt")}
     </button>
@@ -6387,23 +6508,34 @@ function fitBoardPiece(slot,item,scale="regular"){
   </article>`;
 }
 function visualFitBoard(){
+  const heroSlot = fitBoardHeroSlot();
+  const apparelSlots = ["outerwear","midLayer","baseLayer","bottoms","shoes"];
+  const supportSlots = apparelSlots.filter(slot=>slot!==heroSlot);
   const accessories = ["socks","hat","watch","belt","detail","fragrance"];
+  const readiness = environmentReadinessForFit(currentFit);
+  const styleScore = Number(currentJudgement?.score || currentFit.fireTarget || 0);
+  const lane = currentFit.styleLane || (Object.keys(currentFitPieces()).length ? inferStyleLaneForFit(currentFit) : "Build your direction");
+  const hero = currentFit[heroSlot];
+  const silhouette = currentFit.silhouette || (Object.keys(currentFitPieces()).length ? fitSilhouetteText(currentFit) : "Add a top and bottom to establish proportion");
+  const fitName = currentFit.editingOutfitName || currentFit.concept || "Untitled fit";
+  const chips = [currentFit.vibe,currentFit.occasion,currentFit.dressCode,currentFit.colorDirection].filter(Boolean).slice(0,4);
   return `<section class="fit-board" aria-label="Visual outfit board">
     <div class="fit-board-head">
-      <div><div class="panel-title">The Laydown</div><div class="section-sub">Keep, swap, or remove one piece without losing the rest of the fit.</div></div>
+      <div><div class="panel-title">Outfit Studio</div><h3>${esc(fitName)}</h3><div class="section-sub">Build around one hero. Keep, swap, or clean any piece without losing the rest.</div></div>
       <span>${Object.keys(currentFitPieces()).length} selected</span>
     </div>
     <div class="fit-board-canvas">
-      <div class="fit-board-upper">
-        ${fitBoardPiece("outerwear",currentFit.outerwear,"layer")}
-        ${fitBoardPiece("midLayer",currentFit.midLayer,"layer")}
-        ${fitBoardPiece("baseLayer",currentFit.baseLayer,"layer")}
-      </div>
-      <div class="fit-board-lower">${fitBoardPiece("bottoms",currentFit.bottoms,"hero")}</div>
-      <div class="fit-board-foot">${fitBoardPiece("shoes",currentFit.shoes,"wide")}</div>
-      <div class="fit-board-accessories">${accessories.map(slot=>fitBoardPiece(slot,currentFit[slot],"small")).join("")}</div>
+      <div class="fit-board-hero">${fitBoardPiece(heroSlot,currentFit[heroSlot],"hero",true)}</div>
+      <div class="fit-board-support">${supportSlots.map(slot=>fitBoardPiece(slot,currentFit[slot],"support")).join("")}</div>
+      <div class="fit-board-accessory-wrap"><div class="fit-board-rail-label"><span>Finish the look</span><small>Swipe for accessories</small></div><div class="fit-board-accessories">${accessories.map(slot=>fitBoardPiece(slot,currentFit[slot],"small")).join("")}</div></div>
     </div>
-    <div class="fit-board-legend"><span>${icon("lock-keyhole")} Keep preserves the piece</span><span>${icon("refresh-cw")} Swap changes only that slot</span><span>${icon("scan-line")} Clean creates a derived flat lay</span></div>
+    <div class="fit-board-sheet">
+      <div class="fit-board-grabber"></div>
+      <div class="fit-board-scores"><div><small>Style score</small><strong>${styleScore || "—"}<em>/100</em></strong></div><div><small>Readiness</small><strong>${readiness.score ?? "—"}<em>/100</em></strong><span>${esc(readiness.assessed ? readiness.read : "Set a location only when you want weather guidance")}</span></div></div>
+      ${chips.length?`<div class="fit-board-context-chips">${chips.map(chip=>`<span>${esc(chip)}</span>`).join("")}</div>`:""}
+      <div class="fit-board-before"><span>Before you judge</span><dl><div><dt>Style lane</dt><dd>${esc(lane)}</dd></div><div><dt>Hero piece</dt><dd>${esc(hero?.name || "Choose a hero")}</dd></div><div><dt>Silhouette</dt><dd>${esc(silhouette)}</dd></div><div><dt>Environment</dt><dd>${esc(readiness.assessed ? readiness.context : "Informational only")}</dd></div></dl></div>
+    </div>
+    <div class="fit-board-legend"><span>${icon("lock-keyhole")} Keep preserves the piece</span><span>${icon("refresh-cw")} Swap changes only that slot</span><span>${icon("scan-line")} Clean keeps the original and adds a derived flat lay</span></div>
     <div class="fit-board-actions">
       <button class="ghost" data-action="studioBattle">${icon("swords")}Build 3 Directions</button>
       <button class="primary" data-action="generateFitMockup">${icon("image-plus")}See It On Me</button>
@@ -6723,7 +6855,7 @@ function renderOutfits(){
       <button class="ghost" style="width:100%;margin-top:6px;font-size:11px;color:var(--muted);border:none;padding:4px" data-action="skipFitRating">Skip</button>
     </div>` : "";
   document.getElementById("view").innerHTML =
-    header(archivePageTitle("outfits"), archiveHeaderSub(`AI FireFit target ${target}+ · build or manually pick, then judge`)) +
+    header(archivePageTitle("outfits"), archiveHeaderSub("Pick what you want to wear, or let Hermes build it")) +
     ratingPrompt +
     newUserProgressBanner() +
     studioViewTabs() +
@@ -6752,7 +6884,6 @@ function renderOutfits(){
           <div class="filters" style="padding-bottom:4px;flex-wrap:wrap;overflow:visible">
             ${OUTFIT_DRESS_CODES.map(v=>`<button class="pill ${(currentFit.dressCode||"smart casual")===v?"on":""}" data-dress-code="${v}">${v}</button>`).join("")}
           </div>
-          <div class="gap-item" style="margin-top:10px"><strong>Outfit Studio brief</strong><br>${esc(outfitStudioBrief())}</div>
           ${judgeContextControls()}
         </div>
         ${aiRuntimeStatusCard()}
@@ -6760,10 +6891,9 @@ function renderOutfits(){
         <button class="primary" style="width:100%;margin-bottom:8px" data-action="random">${icon("wand-sparkles")}AI Build FireFit</button>
         ${_fitPieceCount > 0 && fitNeedsCompletion(currentFit) ? `<button class="ghost" style="width:100%;margin-bottom:8px;border-color:var(--gold);color:var(--gold);background:rgba(209,163,94,.1);font-weight:600" data-action="completeFit">${icon("lock-keyhole")}Build Around Selected · ${_fitPieceCount} piece${_fitPieceCount===1?"":"s"}</button>` : ""}
         ${_fitPieceCount > 0 ? `<button class="ghost" style="width:100%;margin-bottom:8px" data-action="runCompleteTheFit">${icon("sparkles")}What's Missing?</button>` : ""}
-        <div class="gap-item" style="margin-bottom:8px">AI target: ${target}+. Last build: ${currentFit.fireTarget ? currentFit.fireTarget+"/100" : "not built yet"}${weatherLine}${sourceLine}.</div>
+        ${buildExplanationCard()}
         <button class="ghost" style="width:100%;margin-bottom:8px" data-action="judgeFit">${icon("wand-sparkles")}Judge Fit</button>
         <button class="ghost" style="width:100%;margin-bottom:6px;border-color:var(--gold);color:var(--gold);background:rgba(209,163,94,.08);font-weight:600" data-action="generateFitMockup" title="Generate a high-quality on-body image from the selected pieces">${icon("image-plus")}Generate On-Body Mockup</button>
-        <div class="section-sub" style="margin:0 0 10px">Uses the actual item photos · high quality · saves to Fit Gallery</div>
         <button class="ghost" style="width:100%;margin-bottom:8px" data-action="saveFit">${icon("save")}${editingName ? "Update Saved Fit" : "Save Current Fit"}</button>
         ${currentJudgement?.score && currentJudgement.score !== "..." ? `<button class="ghost" style="width:100%;margin-bottom:8px;border-color:rgba(209,163,94,.5);color:var(--gold)" data-action="shareFit">${icon("share-2")}Share Judged Fit</button>` : ""}
         <button class="ghost" style="width:100%;margin-bottom:8px;border-color:var(--gold);color:var(--gold);background:rgba(209,163,94,.12);font-weight:600" data-action="wearFit">${icon("calendar-check")}Wore Today${(state.wearLog||[]).length?` · ${(state.wearLog||[]).length} logged`:""}</button>
@@ -6787,14 +6917,11 @@ function renderOutfits(){
         </div>
       </div>`}
     </div>
-    ${colorHarmonyCard()}
-    ${fitScentCard()}
-    ${completeFitCard()}
+    ${fitDetailsDrawer()}
     ${_studioView === "battle" ? "" : candidateCards()}
     ${fitMockupCard()}
     </div>
     <aside class="style-os-stylist-panel" aria-label="Stylist read">
-      ${builderConfidenceCard()}
       ${fitFeedbackCard()}
       ${currentJudgement ? judgeCard(currentJudgement) : `<div class="style-os-empty-verdict"><span>Stylist</span><strong>Build or pick a fit</strong><p>Your style lane, silhouette, evidence, and independent readiness score will appear here.</p><button class="primary" data-action="judgeFit">${icon("wand-sparkles")}Judge This Fit</button></div>`}
     </aside>
@@ -6805,6 +6932,70 @@ function renderOutfits(){
       : `<div class="empty">No saved outfits yet.</div>`}
     ${fitPhotoGallery()}`;
   hydrateIcons();
+}
+// One drawer instead of four stacked explanation panels. The board, the
+// candidates, the mockup and the verdict stay full size; the reasoning behind
+// them is one tap away rather than competing for the same screen.
+// Plain-language account of what the builder did and why, from signals the app
+// already stores — no invented reasoning. Answers hero piece, style lane, and
+// why these pants / why these shoes.
+function undertoneOf(x){
+  try{ return (itemVisualMeta(x)?.undertone || "").toLowerCase(); }catch(e){ return ""; }
+}
+function undertoneFamily(t){
+  if(/warm|golden|amber|olive|tan|brown|red/.test(t)) return "warm";
+  if(/cool|blue|grey|gray|green|violet|ash/.test(t)) return "cool";
+  if(/neutral/.test(t)) return "neutral";
+  return "";
+}
+function slotWhyLine(slot, fit){
+  const item = fit[slot];
+  if(!item?.id) return "";
+  const locked = (fit.lockedItemIds || []).includes(item.id);
+  const anchor = slot === "shoes"
+    ? (fit.bottoms || fit.midLayer || fit.baseLayer)
+    : (fit.midLayer || fit.baseLayer || fit.outerwear);
+  const bits = [];
+  const material = (item.fabric || "").trim();
+  if(item.color) bits.push(esc(item.color));
+  if(material) bits.push(esc(material));
+  if(locked){
+    bits.push("you locked this");
+  }else if(anchor?.id){
+    const a = undertoneFamily(undertoneOf(anchor)), b = undertoneFamily(undertoneOf(item));
+    if(a && b) bits.push(a === b ? `undertone agrees with the ${esc(anchor.name)}` : `${b} against the ${a} ${esc(anchor.name)}`);
+    else bits.push(`chosen against the ${esc(anchor.name)}`);
+  }
+  return `<div class="fit-why-row"><span>Why these ${slot === "shoes" ? "shoes" : "pants"}</span>
+    <strong>${esc(itemLabel(item))}</strong><small>${bits.join(" · ")}</small></div>`;
+}
+function buildExplanationCard(){
+  const pieces = currentFitPieces();
+  if(!Object.keys(pieces).length) return "";
+  const hero = currentFit.heroPiece || fitHeroName(currentFit) || "";
+  const lane = currentFit.styleLane || currentFit.concept || inferStyleLaneForFit(pieces) || "";
+  const silhouette = currentFit.silhouette || fitSilhouetteText(pieces) || "";
+  const rows = [slotWhyLine("bottoms", currentFit), slotWhyLine("shoes", currentFit)].filter(Boolean).join("");
+  if(!hero && !lane && !rows) return "";
+  return `<div class="fit-explain">
+    ${hero ? `<div class="fit-why-row"><span>Hero piece</span><strong>${esc(hero)}</strong></div>` : ""}
+    ${lane ? `<div class="fit-why-row"><span>Style lane</span><strong>${esc(lane)}</strong>${silhouette ? `<small>${esc(silhouette)}</small>` : ""}</div>` : ""}
+    ${rows}
+  </div>`;
+}
+function fitDetailsDrawer(){
+  const parts = [builderConfidenceCard(), colorHarmonyCard(), fitScentCard(), completeFitCard()]
+    .filter(x=>x && String(x).trim());
+  if(!parts.length) return "";
+  const labels = [];
+  if(currentFit.heroPiece) labels.push(esc(currentFit.heroPiece));
+  const lane = currentFit.styleLane || currentFit.concept;
+  if(lane) labels.push(esc(lane));
+  const sub = labels.length ? labels.join(" · ") : `${parts.length} read${parts.length===1?"":"s"}`;
+  return `<details class="panel fit-details-drawer">
+    <summary><span>${icon("info")} Details</span><small>${sub}</small></summary>
+    <div class="fit-details-body">${parts.join("")}</div>
+  </details>`;
 }
 function fitNeedsCompletion(fit){
   const hasTop = Boolean(fit.baseLayer || fit.midLayer || fit.outerwear);
@@ -7632,6 +7823,32 @@ function archiveHealthStats(){
   return {records,local,cloud,external,assets,bytes,mb,pct,missingItemPhotos,missingVisualMeta,missingMeasurements,missingFitNotes,missingCategory,unavailable,incompleteIds,mockups};
 }
 
+// The health card counted problems but gave you nowhere to fix them. This lists
+// the actual records behind each count, with a tap straight into that item.
+function archiveRepairGroup(title, items, hint){
+  const list = (items || []).filter(x=>x && x.id);
+  if(!list.length) return "";
+  const shown = list.slice(0, 8);
+  const rest = list.length - shown.length;
+  return `<div class="archive-repair-group">
+    <div class="archive-repair-head"><strong>${esc(title)}</strong><small>${list.length} · ${esc(hint)}</small></div>
+    <div class="archive-repair-items">
+      ${shown.map(x=>`<button class="ghost archive-repair-item" data-edit="${esc(x.id)}">
+        <span>${esc(itemLabel(x))}</span><small>${esc(x.category || x.type || "")}</small></button>`).join("")}
+      ${rest > 0 ? `<div class="archive-repair-more">+${rest} more</div>` : ""}
+    </div>
+  </div>`;
+}
+function archiveRepairList(s){
+  const groups = [
+    archiveRepairGroup("Missing photos", s.missingItemPhotos, "add an image"),
+    archiveRepairGroup("No visual scan", s.missingVisualMeta, "colour and material unknown to the AI"),
+    archiveRepairGroup("Still on this phone", s.local, "move to cloud to free storage"),
+    archiveRepairGroup("Unavailable", s.unavailable, "excluded from AI builds")
+  ].filter(Boolean);
+  if(!groups.length) return `<div class="gap-item" style="margin-top:10px"><strong>Nothing to repair.</strong><br>Every record has a photo, a visual scan, and is available to the builder.</div>`;
+  return `<div class="archive-repair">${groups.join("")}</div>`;
+}
 function archiveHealthCard(){
   const s = archiveHealthStats();
   const cloudStatus = cloudStatusText();
@@ -7660,6 +7877,7 @@ function archiveHealthCard(){
       <div class="gap-item"><strong>${esc(risk)}</strong><br>${esc(next)}</div>
       <div class="gap-item"><strong>Cloud backup</strong><br>${esc(cloudStatus)}</div>
     </div>
+    ${archiveRepairList(s)}
     <div class="wishlist-actions">
       <button class="primary" data-action="cloudPhotos">${icon("image-up")}Upload Photos to Cloud</button>
       <button class="ghost" data-action="cloudBackup">${icon("cloud-upload")}Back Up Archive</button>
@@ -8998,6 +9216,10 @@ function openScentProfileEditor(id){
   document.getElementById("sProfileMood").value = x.scentMood || "";
   document.getElementById("sProfileRating").value = String(fragrancePersonalRating(x) || 0);
   document.getElementById("sProfileRank").value = topTenRank(x) || "";
+  document.getElementById("sProfileMinTemp").value = Number.isFinite(Number(x.minTempF)) ? x.minTempF : "";
+  document.getElementById("sProfileMaxTemp").value = Number.isFinite(Number(x.maxTempF)) ? x.maxTempF : "";
+  document.getElementById("sProfileSweetMin").value = Number.isFinite(Number(x.sweetSpotMinF)) ? x.sweetSpotMinF : "";
+  document.getElementById("sProfileSweetMax").value = Number.isFinite(Number(x.sweetSpotMaxF)) ? x.sweetSpotMaxF : "";
   document.getElementById("sProfileAccords").value = profile ? fragranceProfileAccordsLine(profile).replace(/^No public Parfumo accords found yet\.$/,"") : "";
   document.getElementById("sProfilePyramid").value = profilePyramidText(profile);
   document.getElementById("scentProfileModal").classList.add("open");
@@ -9031,6 +9253,8 @@ function submitScentProfile(e){
   const mood = document.getElementById("sProfileMood").value.trim();
   const rating = Number(document.getElementById("sProfileRating").value) || 0;
   const rank = Number(document.getElementById("sProfileRank").value) || 0;
+  const temperatureInputs = ["sProfileMinTemp","sProfileMaxTemp","sProfileSweetMin","sProfileSweetMax"].map(id=>document.getElementById(id).value.trim());
+  const temperatureValues = temperatureInputs.map(value=>value==="" ? null : Number(value));
   const accords = splitProfileList(document.getElementById("sProfileAccords").value);
   const notes = parseProfilePyramid(document.getElementById("sProfilePyramid").value);
   if(season) x.color = season;
@@ -9048,6 +9272,16 @@ function submitScentProfile(e){
     x.topTenDate ||= new Date().toISOString();
   }else if(!rank){
     x.topTenRank = 0;
+  }
+  if(temperatureValues.every(value=>value===null)){
+    delete x.minTempF; delete x.maxTempF; delete x.sweetSpotMinF; delete x.sweetSpotMaxF;
+  }else{
+    const [minTempF,maxTempF,sweetSpotMinF,sweetSpotMaxF] = temperatureValues;
+    if(temperatureValues.some(value=>value===null || !Number.isFinite(value)) || minTempF>maxTempF || sweetSpotMinF>sweetSpotMaxF || sweetSpotMinF<minTempF || sweetSpotMaxF>maxTempF){
+      toast("Use a complete range, with the sweet spot inside the recommended range");
+      return;
+    }
+    Object.assign(x,{minTempF,maxTempF,sweetSpotMinF,sweetSpotMaxF});
   }
   if(accords.length || notes.top.length || notes.heart.length || notes.base.length || notes.all.length){
     const existing = storedFragranceProfile(x) || fragranceProfiles[fragranceProfileKey(x)] || {};
@@ -10183,7 +10417,7 @@ function proxiedImageUrl(url){
   if(/vercel-storage\.com|blob\.vercel|\/api\/(photo|img)\b/i.test(raw)) return raw; // already ours / proxied
   return "/api/img?url=" + encodeURIComponent(raw);
 }
-const PLACEHOLDER_IMG = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='54' height='70'%3E%3Crect width='54' height='70' fill='%23241f18'/%3E%3Ctext x='27' y='38' font-size='9' fill='%23887' text-anchor='middle'%3Eno img%3C/text%3E%3C/svg%3E";
+const PLACEHOLDER_IMG = "data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 width=%2754%27 height=%2770%27%3E%3Crect width=%2754%27 height=%2770%27 fill=%27%23241f18%27/%3E%3Ctext x=%2727%27 y=%2738%27 font-size=%279%27 fill=%27%23887%27 text-anchor=%27middle%27%3Eno img%3C/text%3E%3C/svg%3E";
 function inspirationCategoryFromSlot(slot){
   const text = String(slot || "").toLowerCase();
   if(/hat|cap|beanie/.test(text)) return "Hats";
@@ -11322,26 +11556,13 @@ function builderDiversityBonus(candidate){
   if(hero && !recentBuilderFits.slice(0,4).some(f=>f.heroPiece === hero)) bonus += 8;
   return bonus;
 }
-// A piece Devin locks is an explicit override of the weather read. The
-// build-around exemption covered locked BOTTOMS only, so locking outerwear or
-// shoes let materialWeatherLogic reject every candidate. Forgive only when the
-// candidate carries a locked piece AND every remaining complaint is the
-// weather metric — real style failures still reject.
-function lockedPieceExplainsCoherenceFailure(candidate, locked, coherence){
-  const lockedEntries = Object.entries(locked || {}).filter(([,x])=>x?.id);
-  if(!lockedEntries.length) return false;
-  if(!lockedEntries.some(([slot,x])=>candidate?.[slot]?.id === x.id)) return false;
-  const reasons = coherence?.rejectionReasons || [];
-  if(!reasons.length) return false;
-  return reasons.every(reason=>/materialWeatherLogic/i.test(reason));
-}
 function rejectBuilderCandidate(candidate, context={}){
   const c = normalizeLegacyAccessorySlots({...candidate});
   const locked = context.lockedSlots || {};
   const buildAround = Boolean(context.buildAround);
   const plan = context.weatherPlan || weatherLayerPlan(currentFit.weatherTemp,currentFit.weatherCondition,currentFit.vibe,context.lockedSlot || "");
   const coherence = evaluateStyleCoherence(c, plan, HERMES_STYLE_PROFILE, recentBuilderFits);
-  if(!coherence.pass && !(buildAround && locked.bottoms?.id === c.bottoms?.id) && !lockedPieceExplainsCoherenceFailure(c, locked, coherence)){
+  if(!coherence.pass && !(buildAround && locked.bottoms?.id === c.bottoms?.id)){
     return `style coherence gate failed: ${coherence.rejectionReasons.join("; ")}`;
   }
   const viableBottomCount = viableBottomsForPlan(plan).length;
@@ -11399,9 +11620,7 @@ function validateFinalBuilderFit(candidate, context={}){
   const coherence = evaluateStyleCoherence(c, plan, HERMES_STYLE_PROFILE, recentBuilderFits);
   if(!coherence.pass){
     const onlyLockedBottom = locked.bottoms?.id && locked.bottoms.id === c.bottoms?.id && coherence.rejectionReasons.every(reason=>/bottom|cargo|pant/i.test(reason));
-    if(!onlyLockedBottom && !lockedPieceExplainsCoherenceFailure(c, locked, coherence)){
-      reasons.push(...coherence.rejectionReasons.map(reason=>`style coherence: ${reason}`));
-    }
+    if(!onlyLockedBottom) reasons.push(...coherence.rejectionReasons.map(reason=>`style coherence: ${reason}`));
   }
   const last = recentBuilderFits[0];
   const bottomLocked = Boolean(c.bottoms?.id && lockedIds.has(c.bottoms.id));
@@ -14977,8 +15196,7 @@ async function openAiResponse(payload){
       const proxy = await fetch(serverPath,{
         method:"POST",
         headers:{"Content-Type":"application/json"},
-        body:JSON.stringify(payload),
-        signal:AbortSignal.timeout(AI_REQUEST_TIMEOUT_MS)
+        body:JSON.stringify(payload)
       });
       if(proxy.ok){
         const json = await proxy.json();
@@ -14994,9 +15212,6 @@ async function openAiResponse(payload){
       if(proxy.status === 500) throw new Error("Vercel AI key missing or OpenAI rejected the request" + detail);
       throw new Error("AI request failed (" + proxy.status + ")" + detail);
     }catch(e){
-      if(e && (e.name === "TimeoutError" || e.name === "AbortError")){
-        throw new Error(`AI took longer than ${Math.round(AI_REQUEST_TIMEOUT_MS/1000)}s to respond, so the fit was completed locally instead`);
-      }
       throw e;
     }
   }
@@ -15007,8 +15222,7 @@ async function openAiResponse(payload){
   const direct = await fetch("https://api.openai.com/v1/responses",{
     method:"POST",
     headers:{"Content-Type":"application/json","Authorization":"Bearer "+key},
-    body:JSON.stringify(payload),
-    signal:AbortSignal.timeout(AI_REQUEST_TIMEOUT_MS)
+    body:JSON.stringify(payload)
   });
   if(!direct.ok){
     let detail = "";
@@ -16315,8 +16529,7 @@ async function cloudSyncRequest(payload){
   const response = await fetch("/api/cloud-sync", {
     method:"POST",
     headers:{"Content-Type":"application/json"},
-    body:JSON.stringify(payload),
-    signal:AbortSignal.timeout(SYNC_REQUEST_TIMEOUT_MS)
+    body:JSON.stringify(payload)
   });
   const data = await response.json().catch(()=>({}));
   if(!response.ok) throw new Error(data.error || "Cloud backup failed");
@@ -18921,6 +19134,12 @@ document.addEventListener("click", e => {
     render();
     return;
   }
+  const temperatureFilter = e.target.closest("[data-temperature-filter]");
+  if(temperatureFilter){
+    _fragranceTemperatureFilter = temperatureFilter.dataset.temperatureFilter || "all";
+    renderFragrance();
+    return;
+  }
   const topShelfMove = e.target.closest("[data-top-shelf-move]");
   if(topShelfMove){ moveTopShelfItem(topShelfMove.dataset.topShelfMove, topShelfMove.dataset.dir); return; }
   const topTen = e.target.closest("[data-top-ten]");
@@ -19110,6 +19329,7 @@ document.addEventListener("click", e => {
   const boardAction = e.target.closest("[data-board-action]");
   if(boardAction){
     const slotName = boardAction.dataset.boardSlot;
+    if(boardAction.dataset.boardAction === "hero") setBoardHero(slotName);
     if(boardAction.dataset.boardAction === "keep") toggleBoardKeep(slotName);
     if(boardAction.dataset.boardAction === "swap") swapBoardPiece(slotName);
     if(boardAction.dataset.boardAction === "remove") removeBoardPiece(slotName);
@@ -19211,6 +19431,25 @@ document.addEventListener("click", e => {
   const mockupCorrection = e.target.closest("[data-mockup-correction]");
   if(mockupCorrection){ applyMockupCorrection(mockupCorrection.dataset.mockupCorrection); return; }
   const action = e.target.closest("[data-action]")?.dataset.action;
+  if(action === "openTemperatureMap"){ _fragranceTemperatureMapOpen = true; _fragranceTemperaturePreview = null; renderFragrance(); document.querySelector(".content")?.scrollTo(0,0); window.scrollTo(0,0); return; }
+  if(action === "closeTemperatureMap"){ _fragranceTemperatureMapOpen = false; _fragranceTemperaturePreview = null; renderFragrance(); document.querySelector(".content")?.scrollTo(0,0); window.scrollTo(0,0); return; }
+  if(action === "resetTemperaturePreview"){ _fragranceTemperaturePreview = null; renderFragrance(); return; }
+  if(action === "temperatureMapInfo"){ toast("Gold is the sweet spot. Muted bars are wearable ranges. Weather is guidance, never a rule."); return; }
+  if(action === "pairTemperatureScent"){
+    const id = e.target.closest("[data-fragrance-id]")?.dataset.fragranceId;
+    const scent = state.items.find(item=>item.id===id && item.type==="fragrance");
+    if(!scent){ toast("No weather match is available yet"); return; }
+    currentFit.fragrance = scent;
+    currentFit.builderSource = "Temperature Map";
+    saveCurrentFitDraft();
+    _fragranceTemperatureMapOpen = false;
+    activeTab = "outfits";
+    _studioView = "board";
+    localStorage.setItem("fits_studio_view_v1",_studioView);
+    render();
+    toast(`${scent.name} added to the current fit`);
+    return;
+  }
   if(action === "todayWeather"){ refreshTodayWeather(); return; }
   if(action === "todayBuild"){ buildTodayFit(); return; }
   if(action === "todayViewFit"){ activeTab="outfits"; render(); return; }
@@ -19400,6 +19639,20 @@ document.addEventListener("input", e => {
     const label = weatherTemp.closest(".judge-card")?.querySelector("[data-weather-temp-label]");
     if(label) label.textContent = `${weatherScentPrefs.temp}°F`;
   }
+  const temperaturePreview = e.target.closest("[data-temperature-preview]");
+  if(temperaturePreview){
+    _fragranceTemperaturePreview = Number(temperaturePreview.value);
+    const screen = temperaturePreview.closest(".temperature-map-screen");
+    const items = fragranceTemperatureItems();
+    const scale = fragranceTemperatureScale(items);
+    const position = FragranceTemperature.temperatureToChartPosition(_fragranceTemperaturePreview,scale.low,scale.high);
+    const chart = screen?.querySelector(".temperature-chart");
+    if(chart) chart.style.setProperty("--temp-now",`${position}%`);
+    const flag = screen?.querySelector(".temp-map-flag");
+    if(flag){ flag.style.left=`${position}%`; flag.textContent=`${Math.round(_fragranceTemperaturePreview)}°F`; }
+    const label = screen?.querySelector(".temp-map-scrubber label strong");
+    if(label) label.textContent = `${Math.round(_fragranceTemperaturePreview)}°F`;
+  }
 });
 document.addEventListener("change", e => {
   const batchApprove = e.target.closest("[data-batch-approve]");
@@ -19429,6 +19682,12 @@ document.addEventListener("change", e => {
     weatherScentPrefs.temp = Number(weatherTemp.value) || 58;
     currentWeatherScent = null;
     render();
+  }
+  const temperaturePreview = e.target.closest("[data-temperature-preview]");
+  if(temperaturePreview){
+    _fragranceTemperaturePreview = Number(temperaturePreview.value);
+    renderFragrance();
+    return;
   }
   const fragranceHouseSelect = e.target.closest("[data-fragrance-house-select]");
   if(fragranceHouseSelect){
@@ -19693,6 +19952,7 @@ async function loadProtectedStyleOsPreviewArchive(){
     ensureCriticalStarterItems(previewState, previewSeen, previewDismissed);
     normalizeTopTenRanksForItems(previewState.items);
     state = previewState;
+    applyFragranceTemperatureSeedDataV219({persist:false});
     document.documentElement.dataset.recoveryPreview = "verified";
     render();
     return true;
@@ -19765,6 +20025,7 @@ if(["127.0.0.1","localhost"].includes(location.hostname)){
 }
 const topShelfIntegrity = restoreEmptyTopShelfFromProtectedArchive();
 const archiveValueIntegrity = restoreProtectedArchiveValueV218();
+const fragranceTemperatureIntegrity = applyFragranceTemperatureSeedDataV219();
 render();
 if(topShelfIntegrity.restored) setTimeout(()=>toast(`Top Shelf restored · ${topShelfIntegrity.restored}/${TOP_SHELF_LIMIT}`),120);
 else if(archiveValueIntegrity.added || archiveValueIntegrity.repriced) setTimeout(()=>toast(`Archive restored · ${archiveValueIntegrity.added} pieces + ${archiveValueIntegrity.repriced} values`),120);
