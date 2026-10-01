@@ -18,7 +18,7 @@
 <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;1,300;1,400;1,500;1,600&family=Geist:wght@300;400;500;600;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="assets/fits-app.css?v=178">
 <link rel="stylesheet" href="assets/style-os.css?v=5">
-<link rel="stylesheet" href="assets/vision-board.css?v=9">
+<link rel="stylesheet" href="assets/vision-board.css?v=10">
 </head>
 <body>
 <div class="app">
@@ -4321,7 +4321,7 @@ function visionPieceMarkup(piece){
     ${activeSlot?`<span class="vision-piece-active">IN OUTFIT · ${esc(slotLabel(activeSlot))}</span>`:""}
     <span class="vision-piece-depth">${depthLabel}</span>
     <div class="vision-piece-caption"><strong>${esc(item.name)}</strong><small>${esc(item.color || item.brand)}</small></div>
-    <div class="vision-piece-tools">${allowed.length>1?`<select data-vision-slot-select="${esc(piece.id)}" aria-label="Outfit slot for ${esc(item.name)}">${allowed.map(slot=>`<option value="${esc(slot)}" ${slot===chosenSlot?"selected":""}>${esc(slotLabel(slot))}</option>`).join("")}</select>`:""}<button type="button" class="vision-use-fit${activeSlot?" on":""}" data-vision-control="fit" data-vision-id="${esc(piece.id)}" aria-label="${activeSlot?"Remove":"Use"} ${esc(item.name)} ${activeSlot?"from":"in"} outfit" title="${activeSlot?"Remove from outfit":"Use in outfit"}">${activeSlot?"✓":"+ Fit"}</button>${photo?"":`<button type="button" data-vision-control="photo" data-vision-id="${esc(piece.id)}" aria-label="Add photo for ${esc(item.name)}" title="Add photo">⌑</button>`}<button type="button" data-vision-control="smaller" data-vision-id="${esc(piece.id)}" aria-label="Make ${esc(item.name)} smaller">−</button><button type="button" data-vision-control="larger" data-vision-id="${esc(piece.id)}" aria-label="Make ${esc(item.name)} larger">+</button><button type="button" data-vision-control="back" data-vision-id="${esc(piece.id)}" aria-label="Send ${esc(item.name)} backward" title="Send backward">↓</button><button type="button" data-vision-control="front" data-vision-id="${esc(piece.id)}" aria-label="Bring ${esc(item.name)} forward" title="Bring forward">↑</button><button type="button" data-vision-control="remove" data-vision-id="${esc(piece.id)}" aria-label="Remove ${esc(item.name)} from board">×</button></div>
+    <div class="vision-piece-tools">${allowed.length>1?`<select data-vision-slot-select="${esc(piece.id)}" aria-label="Outfit slot for ${esc(item.name)}">${allowed.map(slot=>`<option value="${esc(slot)}" ${slot===chosenSlot?"selected":""}>${esc(slotLabel(slot))}</option>`).join("")}</select>`:""}<button type="button" class="vision-use-fit${activeSlot?" on":""}" data-vision-control="fit" data-vision-id="${esc(piece.id)}" aria-label="${activeSlot?"Remove":"Use"} ${esc(item.name)} ${activeSlot?"from":"in"} outfit" title="${activeSlot?"Remove from outfit":"Use in outfit"}">${activeSlot?"✓":"+ Fit"}</button>${photo?`<button type="button" class="vision-clean-btn${item.cutoutPhoto?" on":""}" data-vision-control="cutout" data-vision-id="${esc(piece.id)}" aria-label="Clean ${esc(item.name)} background for layering" title="${_cutoutJobs.has(item.id)?"Cleaning…":item.cutoutPhoto?"Redo the clean cutout":"Remove the background so this layers cleanly"}" ${_cutoutJobs.has(item.id)?"disabled":""}>${_cutoutJobs.has(item.id)?"…":"Clean"}</button>`:""}${photo?"":`<button type="button" data-vision-control="photo" data-vision-id="${esc(piece.id)}" aria-label="Add photo for ${esc(item.name)}" title="Add photo">⌑</button>`}<button type="button" data-vision-control="smaller" data-vision-id="${esc(piece.id)}" aria-label="Make ${esc(item.name)} smaller">−</button><button type="button" data-vision-control="larger" data-vision-id="${esc(piece.id)}" aria-label="Make ${esc(item.name)} larger">+</button><button type="button" data-vision-control="back" data-vision-id="${esc(piece.id)}" aria-label="Send ${esc(item.name)} backward" title="Send backward">↓</button><button type="button" data-vision-control="front" data-vision-id="${esc(piece.id)}" aria-label="Bring ${esc(item.name)} forward" title="Bring forward">↑</button><button type="button" data-vision-control="remove" data-vision-id="${esc(piece.id)}" aria-label="Remove ${esc(item.name)} from board">×</button></div>
   </div>`;
 }
 function visionLayerStackMarkup(board){
@@ -4481,6 +4481,13 @@ function changeVisionPiece(id,action){
   const piece = board.pieces.find(entry=>entry.id===id);
   if(!piece) return;
   if(action === "photo"){ openItem(piece.itemId,"wardrobe","fPhoto"); return; }
+  if(action === "cutout"){
+    const target = visionPieceItem(piece);
+    // transparent: the board layers pieces over each other, so a cut-out with a
+    // knocked-out background is what makes "behind / in front" actually read.
+    if(target) createGarmentCutoutForItem(target,{transparent:true});
+    return;
+  }
   if(action === "fit"){ toggleVisionPieceInFit(piece); return; }
   if(action === "remove") board.pieces = board.pieces.filter(entry=>entry.id!==id);
   // Proportional steps: +/-3 took ~18 taps to cross the range and felt far
@@ -7408,78 +7415,6 @@ function fitBoardHeroSlot(){
   if(FIT_SLOTS.includes(preferred) && currentFit[preferred]) return preferred;
   return ["outerwear","midLayer","bottoms","baseLayer","shoes"].find(slot=>currentFit[slot]) || "midLayer";
 }
-function setBoardHero(slot){
-  const item = currentFit[slot];
-  if(!item) return;
-  currentFit.heroSlot = slot;
-  currentFit.heroPiece = item.name || itemLabel(item);
-  currentFit.pieceFeedback = [...(currentFit.pieceFeedback||[]),{slot,itemId:item.id,signal:"hero",at:new Date().toISOString()}].slice(-40);
-  saveCurrentFitDraft();
-  render();
-  toast(`${item.name} is leading the fit`);
-}
-function fitBoardPiece(slot,item,scale="regular",isHero=false){
-  if(!item){
-    return `<button class="fit-board-piece empty ${esc(scale)} ${isHero?"board-hero":""}" data-slot="${esc(slot)}">
-      ${isHero?`<span class="fit-board-hero-badge">Hero</span>`:""}
-      ${icon("plus")}<span>${esc(slotLabel(slot))}</span>
-    </button>`;
-  }
-  const photo = displayBoardPhoto(item);
-  const locked = (currentFit.lockedItemIds || []).includes(item.id);
-  const cleaning = _cutoutJobs.has(item.id);
-  return `<article class="fit-board-piece filled ${esc(scale)} ${locked?"kept":""} ${isHero?"board-hero":""}" data-board-piece="${esc(slot)}">
-    <button class="fit-board-hero-toggle ${isHero?"on":""}" data-board-action="hero" data-board-slot="${esc(slot)}" title="${isHero?"Hero piece":"Make this the hero piece"}" aria-label="${isHero?"Current hero piece":"Make this the hero piece"}">${isHero?"Hero":icon("star")}</button>
-    <button class="fit-board-image" data-slot="${esc(slot)}" title="Choose another ${esc(slotLabel(slot))}">
-      ${photo ? `<img src="${esc(photo)}" alt="${esc(itemLabel(item))}" onerror="this.onerror=null;this.src='${PLACEHOLDER_IMG}'">` : icon("shirt")}
-    </button>
-    <div class="fit-board-caption"><small>${esc(slotLabel(slot))}</small><strong title="${esc(itemLabel(item))}">${esc(item.name || item.brand)}</strong></div>
-    <div class="fit-board-piece-actions">
-      <button data-board-action="keep" data-board-slot="${esc(slot)}" title="${locked?"Unlock this piece":"Keep this exact piece"}" aria-label="${locked?"Unlock":"Keep"} ${esc(item.name||"")}">${icon(locked?"lock-keyhole":"lock-open")}</button>
-      <button data-board-action="swap" data-board-slot="${esc(slot)}" title="Swap only this piece" aria-label="Swap ${esc(item.name||"")}">${icon("refresh-cw")}</button>
-      ${photo ? `<button data-board-action="cutout" data-board-slot="${esc(slot)}" title="${item.cutoutPhoto?"Refresh clean flat lay":"Create clean flat lay"}" aria-label="Create clean flat lay">${icon(cleaning?"loader-circle":"scan-line")}</button>` : ""}
-      <button data-board-action="remove" data-board-slot="${esc(slot)}" title="Remove only this piece" aria-label="Remove ${esc(item.name||"")}">${icon("x")}</button>
-    </div>
-  </article>`;
-}
-function visualFitBoard(){
-  if(_outfitComparison?.active) return renderOutfitComparison();
-  const heroSlot = fitBoardHeroSlot();
-  const apparelSlots = ["outerwear","midLayer","baseLayer","bottoms","shoes"];
-  const supportSlots = apparelSlots.filter(slot=>slot!==heroSlot);
-  const accessories = ["socks","hat","watch","belt","detail","fragrance"];
-  const readiness = environmentReadinessForFit(currentFit);
-  const styleScore = Number(currentStyleScore());
-  const lane = currentFit.styleLane || (Object.keys(currentFitPieces()).length ? inferStyleLaneForFit(currentFit) : "Build your direction");
-  const hero = currentFit[heroSlot];
-  const silhouette = currentFit.silhouette || (Object.keys(currentFitPieces()).length ? fitSilhouetteText(currentFit) : "Add a top and bottom to establish proportion");
-  const fitName = currentFit.editingOutfitName || currentFit.concept || "Untitled fit";
-  const chips = [currentFit.vibe,currentFit.occasion,currentFit.dressCode,currentFit.colorDirection].filter(Boolean).slice(0,4);
-  return `<section class="fit-board" aria-label="Visual outfit board">
-    <div class="fit-board-head">
-      <div><div class="panel-title">Outfit Studio</div><h3>${esc(fitName)}</h3><div class="section-sub">Build around one hero. Keep, swap, or clean any piece without losing the rest.</div></div>
-      <span>${Object.keys(currentFitPieces()).length} selected</span>
-    </div>
-    <div class="fit-board-canvas">
-      <div class="fit-board-hero">${fitBoardPiece(heroSlot,currentFit[heroSlot],"hero",true)}</div>
-      <div class="fit-board-support">${supportSlots.map(slot=>fitBoardPiece(slot,currentFit[slot],"support")).join("")}</div>
-      <div class="fit-board-accessory-wrap"><div class="fit-board-rail-label"><span>Finish the look</span><small>Swipe for accessories</small></div><div class="fit-board-accessories">${accessories.map(slot=>fitBoardPiece(slot,currentFit[slot],"small")).join("")}</div></div>
-    </div>
-    <div class="fit-board-sheet">
-      <div class="fit-board-grabber"></div>
-      <div class="fit-board-scores"><div><small>Style score</small><strong>${styleScore || "—"}<em>/100</em></strong></div><div><small>Readiness</small><strong>${readiness.score ?? "—"}<em>/100</em></strong><span>${esc(readiness.assessed ? readiness.read : "Set a location only when you want weather guidance")}</span></div></div>
-      ${chips.length?`<div class="fit-board-context-chips">${chips.map(chip=>`<span>${esc(chip)}</span>`).join("")}</div>`:""}
-      <div class="fit-board-before"><span>Before you judge</span><dl><div><dt>Style lane</dt><dd>${esc(lane)}</dd></div><div><dt>Hero piece</dt><dd>${esc(hero?.name || "Choose a hero")}</dd></div><div><dt>Silhouette</dt><dd>${esc(silhouette)}</dd></div><div><dt>Environment</dt><dd>${esc(readiness.assessed ? readiness.context : "Informational only")}</dd></div></dl></div>
-    </div>
-    <div class="fit-board-legend"><span>${icon("lock-keyhole")} Keep preserves the piece</span><span>${icon("refresh-cw")} Swap changes only that slot</span><span>${icon("scan-line")} Clean keeps the original and adds a derived flat lay</span></div>
-    <div class="fit-board-actions">
-      <button class="ghost" data-action="compareFit" title="Duplicate this outfit into two independently editable versions">${icon("columns-2")}Compare another version</button>
-      <button class="ghost" data-action="studioBattle">${icon("swords")}Build 3 Directions</button>
-      <button class="ghost" data-action="judgeFit" title="Score this exact board using fit, color, proportion, texture, and accessories">${icon("wand-sparkles")}Judge This Outfit</button>
-      <button class="primary" data-action="generateFitMockup">${icon("image-plus")}See It On Me</button>
-    </div>
-  </section>`;
-}
 function fitBoardMini(fit){
   const order = ["outerwear","midLayer","baseLayer","bottoms","shoes","hat","watch","detail"];
   return `<div class="fit-board-mini">${order.map(slot=>{
@@ -7629,66 +7564,6 @@ function studioBattleBoard(){
       <div class="judge-summary battle-judge-summary">${battleJudgeRows(candidate)}</div>
     </button>`).join("")}</div>
   </section>`;
-}
-function toggleBoardKeep(slot){
-  const item = currentFit[slot];
-  if(!item) return;
-  const locked = new Set(currentFit.lockedItemIds || []);
-  if(locked.has(item.id)) locked.delete(item.id); else locked.add(item.id);
-  currentFit.lockedItemIds = [...locked];
-  currentFit.pieceFeedback = [...(currentFit.pieceFeedback||[]),{slot,itemId:item.id,signal:locked.has(item.id)?"keep":"unlock",at:new Date().toISOString()}].slice(-40);
-  saveCurrentFitDraft();
-  render();
-  toast(locked.has(item.id) ? `${item.name} kept` : `${item.name} unlocked`);
-}
-function removeBoardPiece(slot){
-  const item = currentFit[slot];
-  if(!item) return;
-  delete currentFit[slot];
-  currentFit.lockedItemIds = (currentFit.lockedItemIds||[]).filter(id=>id!==item.id);
-  currentFit.rejectedItemIds = [...new Set([...(currentFit.rejectedItemIds||[]),item.id])].slice(-30);
-  currentFit.pieceFeedback = [...(currentFit.pieceFeedback||[]),{slot,itemId:item.id,signal:"remove",at:new Date().toISOString()}].slice(-40);
-  currentJudgement = null;
-  currentFitMockup = null;
-  saveCurrentFitDraft();
-  render();
-  toast(`${item.name} removed; the rest stayed put`);
-}
-function swapBoardPiece(slot){
-  const previous = currentFit[slot];
-  const rejected = new Set([...(currentFit.rejectedItemIds||[]),previous?.id].filter(Boolean));
-  const used = new Set(Object.values(currentFitPieces()).map(item=>item.id));
-  const history = new Set(currentFit.boardSwapHistory?.[slot] || []);
-  const concept = chooseFireFitConcept(previous || currentFit.midLayer || currentFit.baseLayer || currentFit.bottoms || null,slot,currentFit.styleLane || "");
-  const candidates = slotPool(slot).filter(item=>itemAvailableForStyling(item) && !used.has(item.id) && !rejected.has(item.id) && !history.has(item.id));
-  const fallback = slotPool(slot).filter(item=>itemAvailableForStyling(item) && !used.has(item.id) && !rejected.has(item.id));
-  const ranked = (candidates.length ? candidates : fallback).map(item=>{
-    const trial = {...currentFit,[slot]:item};
-    const local = Number(localJudgeFit(trial).score||0);
-    const conceptScore = conceptScoreItem(item,concept,slot,trial);
-    const photoBonus = displayPhoto(item) ? 3 : 0;
-    return {item,score:local*2 + conceptScore + photoBonus - recentItemUseIndex(item.id,slot)*2};
-  }).sort((a,b)=>b.score-a.score);
-  const next = ranked[0]?.item;
-  if(!next){ toast(`No fresh ${slotLabel(slot).toLowerCase()} found`); return; }
-  currentFit[slot] = next;
-  currentFit.rejectedItemIds = [...rejected].slice(-30);
-  currentFit.boardSwapHistory ||= {};
-  currentFit.boardSwapHistory[slot] = [...new Set([...(currentFit.boardSwapHistory[slot]||[]),next.id])].slice(-12);
-  const locked = new Set(currentFit.lockedItemIds||[]);
-  if(previous) locked.delete(previous.id);
-  currentFit.lockedItemIds = [...locked];
-  currentFit.pieceFeedback = [...(currentFit.pieceFeedback||[]),{slot,itemId:previous?.id||"",replacementId:next.id,signal:"swap",at:new Date().toISOString()}].slice(-40);
-  currentFit.builderSource = "Piece-level swap";
-  currentJudgement = null;
-  currentFitMockup = null;
-  saveCurrentFitDraft();
-  render();
-  toast(`${slotLabel(slot)} swapped to ${next.name}`);
-}
-async function createGarmentCutout(slot){
-  const item = currentFit[slot];
-  return createGarmentCutoutForItem(item);
 }
 async function createGarmentCutoutForItem(item,{transparent=false}={}){
   if(!item || _cutoutJobs.has(item.id)) return;
@@ -20342,16 +20217,6 @@ document.addEventListener("click", e => {
     _inspirationView = inspirationView.dataset.inspirationView || "discover";
     localStorage.setItem("fits_inspiration_view_v1",_inspirationView);
     render();
-    return;
-  }
-  const boardAction = e.target.closest("[data-board-action]");
-  if(boardAction){
-    const slotName = boardAction.dataset.boardSlot;
-    if(boardAction.dataset.boardAction === "hero") setBoardHero(slotName);
-    if(boardAction.dataset.boardAction === "keep") toggleBoardKeep(slotName);
-    if(boardAction.dataset.boardAction === "swap") swapBoardPiece(slotName);
-    if(boardAction.dataset.boardAction === "remove") removeBoardPiece(slotName);
-    if(boardAction.dataset.boardAction === "cutout") createGarmentCutout(slotName);
     return;
   }
   const paletteBuild = e.target.closest("[data-palette-build]");
