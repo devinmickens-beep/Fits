@@ -159,13 +159,35 @@
 @media(max-width:900px){.vision-stage-layout{grid-template-columns:1fr}.vision-layer-stack{grid-row:1;height:auto;min-height:0;max-height:330px}.vision-canvas{grid-row:2}.vision-layer-list{display:grid;grid-template-columns:repeat(2,minmax(0,1fr))}.vision-layer-head>p{display:none}}
 @media(max-width:700px){.vision-canvas{height:620px}.vision-piece-tools{max-width:190px}.vision-piece-tools select{width:95px}.vision-piece-tools{top:0;transform:translateY(-100%)}.vision-piece-depth{bottom:auto;top:100%;margin:7px 0 0}.vision-layer-list{grid-template-columns:1fr}.vision-layer-stack{max-height:380px}}
 
-/* Bigger board on demand — the canvas was a fixed 590px on phones. */
-.vision-canvas.tall{height:min(150vw,1100px);min-height:760px}
-@media(max-width:900px){.view-board .vision-canvas.tall{height:900px}}
-@media(max-width:700px){.vision-canvas.tall{height:860px;min-height:0}}
-.vision-size-toggle{display:inline-flex;align-items:center;gap:6px;padding:6px 11px;font-size:11px;white-space:nowrap;border:1px solid var(--line,rgba(150,150,150,.4));border-radius:999px;background:transparent;color:inherit;cursor:pointer}
-.vision-size-toggle svg{width:14px;height:14px}
-@media(max-width:360px){.vision-size-toggle{padding:5px 8px;font-size:10px}}
 .vision-clean-btn{font-size:10px;padding:3px 8px;border-radius:999px;border:1px solid rgba(150,150,150,.45);background:transparent;color:inherit;cursor:pointer;white-space:nowrap}
 .vision-clean-btn.on{border-color:rgba(111,150,88,.75)}
 .vision-clean-btn[disabled]{opacity:.55;cursor:default}
+
+/* ---- Zoom: scale the canvas itself so drag maths stays exact ---- */
+.vision-canvas-scroll{overflow:auto;-webkit-overflow-scrolling:touch;border-radius:8px;max-width:100%}
+.vision-stage-layout .vision-canvas{
+  width:calc(100% * var(--vision-zoom,1));
+  height:calc(min(58vw,650px) * var(--vision-zoom,1));
+  min-height:calc(500px * var(--vision-zoom,1));
+}
+@media(max-width:900px){
+  .view-board .vision-stage-layout .vision-canvas{height:calc(590px * var(--vision-zoom,1))}
+}
+@media(max-width:700px){
+  .vision-stage-layout .vision-canvas{height:calc(590px * var(--vision-zoom,1));min-height:0}
+}
+.vision-zoom{display:inline-flex;align-items:stretch;border:1px solid rgba(150,150,150,.45);border-radius:999px;overflow:hidden}
+.vision-zoom button{min-width:34px;padding:5px 9px;font-size:12px;line-height:1;background:transparent;color:inherit;border:0;cursor:pointer}
+.vision-zoom button+button{border-left:1px solid rgba(150,150,150,.3)}
+.vision-zoom button:nth-child(2){min-width:52px;font-size:11px;font-variant-numeric:tabular-nums}
+.vision-zoom button:hover{background:rgba(150,150,150,.14)}
+
+/* ---- Depth: a piece in front should look like it is in front ---- */
+.vision-piece{--depth:1}
+.vision-piece .vision-piece-art{
+  filter:drop-shadow(0 calc(2px + 7px * var(--depth)) calc(3px + 11px * var(--depth)) rgba(0,0,0,calc(.10 + .26 * var(--depth))));
+}
+.vision-piece.selected .vision-piece-art{
+  filter:drop-shadow(0 calc(3px + 9px * var(--depth)) calc(4px + 14px * var(--depth)) rgba(0,0,0,calc(.16 + .30 * var(--depth))));
+}
+@media(prefers-reduced-motion:reduce){.vision-piece .vision-piece-art{transition:none}}

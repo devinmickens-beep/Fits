@@ -18,7 +18,7 @@
 <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;1,300;1,400;1,500;1,600&family=Geist:wght@300;400;500;600;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="assets/fits-app.css?v=178">
 <link rel="stylesheet" href="assets/style-os.css?v=5">
-<link rel="stylesheet" href="assets/vision-board.css?v=10">
+<link rel="stylesheet" href="assets/vision-board.css?v=11">
 </head>
 <body>
 <div class="app">
@@ -4316,7 +4316,7 @@ function visionPieceMarkup(piece){
   const ordered = [...visionBoardState().pieces].sort((a,b)=>b.z-a.z);
   const layerIndex = ordered.findIndex(entry=>entry.id===piece.id);
   const depthLabel = ordered.length === 1 ? "ONLY LAYER" : layerIndex === 0 ? "FRONT" : layerIndex === ordered.length-1 ? "BACK" : `LAYER ${layerIndex+1} OF ${ordered.length}`;
-  return `<div class="vision-piece${selected?" selected":""}${activeSlot?" in-fit":""}" data-vision-piece="${esc(piece.id)}" style="left:${Math.min(piece.x,100-displayWidth)}%;top:${piece.y}%;width:${displayWidth}%;z-index:${piece.z}" tabindex="0" role="group" aria-label="Move ${esc(item.brand)} ${esc(item.name)}${activeSlot?` — in outfit as ${slotLabel(activeSlot)}`:""}">
+  return `<div class="vision-piece${selected?" selected":""}${activeSlot?" in-fit":""}" data-vision-piece="${esc(piece.id)}" style="left:${Math.min(piece.x,100-displayWidth)}%;top:${piece.y}%;width:${displayWidth}%;z-index:${piece.z};--depth:${ordered.length > 1 ? ((ordered.length - layerIndex) / ordered.length).toFixed(3) : 1}" tabindex="0" role="group" aria-label="Move ${esc(item.brand)} ${esc(item.name)}${activeSlot?` — in outfit as ${slotLabel(activeSlot)}`:""}">
     <div class="vision-piece-art">${photo?`<img src="${esc(photo)}" alt="${esc(item.brand)} ${esc(item.name)}" draggable="false">`:`<div class="vision-piece-placeholder" style="--piece-color:${visionColor(item.color)}"><span>${icon(inferredCategory(item)==="Bottoms"?"align-justify":inferredCategory(item)==="Shoes"?"footprints":"shirt")}</span><small>Photo needed</small></div>`}</div>
     ${activeSlot?`<span class="vision-piece-active">IN OUTFIT · ${esc(slotLabel(activeSlot))}</span>`:""}
     <span class="vision-piece-depth">${depthLabel}</span>
@@ -4416,8 +4416,8 @@ function visionBoardMarkup(){
   board.pieces = board.pieces.filter(piece=>visionPieceItem(piece));
   const activeCount = FIT_SLOTS.filter(slot=>currentFit[slot]?.id).length;
   return `<section class="vision-workspace" aria-label="Outfit vision board"><div class="vision-workspace-head"><div><span>OUTFIT STUDIO / BOARD</span><h3>Layer your look</h3><p>Move the actual pieces together. Layer a jacket over a shirt, then line up the rest.</p></div><strong>${activeCount} in outfit</strong></div>
-    <div class="vision-toolbar"><button type="button" class="vision-size-toggle" data-vision-taller="${board.tall ? "off" : "on"}" title="${board.tall ? "Use the standard board height" : "Give the board more room"}">${icon(board.tall ? "minimize" : "maximize")}${board.tall ? "Standard board" : "Bigger board"}</button><div class="vision-backgrounds" role="group" aria-label="Board background"><button type="button" data-vision-background="gray" class="${board.background==="gray"?"on":""}">Gray</button><button type="button" data-vision-background="white" class="${board.background==="white"?"on":""}">White</button></div><button type="button" class="ghost" data-action="visionSnap" aria-pressed="${board.snap !== false}">Snap ${board.snap !== false?"on":"off"}</button><button type="button" class="ghost" data-action="visionLayerFit">${icon("layers")}Arrange active outfit</button><button type="button" class="ghost" data-action="visionPlaceFit">Place current fit</button><button type="button" class="ghost" data-action="visionClear">Clear board</button></div>
-    <div class="vision-stage-layout"><div class="vision-canvas ${board.background}${board.tall ? " tall" : ""}" id="visionCanvas" aria-label="Movable clothing vision board">${board.pieces.length ? board.pieces.map(visionPieceMarkup).join("") : `<div class="vision-empty"><strong>Start with a piece from your wardrobe</strong><p>Drag clothes here, then overlap them to build your look.</p></div>`}</div>${visionLayerStackMarkup(board)}</div>
+    <div class="vision-toolbar"><div class="vision-zoom" role="group" aria-label="Board zoom"><button type="button" data-vision-zoom="out" aria-label="Zoom out" title="Zoom out">−</button><button type="button" data-vision-zoom="reset" aria-label="Reset zoom" title="Reset zoom">${Math.round(visionZoom()*100)}%</button><button type="button" data-vision-zoom="in" aria-label="Zoom in" title="Zoom in">+</button></div><div class="vision-backgrounds" role="group" aria-label="Board background"><button type="button" data-vision-background="gray" class="${board.background==="gray"?"on":""}">Gray</button><button type="button" data-vision-background="white" class="${board.background==="white"?"on":""}">White</button></div><button type="button" class="ghost" data-action="visionSnap" aria-pressed="${board.snap !== false}">Snap ${board.snap !== false?"on":"off"}</button><button type="button" class="ghost" data-action="visionLayerFit">${icon("layers")}Arrange active outfit</button><button type="button" class="ghost" data-action="visionPlaceFit">Place current fit</button><button type="button" class="ghost" data-action="visionClear">Clear board</button></div>
+    <div class="vision-stage-layout"><div class="vision-canvas-scroll"><div class="vision-canvas ${board.background}" id="visionCanvas" style="--vision-zoom:${visionZoom()}" aria-label="Movable clothing vision board">${board.pieces.length ? board.pieces.map(visionPieceMarkup).join("") : `<div class="vision-empty"><strong>Start with a piece from your wardrobe</strong><p>Drag clothes here, then overlap them to build your look.</p></div>`}</div></div>${visionLayerStackMarkup(board)}</div>
     <p class="vision-help">The board keeps each original wardrobe photo sharp. The layer list runs from front to back; use <b>Move layer</b> to decide which full photo sits on top, <b>− +</b> for size, and <b>+ Fit</b> to include it in your outfit.</p>
     <div class="vision-board-actions"><button class="ghost" data-action="judgeFit">${icon("wand-sparkles")}Judge active outfit with OpenAI</button><button class="primary" data-action="generateFitMockup">${icon("image-plus")}See It On Me</button></div>${visionJudgePreview()}</section>`;
 }
@@ -4460,6 +4460,25 @@ function visionEntryWidth(item, mobile){
   if(!base) return mobile ? 30 : 22;
   return Math.round(Math.max(8, Math.min(48, mobile ? base * 1.25 : base)));
 }
+// Zoom. Positions are percentages of the canvas and the drag maths divides by
+// the canvas's own bounding rect, so scaling the canvas's real width/height
+// (rather than a CSS transform) keeps dragging exact while giving more room to
+// lay two options side by side.
+const VISION_ZOOM_MIN = 0.6, VISION_ZOOM_MAX = 2.5;
+function visionZoom(){
+  const z = Number(visionBoardState().zoom);
+  return Number.isFinite(z) ? Math.min(VISION_ZOOM_MAX, Math.max(VISION_ZOOM_MIN, z)) : 1;
+}
+function setVisionZoom(next){
+  const board = visionBoardState();
+  board.zoom = Math.min(VISION_ZOOM_MAX, Math.max(VISION_ZOOM_MIN, Math.round(next * 20) / 20));
+  save({silentQuota:true});
+  render();
+}
+function nudgeVisionZoom(dir){
+  const now = visionZoom();
+  setVisionZoom(dir > 0 ? now * 1.25 : now / 1.25);
+}
 function addVisionPiece(itemId,x=null,y=null){
   const item = state.items.find(piece=>piece.id===itemId && piece.type==="wardrobe");
   if(!item) return;
@@ -4475,6 +4494,12 @@ function addVisionPiece(itemId,x=null,y=null){
   save({silentQuota:true});
   render();
   toast(`${item.name} added to board`);
+  // Knock the background out as soon as a piece lands, so layering reads as
+  // layering. Only on a single add — the bulk fill would fire one image job per
+  // piece. Skipped when the item already has a cutout.
+  try{
+    if(!item.cutoutPhoto && displayPhoto(item)) createGarmentCutoutForItem(item,{transparent:true});
+  }catch(err){}
 }
 function changeVisionPiece(id,action){
   const board = visionBoardState();
@@ -19954,8 +19979,12 @@ document.addEventListener("click", e => {
   if(visionView){ visionBoardState().view = visionView.dataset.visionView === "mannequin" ? "mannequin" : "canvas"; save({silentQuota:true}); render(); return; }
   const mannequinRemove = e.target.closest("[data-mannequin-remove]");
   if(mannequinRemove){ removeMannequinSlot(mannequinRemove.dataset.mannequinRemove); return; }
-  const visionTaller = e.target.closest("[data-vision-taller]");
-  if(visionTaller){ visionBoardState().tall = visionTaller.dataset.visionTaller === "on"; save({silentQuota:true}); render(); return; }
+  const visionZoomBtn = e.target.closest("[data-vision-zoom]");
+  if(visionZoomBtn){
+    const how = visionZoomBtn.dataset.visionZoom;
+    if(how === "reset") setVisionZoom(1); else nudgeVisionZoom(how === "in" ? 1 : -1);
+    return;
+  }
   const visionBackground = e.target.closest("[data-vision-background]");
   if(visionBackground){ visionBoardState().background = visionBackground.dataset.visionBackground === "white" ? "white" : "gray"; save({silentQuota:true}); render(); return; }
   const visionCategoryButton = e.target.closest("[data-vision-category]");
