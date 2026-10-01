@@ -37,9 +37,11 @@ var FitsIntelligence = (() => {
     buildCoverageReport: () => buildCoverageReport,
     buildOutfitStudioBrief: () => buildOutfitStudioBrief,
     buildRejectedPairing: () => buildRejectedPairing,
+    canSaveOutfitComparisonVersion: () => canSaveOutfitComparisonVersion,
     colorCompat: () => colorCompat,
     colorFamilyFor: () => colorFamilyFor,
     computeRejectionPenalty: () => computeRejectionPenalty,
+    createOutfitComparisonDraft: () => createOutfitComparisonDraft,
     defaultHermesMemory: () => defaultHermesMemory,
     detectFitIntent: () => detectFitIntent,
     devinTasteScore: () => devinTasteScore,
@@ -86,6 +88,7 @@ var FitsIntelligence = (() => {
     saveRejectedPairings: () => saveRejectedPairings,
     selectViaAgreement: () => selectViaAgreement,
     serializeHermesMemory: () => serializeHermesMemory,
+    setOutfitComparisonPiece: () => setOutfitComparisonPiece,
     tallyLaneUsage: () => tallyLaneUsage,
     topItemOf: () => topItemOf,
     validateItemMetadata: () => validateItemMetadata,
@@ -1845,6 +1848,69 @@ Pascal|Oval Dress Watch|Cream Dial / Gold Tone|Black + Green Croc Leather|40|202
       selected.openAiJudgeScore = judgeResult.openAiScore;
     }
     return { candidates, selection, selected, judge: judgeResult };
+  }
+
+  // src/ui/outfitComparison.ts
+  var COMPARISON_META_KEYS = [
+    "vibe",
+    "occasion",
+    "colorDirection",
+    "dressCode",
+    "weatherTemp",
+    "weatherCondition",
+    "styleLane",
+    "concept",
+    "silhouette",
+    "styleDirective",
+    "judgeContext"
+  ];
+  function createOutfitComparisonDraft(fit, heroSlot, slots, now = (/* @__PURE__ */ new Date()).toISOString()) {
+    if (!slots.includes(heroSlot)) return null;
+    const slotIds = {};
+    for (const slot of slots) {
+      const item = fit[slot];
+      if (typeof (item == null ? void 0 : item.id) === "string" && item.id) slotIds[slot] = item.id;
+    }
+    const heroId = slotIds[heroSlot];
+    if (!heroId) return null;
+    const meta = {};
+    for (const key of COMPARISON_META_KEYS) {
+      const value = fit[key];
+      if (typeof value === "string" || typeof value === "number") meta[key] = value;
+    }
+    const makeVersion = (name) => ({
+      name,
+      slotIds: { ...slotIds },
+      meta: { ...meta }
+    });
+    return {
+      version: 1,
+      active: true,
+      heroSlot,
+      heroId,
+      createdAt: now,
+      updatedAt: now,
+      versions: [makeVersion("Current direction"), makeVersion("Alternate version")]
+    };
+  }
+  function setOutfitComparisonPiece(draft, versionIndex, slot, itemId2, slots, now = (/* @__PURE__ */ new Date()).toISOString()) {
+    var _a;
+    if (versionIndex !== 0 && versionIndex !== 1) throw new Error("invalid-version");
+    if (!slots.includes(slot)) throw new Error("invalid-slot");
+    if (slot === draft.heroSlot && itemId2 !== draft.heroId) throw new Error("hero-locked");
+    if (itemId2 && itemId2 === draft.heroId && slot !== draft.heroSlot) throw new Error("hero-locked");
+    const current = draft.versions[versionIndex];
+    const duplicateSlot = itemId2 ? (_a = Object.entries(current.slotIds).find(([otherSlot, otherId]) => otherSlot !== slot && otherId === itemId2)) == null ? void 0 : _a[0] : void 0;
+    if (duplicateSlot) throw new Error("duplicate-piece");
+    const versions = [...draft.versions];
+    const slotIds = { ...current.slotIds };
+    if (itemId2) slotIds[slot] = itemId2;
+    else delete slotIds[slot];
+    versions[versionIndex] = { ...current, slotIds };
+    return { ...draft, versions, updatedAt: now };
+  }
+  function canSaveOutfitComparisonVersion(version) {
+    return new Set(Object.values(version.slotIds).filter(Boolean)).size >= 2;
   }
 
   // src/audit/metadataValidation.ts

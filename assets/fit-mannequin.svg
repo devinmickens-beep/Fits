@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 360 720" role="img" aria-label="Dark-skinned athletic fit mannequin">
+  <defs>
+    <linearGradient id="skin" x1="0" x2="1" y1="0" y2="0"><stop stop-color="#3f241d"/><stop offset=".48" stop-color="#6a4030"/><stop offset="1" stop-color="#3c231d"/></linearGradient>
+    <linearGradient id="short" x1="0" x2="1"><stop stop-color="#252a29"/><stop offset=".5" stop-color="#343b39"/><stop offset="1" stop-color="#242927"/></linearGradient>
+    <filter id="shadow"><feGaussianBlur stdDeviation="9"/></filter>
+  </defs>
+  <ellipse cx="180" cy="695" rx="98" ry="10" fill="#15231d" opacity=".18" filter="url(#shadow)"/>
+  <path d="M136 411 Q128 436 132 482 L129 580 Q126 638 132 668 Q141 680 154 670 L164 589 L174 484 L180 446 L186 484 L196 589 L206 670 Q219 680 228 668 Q234 638 231 580 L228 482 Q232 436 224 411Z" fill="url(#skin)" stroke="#322019" stroke-width="2"/>
+  <path d="M126 659 Q122 676 105 683 Q91 687 85 696 Q87 703 104 703 L152 703 Q161 700 157 688 L153 663Z M207 663 Q203 688 207 700 Q220 704 255 703 Q273 702 275 696 Q269 687 253 683 Q237 676 233 659Z" fill="url(#skin)" stroke="#322019" stroke-width="2"/>
+  <path d="M111 194 Q90 194 81 220 L65 300 L53 375 Q50 399 59 417 Q67 425 77 415 L88 379 L111 305 L131 240Z M249 194 Q270 194 279 220 L295 300 L307 375 Q310 399 301 417 Q293 425 283 415 L272 379 L249 305 L229 240Z" fill="url(#skin)" stroke="#322019" stroke-width="2"/>
+  <path d="M56 405 Q50 421 58 431 Q65 438 73 429 L78 409Z M282 409 L287 429 Q295 438 302 431 Q310 421 304 405Z" fill="url(#skin)"/>
+  <path d="M148 153 L148 187 Q138 190 114 197 Q104 214 111 252 L127 309 Q136 345 135 385 L133 431 Q152 445 180 447 Q208 445 227 431 L225 385 Q224 345 233 309 L249 252 Q256 214 246 197 Q222 190 212 187 L212 153Z" fill="url(#skin)" stroke="#322019" stroke-width="2"/>
+  <path d="M111 220 Q145 239 180 237 Q215 239 249 220 M145 289 Q180 307 215 289 M157 343 Q180 351 203 343" fill="none" stroke="#7d513e" stroke-width="2" opacity=".45"/>
+  <path d="M137 411 Q180 427 223 411 L227 464 Q207 480 181 475 L180 450 L179 475 Q153 480 133 464Z" fill="url(#short)" stroke="#202624" stroke-width="2"/>
+  <path d="M137 417 Q180 431 223 417" fill="none" stroke="#737b76" stroke-width="5" opacity=".5"/>
+  <path d="M144 92 Q145 56 180 54 Q215 56 216 92 L215 125 Q209 149 192 160 L168 160 Q151 149 145 125Z" fill="url(#skin)" stroke="#322019" stroke-width="2"/>
+  <path d="M144 96 Q139 75 150 58 Q163 41 183 42 Q208 42 219 61 Q225 75 216 98 L209 86 Q199 88 193 76 Q178 86 148 86Z" fill="#171a19"/>
+  <path d="M149 124 Q157 148 168 156 Q180 162 192 156 Q203 148 211 124 Q204 137 194 139 L189 146 L171 146 L166 139 Q156 137 149 124Z" fill="#1b1a19"/>
+  <path d="M157 112 Q164 108 172 112 M188 112 Q196 108 203 112 M172 130 Q180 134 188 130" fill="none" stroke="#251914" stroke-width="2" stroke-linecap="round"/>
+</svg>

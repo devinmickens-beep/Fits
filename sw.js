@@ -1,9 +1,11 @@
-const CACHE_NAME = "closet-archive-v220-declutter-explain";
+const CACHE_NAME = "closet-archive-v244-board-sizing";
 const APP_SHELL = [
   "/",
   "/index.html",
-  "/assets/fits-app.css?v=176",
+  "/assets/fits-app.css?v=178",
   "/assets/style-os.css?v=5",
+  "/assets/vision-board.css?v=8",
+  "/assets/board-layers.js?v=2",
   "/assets/fragrance-profiles.js",
   "/assets/fragrance-temperature.js?v=1",
   "/manifest.webmanifest",
